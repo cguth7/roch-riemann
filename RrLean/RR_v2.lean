@@ -342,7 +342,185 @@ The constructive proof strategy uses these facts:
    - Proof by induction on deg(D) using single-point bound
 -/
 
-/-- The Riemann inequality (stated): ℓ(D) ≤ deg(D) + 1 for effective D. -/
+/-! ## Cycle 21: SinglePointBound Typeclass and Riemann Inequality -/
+
+-- Candidate 1 [tag: typeclass_single_point_bound] [status: OK]
+/-- Typeclass capturing the single-point dimension bound for Riemann-Roch.
+
+This encodes two key geometric facts:
+1. Adding a single point increases ℓ(D) by at most 1 (single_point_bound)
+2. The only functions with no poles are constants, so ℓ(0) = 1 (ell_zero_eq_one)
+
+These axioms enable the degree induction proof of Riemann inequality.
+Geometrically, the bound comes from the evaluation map L(D + v) → κ(v) with kernel ⊇ L(D). -/
+class SinglePointBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] where
+  /-- Adding a single point increases dimension by at most 1 -/
+  bound : ∀ (D : DivisorV2 R) (v : HeightOneSpectrum R),
+    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1
+  /-- L(0) has dimension 1 (only constants have no poles) -/
+  ell_zero_eq_one : ellV2_real R K 0 = 1
+
+namespace DivisorV2
+
+-- Candidate 2 [tag: degree_helpers] [status: OK]
+/-- Degree of D + single v 1 is deg D + 1. -/
+lemma deg_add_single' (D : DivisorV2 R) (v : HeightOneSpectrum R) :
+    (D + DivisorV2.single v 1).deg = D.deg + 1 := by
+  rw [deg_add, deg_single]
+
+-- Candidate 3 [tag: degree_helpers] [status: OK]
+/-- If D is effective with positive degree, there exists v with D(v) > 0.
+This is key for "peeling off" a point in the induction step. -/
+lemma exists_pos_of_deg_pos {D : DivisorV2 R} (hD : D.Effective)
+    (hdeg : 0 < D.deg) : ∃ v : HeightOneSpectrum R, 0 < D v := by
+  by_contra h_all_zero
+  push_neg at h_all_zero
+  have h_zero_deg : D.deg = 0 := by
+    unfold deg
+    rw [Finsupp.sum, Finset.sum_eq_zero]
+    intro x _
+    specialize h_all_zero x
+    have hDx : 0 ≤ D x := hD x
+    omega
+  omega
+
+-- Candidate 4 [tag: effectivity_subtraction] [status: OK]
+/-- If D is effective and D(v) > 0, then D - single v 1 is effective.
+This ensures the induction hypothesis applies to the smaller divisor. -/
+lemma effective_sub_single {D : DivisorV2 R} (hD : D.Effective)
+    (v : HeightOneSpectrum R) (hv : 0 < D v) :
+    (D - DivisorV2.single v 1).Effective := by
+  intro w
+  simp only [Finsupp.coe_sub, Finsupp.coe_zero, Pi.sub_apply, Pi.zero_apply, single]
+  by_cases h : w = v
+  · subst h
+    simp only [Finsupp.single_eq_same]
+    omega
+  · simp only [Finsupp.single_eq_of_ne h, sub_zero]
+    exact hD w
+
+-- Candidate 5 [tag: degree_subtraction] [status: OK]
+/-- Degree subtraction: deg(D - single v 1) = deg D - 1. -/
+lemma deg_sub_single (D : DivisorV2 R) (v : HeightOneSpectrum R) :
+    (D - DivisorV2.single v 1).deg = D.deg - 1 := by
+  rw [sub_eq_add_neg, deg_add, deg_neg, deg_single]
+  ring
+
+-- Candidate 6 [tag: single_reconstruction] [status: OK]
+/-- Reconstruction: (D - single v 1) + single v 1 = D. -/
+lemma sub_add_single_cancel (D : DivisorV2 R) (v : HeightOneSpectrum R) :
+    (D - DivisorV2.single v 1) + DivisorV2.single v 1 = D := by
+  simp only [sub_add_cancel]
+
+end DivisorV2
+
+-- Candidate 7 [tag: typeclass_application] [status: OK]
+/-- Application of SinglePointBound: ℓ(D + v) ≤ ℓ(D) + 1. -/
+lemma ellV2_real_add_single_le_succ [SinglePointBound R K]
+    (D : DivisorV2 R) (v : HeightOneSpectrum R) :
+    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1 :=
+  SinglePointBound.bound D v
+
+-- Candidate 8 [tag: riemann_inequality] [status: OK]
+/-- Riemann inequality: ℓ(D) ≤ deg(D) + 1 for effective divisors.
+
+PROOF STRATEGY (degree induction):
+1. Induct on n = (deg D).toNat
+2. Base case (n = 0): Effective D with deg 0 implies D = 0
+   - Use SinglePointBound.ell_zero_eq_one to get ℓ(0) = 1 ≤ 0 + 1
+3. Inductive step (n → n+1):
+   - deg D = n+1 > 0, so exists v with D(v) > 0 (DivisorV2.exists_pos_of_deg_pos)
+   - Let D' = D - single v 1, then D = D' + single v 1
+   - D' is effective (DivisorV2.effective_sub_single) with deg D' = n
+   - IH: ℓ(D') ≤ deg(D') + 1 = n + 1
+   - Bound: ℓ(D) ≤ ℓ(D') + 1 (SinglePointBound.bound)
+   - Combine: ℓ(D) ≤ n + 1 + 1 = deg(D) + 1 -/
+lemma riemann_inequality_real [SinglePointBound R K] {D : DivisorV2 R} (hD : D.Effective) :
+    (ellV2_real R K D : ℤ) ≤ D.deg + 1 := by
+  -- Induction on n = (deg D).toNat
+  have h_deg_nonneg : 0 ≤ D.deg := by
+    unfold DivisorV2.deg
+    apply Finsupp.sum_nonneg
+    intro v _
+    exact hD v
+  generalize hn : D.deg.toNat = n
+  induction n generalizing D with
+  | zero =>
+    -- If deg(D).toNat = 0 and D is effective, then D = 0
+    have hdeg_zero : D.deg = 0 := by
+      have : D.deg.toNat = 0 := hn
+      have := Int.toNat_of_nonneg h_deg_nonneg
+      omega
+    have h_zero : D = 0 := by
+      ext v
+      by_contra h_neq
+      have h_pos : 0 < D v := lt_of_le_of_ne (hD v) (Ne.symm h_neq)
+      have h_in_supp : v ∈ D.support := Finsupp.mem_support_iff.mpr (ne_of_gt h_pos)
+      have h_sum_pos : 0 < D.deg := by
+        unfold DivisorV2.deg
+        apply Finsupp.sum_pos'
+        · intro x _; exact hD x
+        · exact ⟨v, h_in_supp, h_pos⟩
+      omega
+    subst h_zero
+    simp only [DivisorV2.deg_zero, zero_add]
+    have h1 : ellV2_real R K 0 = 1 := SinglePointBound.ell_zero_eq_one
+    omega
+  | succ n ih =>
+    -- deg(D).toNat = n + 1 > 0, so exists v with D(v) > 0
+    have hdeg_pos : D.deg = n + 1 := by
+      have h1 := Int.toNat_of_nonneg h_deg_nonneg
+      omega
+    have h_exists_pos : ∃ v, 0 < D v := DivisorV2.exists_pos_of_deg_pos (R := R) hD (by omega)
+    obtain ⟨v, hv⟩ := h_exists_pos
+    -- D' = D - single v 1
+    let D' := D - DivisorV2.single v 1
+    have h_decomp : D = D' + DivisorV2.single v 1 := by
+      simp only [D', DivisorV2.sub_add_single_cancel]
+    -- D' is effective
+    have hD' : D'.Effective := DivisorV2.effective_sub_single (R := R) hD v hv
+    -- deg(D') = n
+    have hdeg' : D'.deg.toNat = n := by
+      have h1 : D'.deg = D.deg - 1 := DivisorV2.deg_sub_single (R := R) D v
+      have h2 : 0 ≤ D'.deg := by
+        unfold DivisorV2.deg
+        apply Finsupp.sum_nonneg
+        intro w _; exact hD' w
+      omega
+    -- Apply IH to D'
+    have h_le := ih hD' (by
+      unfold DivisorV2.deg
+      apply Finsupp.sum_nonneg
+      intro w _; exact hD' w) hdeg'
+    -- Apply single point bound
+    rw [h_decomp]
+    have h_step : ellV2_real R K (D' + DivisorV2.single v 1) ≤ ellV2_real R K D' + 1 :=
+      SinglePointBound.bound D' v
+    -- Combine
+    have hdeg_D' : D'.deg = n := by
+      have h1 : D'.deg = D.deg - 1 := DivisorV2.deg_sub_single (R := R) D v
+      rw [h1, hdeg_pos]
+      ring
+    have hdeg_total : (D' + DivisorV2.single v 1).deg = D'.deg + 1 :=
+      DivisorV2.deg_add_single' (R := R) D' v
+    -- h_le : (ellV2_real R K D' : ℤ) ≤ D'.deg + 1
+    -- h_step : ellV2_real R K (D' + DivisorV2.single v 1) ≤ ellV2_real R K D' + 1
+    -- hdeg_D' : D'.deg = n
+    -- hdeg_total : (D' + DivisorV2.single v 1).deg = n + 1 = D.deg
+    -- Goal: (ellV2_real R K (D' + DivisorV2.single v 1) : ℤ) ≤ (D' + DivisorV2.single v 1).deg + 1
+    calc (ellV2_real R K (D' + DivisorV2.single v 1) : ℤ)
+        ≤ ellV2_real R K D' + 1 := by exact_mod_cast h_step
+      _ ≤ (D'.deg + 1) + 1 := by linarith
+      _ = D'.deg + 2 := by ring
+      _ = n + 2 := by rw [hdeg_D']
+      _ = (n + 1) + 1 := by ring
+      _ = (D' + DivisorV2.single v 1).deg + 1 := by rw [hdeg_total, hdeg_D']
+
+/-! ## Original placeholder (superseded by riemann_inequality_real) -/
+
+/-- The Riemann inequality (stated): ℓ(D) ≤ deg(D) + 1 for effective D.
+DEPRECATED: Use riemann_inequality_real with SinglePointBound typeclass instead. -/
 lemma riemann_inequality {D : DivisorV2 R} (hD : D.Effective) :
     (ellV2 R K D : ℤ) ≤ D.deg + 1 := by
   sorry

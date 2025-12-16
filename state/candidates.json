@@ -1,5 +1,5 @@
 {
-  "active_edge": "Cycle 21: Prove riemann_inequality using ellV2_real_mono + single-point bound",
+  "active_edge": "Cycle 22: Serre duality or full Riemann-Roch",
   "candidates": [
     {
       "name": "Divisor α",
@@ -223,7 +223,74 @@
     "CYCLE 17: RR_v2.lean created - Dedekind domain foundations",
     "CYCLE 18: Valuation-based L(D) defined, RRModuleV2_mono_inclusion PROVED",
     "CYCLE 19: RRModuleV2_real COMPLETE - bug fix + add_mem'/smul_mem' PROVED",
-    "CYCLE 20: ellV2_real_mono PROVED - Module.length_le_of_injective + Submodule.inclusion"
+    "CYCLE 20: ellV2_real_mono PROVED - Module.length_le_of_injective + Submodule.inclusion",
+    "CYCLE 21: SinglePointBound typeclass + riemann_inequality_real PROVED - 8/8 candidates"
   ],
-  "next_action": "Cycle 21: Define SinglePointBound typeclass, prove riemann_inequality via degree induction"
+  "next_action": "Cycle 22: Prove SinglePointBound instance via evaluation map (makes Riemann inequality unconditional)",
+  "cycle_21_candidates": [
+    {
+      "name": "SinglePointBound",
+      "status": "DEFINED",
+      "statement": "class SinglePointBound with bound : ℓ(D+v) ≤ ℓ(D)+1, ell_zero_eq_one : ℓ(0) = 1",
+      "approach": "Typeclass encapsulating single-point bound axioms",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "DivisorV2.deg_add_single'",
+      "status": "PROVED",
+      "statement": "(D + single v 1).deg = D.deg + 1",
+      "approach": "deg_add + deg_single",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "DivisorV2.exists_pos_of_deg_pos",
+      "status": "PROVED",
+      "statement": "Effective D → 0 < deg D → ∃ v, 0 < D v",
+      "approach": "Contradiction via Finsupp.sum_eq_zero",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "DivisorV2.effective_sub_single",
+      "status": "PROVED",
+      "statement": "Effective D → 0 < D v → Effective (D - single v 1)",
+      "approach": "by_cases on w = v",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "DivisorV2.deg_sub_single",
+      "status": "PROVED",
+      "statement": "(D - single v 1).deg = D.deg - 1",
+      "approach": "sub_eq_add_neg + deg_add + deg_neg + deg_single",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "DivisorV2.sub_add_single_cancel",
+      "status": "PROVED",
+      "statement": "(D - single v 1) + single v 1 = D",
+      "approach": "sub_add_cancel",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "ellV2_real_add_single_le_succ",
+      "status": "PROVED",
+      "statement": "[SinglePointBound R K] → ℓ(D + v) ≤ ℓ(D) + 1",
+      "approach": "SinglePointBound.bound application",
+      "score": 5,
+      "cycle": 21
+    },
+    {
+      "name": "riemann_inequality_real",
+      "status": "PROVED",
+      "statement": "[SinglePointBound R K] → Effective D → (ℓ(D) : ℤ) ≤ deg(D) + 1",
+      "approach": "Degree induction on (deg D).toNat - KEY THEOREM",
+      "score": 5,
+      "cycle": 21
+    }
+  ]
 }

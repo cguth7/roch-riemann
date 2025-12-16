@@ -297,3 +297,75 @@ lemma riemann_inequality [SinglePointBound R K] {D : DivisorV2 R} (hD : D.Effect
 #### Priority 3: Cleanup
 - Mark `ellV2`, `ellV2_extended`, `ellV2_mono` as deprecated
 - Consider removing placeholder `RRModuleV2` entirely
+
+## Status - Cycle 21 (SUCCESS: Riemann Inequality PROVED for RR_v2.lean)
+- **DEFINED**: `SinglePointBound` typeclass - captures single-point dimension bound
+- **PROVED**: `DivisorV2.deg_add_single'` - degree arithmetic
+- **PROVED**: `DivisorV2.exists_pos_of_deg_pos` - key lemma for degree induction
+- **PROVED**: `DivisorV2.effective_sub_single` - effectivity preservation
+- **PROVED**: `DivisorV2.deg_sub_single` - degree subtraction
+- **PROVED**: `DivisorV2.sub_add_single_cancel` - reconstruction identity
+- **PROVED**: `ellV2_real_add_single_le_succ` - typeclass application
+- **PROVED**: `riemann_inequality_real` - **RIEMANN INEQUALITY for constructive approach**
+
+### Key Achievement
+Riemann inequality `ℓ(D) ≤ deg(D) + 1` is now PROVED in RR_v2.lean using:
+1. `SinglePointBound` typeclass (axiomatizes single-point bound + ell(0)=1)
+2. Degree-based induction on `(deg D).toNat`
+3. Valuation-based L(D) definition from Cycle 19-20
+
+### Architecture: Typeclass vs Structure Extension
+```
+RR.lean (v1):                          RR_v2.lean (v2):
+FunctionFieldDataWithBound (structure)  SinglePointBound (class)
+  single_point_bound : field              bound : class method
+  ell_zero_eq_one : field                 ell_zero_eq_one : class method
+```
+Typeclass approach is more idiomatic - allows `[SinglePointBound R K]` hypothesis.
+
+### Next Steps (Cycle 22)
+
+#### Priority 1: SinglePointBound Instance (MAIN GOAL)
+Prove `instance : SinglePointBound R K` by constructing the evaluation map.
+
+**Strategy**:
+```lean
+-- The evaluation map at v sends f ∈ L(D+v) to its residue class in κ(v)
+-- κ(v) = residue field = LocalRing.ResidueField (Localization.AtPrime v.asIdeal)
+
+-- Key insight: if f ∈ L(D+v) and ord_v(f) ≥ 1, then f ∈ L(D)
+-- This is because: v.valuation K f ≤ exp((D+v)(v)) = exp(D(v) + 1)
+--                  If ord_v(f) ≥ 1, then v.valuation K f ≤ exp(-1) < exp(D(v))
+--                  Wait, need to think about the direction more carefully...
+
+-- Actually: L(D+v) membership means ord_v(f) ≥ -(D(v) + 1)
+-- L(D) membership means ord_v(f) ≥ -D(v)
+-- So if ord_v(f) ≥ 1 (i.e., f vanishes at v), definitely ord_v(f) ≥ -D(v)
+-- The evaluation map extracts the "principal part" at v
+```
+
+**Mathlib components needed**:
+- `LocalRing.ResidueField` for κ(v)
+- `Ideal.Quotient.mk` for the projection map
+- Show evaluation is well-defined on L(D+v)
+- Show kernel contains L(D)
+- Conclude dim(L(D+v)/L(D)) ≤ dim(κ(v)) = 1
+
+**Expected result**: Unconditional Riemann inequality without typeclass assumption.
+
+#### Priority 2: Full RR (Optional)
+State full RR conditionally with genus axiom:
+```lean
+class HasCanonicalDivisor (R K) where
+  K_div : DivisorV2 R
+  genus : ℕ
+  deg_K : K_div.deg = 2 * genus - 2
+```
+
+#### Priority 3: Serre Duality (BLOCKED)
+**Status**: Not achievable with current mathlib. Would require:
+- Global residue theorem for function fields
+- Adelic/idelic machinery
+- Perfect pairing construction
+
+**Decision**: Skip. The axiom-based version in RR.lean covers the theorem shape.
