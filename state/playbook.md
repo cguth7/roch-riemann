@@ -6,370 +6,124 @@
 - Keep lemma statements small: fewer binders, fewer coercions, fewer implicit arguments.
 - When stuck on coercions, introduce explicit `let` bindings for objects (e.g. `L : LineBundle X`).
 
-## Status
-- RESOLVED (Cycle 2): Defined `RRData` structure bundling Div, deg, ell, genus, K. RR statement elaborates.
-- RESOLVED (Cycle 3): Extended to `RRDataWithCohomology` and `RRDataWithEuler`.
-- **DERIVED** (not proved): `RRDataWithEuler.riemannRoch` is derived from assumed structure fields.
-- **RESOLVED (Cycle 4)**: Foundation building - Divisor type and degree
-  - `Divisor α := α →₀ ℤ` (abbrev for transparent unification)
-  - `deg : Divisor α → ℤ` (sum of coefficients)
-  - **PROVED**: `deg_add`, `deg_zero`, `deg_neg`, `deg_sub`, `deg_single`
-- **RESOLVED (Cycle 5)**: Function Field Interface
-  - `Effective : Divisor α → Prop` (uses mathlib's Finsupp order)
-  - **PROVED**: `Effective_iff`, `Effective_zero`, `Effective_add`, `Effective_single`
-  - `FunctionFieldData α` structure (K, div, div_mul, div_one, div_inv, deg_div)
-  - **PROVED**: `FunctionFieldData.div_zero`
-- **RESOLVED (Cycle 6)**: L(D) is a k-Submodule
-  - Extended `FunctionFieldData α k` with ground field k, `Algebra k K`, `div_add`, `div_algebraMap`
-  - `RRSpace data D : Submodule k data.K` (Riemann-Roch space as proper k-submodule)
-  - **PROVED**: `RRSpace.zero_mem'`, `RRSpace.add_mem'`, `RRSpace.smul_mem'`, `RRSpace.mono`
+## Current Status Summary
 
-## Blockers (fundamental)
-- mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes
-- Cannot yet instantiate `RRData.Div` with real `Divisor α` (needs point type from curve)
-- `RRData.deg` is abstract; not yet connected to `Divisor.deg`
-- `RRData.ell` is abstract; not yet connected to `finrank k (RRSpace data D)`
+**RR.lean (v1)**: Axiom-based approach with `FunctionFieldDataWithRR`. Complete but circular.
 
-- **RESOLVED (Cycle 7)**: ℓ(D) = finrank k L(D)
-  - `ell : FunctionFieldData α k → Divisor α → ℕ` (semantic dimension)
-  - `RRSpace.le_of_divisor_le` converts set inclusion to submodule ≤
-  - **PROVED**: `ell.mono`, `ell.pos_of_effective`, `ell.zero_pos`
-  - **PROVED**: `RRSpace.one_mem_of_effective`, `RRSpace.algebraMap_mem_zero`, `RRSpace.algebraMap_mem_of_effective`
+**RR_v2.lean (v2)**: Constructive Dedekind domain approach. Key results:
+- `RRModuleV2_real`: Valuation-based L(D) definition (PROVED)
+- `ellV2_real_mono`: Monotonicity via Module.length (PROVED)
+- `riemann_inequality_real`: Conditional on `[SinglePointBound R K]` (PROVED)
+- **BLOCKER**: `SinglePointBound.ell_zero_eq_one` is FALSE in affine model
 
-- **RESOLVED (Cycle 8)**: Finite-Dimensionality Typeclass
-  - Used `[∀ D, Module.Finite k (RRSpace data D)]` typeclass instance
-  - **PROVED**: `ell.mono_unconditional`, `ell.pos_of_effective_unconditional`, `ell.ge_zero_of_effective`
-  - **PROVED**: `ell.mono_of_effective`, `ell.add_effective_le`, `ell.zero_pos_unconditional`
-  - **PROVED**: `RRSpace.nontrivial_of_effective`, `ell.diff_le_deg_diff`
-  - All Cycle 7 conditional lemmas now have unconditional versions
+---
 
-## Status - Cycle 9 (Success: Quotient Infrastructure)
-- **PROVED**: `RRSpace.submodule_inclusion_injective`, `ell.quotient_add_eq_of_le`, `ell.quotient_le_of_le`
-- **STATED**: `ell.add_single_le_succ` (key target), `ell.le_deg_add_ell_zero` (Riemann inequality)
-- **BLOCKER**: Cannot prove quotient dimension ≤ degree difference without evaluation map
-- **KEY LEMMA**: `ell.quotient_add_eq_of_le` gives `dim(L(E)/L(D)) + ℓ(D) = ℓ(E)` - reduces single-point bound to quotient bound
+## CYCLE 23 PLAN: Typeclass Hierarchy Refactor
 
-## Status - Cycle 10 (Success: Single-Point Axiom)
-- **DEFINED**: `FunctionFieldDataWithBound` - extends FunctionFieldData with `single_point_bound` axiom
-- **PROVED**: `ell.add_single_le_succ_from_bound`, `Divisor.deg_add_single`, `ell.diff_add_single_le_one`, `Divisor.add_zero_right`
-- **STATED**: `ell.single_le_deg_succ_from_bound`, `ell.le_deg_add_ell_zero_from_bound`, `ell.le_toNat_deg_add_ell_zero_from_bound`
-- **DESIGN CHOICE**: Used axiom extension rather than direct proof - cleaner architecture, can be upgraded later
+### The Problem (from Cycle 22)
+`SinglePointBound.ell_zero_eq_one : ellV2_real R K 0 = 1` cannot be satisfied because:
+- `HeightOneSpectrum R` captures only FINITE places
+- L(0) = R (all integrals), not k (constants)
+- Module.length R R = ∞ for Dedekind domains
 
-## Status - Cycle 11 (SUCCESS: Riemann Inequality PROVED)
-- **AXIOM ADDED**: `ell_zero_eq_one : ell 0 = 1` (L(0) = k, constants only)
-- **PROVED**: `Divisor.single_add_one`, `Divisor.Effective_single_nat`, `Divisor.deg_nonneg_of_effective`, `ell.single_le_deg_succ_from_bound`
-- **PROVED**: `ell.le_deg_add_ell_zero_from_bound` (**RIEMANN INEQUALITY** by degree induction)
-- **PROVED**: `ell.le_toNat_deg_add_ell_zero_from_bound` (corollary)
+### The Solution: Two-Tier Typeclass Hierarchy
 
-**Key technique**: Degree-based induction on `(deg D).toNat` instead of `Finsupp.induction_linear`.
-**Requires**: `[DecidableEq α]` for effectivity proof.
+```
+LocalGapBound R K          -- PROVABLE from finite places (gap ≤ 1)
+    ↑ extends
+SinglePointBound R K       -- PROJECTIVE north star (adds ell_zero = 1)
 
-## Status - Cycle 12 (SUCCESS: Full Riemann-Roch Structure)
-- **DEFINED**: `FunctionFieldDataWithRR` extending FunctionFieldDataWithBound with:
-  - `genus : ℕ` (geometric genus)
-  - `K_div : Divisor α` (canonical divisor)
-  - `deg_K : deg K_div = 2g - 2` (Riemann-Hurwitz)
-  - `rr_axiom : ℓ(D) - ℓ(K-D) = deg D + 1 - g` (Riemann-Roch)
-- **PROVED**: `riemannRoch_eq` (direct application of axiom)
-- **PROVED**: `deg_K_eq` (degree of canonical divisor)
-- **PROVED**: `ell_K_sub_D_eq` (Serre duality form: ℓ(K-D) in terms of ℓ(D))
-- **PROVED**: `ell_ge_deg_minus_genus` (lower bound from RR)
-- **PROVED**: `ell_K` (**ℓ(K) = g**, key result connecting canonical space to genus)
-- **PROVED**: `ell_K_sub_D_eq_zero_of_deg_gt` (vanishing: deg D > 2g-2 ⟹ ℓ(K-D) = 0)
-- **PROVED**: `rr_at_zero` (special case at D = 0)
-
-**7 new lemmas PROVED, 1 structure DEFINED**
-
-## Status - Cycle 13 (SUCCESS: Cleanup)
-- **REMOVED**: 4 superseded sorry lemmas
-- **FIXED**: 2 unused variable warnings
-- **REMAINING SORRIES**: Only 2 (base RRData theorems)
-
-## Status - Cycle 14 (SUCCESS: Genus 0 and High-Degree Results)
-- **PROVED**: `ell_eq_deg_minus_genus_of_deg_gt` (**KEY**: deg D > 2g-2 ⟹ ℓ(D) = deg D + 1 - g)
-- **PROVED**: `ell_eq_deg_succ_of_genus_zero_deg_gt` (genus 0 formula: ℓ(D) = deg D + 1)
-- **PROVED**: 5 more lemmas (deg_K_genus_zero, ell_K_genus_zero, ell_eq_deg_succ_of_genus_zero_effective, ell_le_deg_succ_of_deg_gt, ell_zero_of_genus_zero_deg_neg_one)
-- **BLOCKED**: `clifford_bound` (needs multiplication axiom - not provable from RR alone)
-
-**7/8 lemmas PROVED**
-
-## Status - Cycle 15 (SUCCESS: Genus 1 / Elliptic Curves)
-- **PROVED**: `deg_K_genus_one` (g=1 ⟹ deg K = 0)
-- **PROVED**: `ell_K_genus_one` (g=1 ⟹ ℓ(K) = 1)
-- **PROVED**: `ell_eq_deg_of_genus_one_deg_pos` (**KEY**: g=1, deg D ≥ 1 ⟹ ℓ(D) = deg D)
-- **PROVED**: `ell_pos_of_effective'` (effective D ⟹ ℓ(D) ≥ 1, wrapper)
-- **PROVED**: `deg_le_of_ell_K_sub_D_pos` (**KEY**: ℓ(K-D) > 0 ⟹ deg D ≤ 2g-2, special divisors)
-- **PROVED**: `ell_ge_max_one_deg_minus_genus` (ℓ(D) ≥ max(1, deg D + 1 - g))
-
-**6/6 lemmas PROVED**
-
-## Status - Cycle 16 (SUCCESS: Clifford's Theorem PROVED)
-- **EXTENDED**: `FunctionFieldDataWithMul` with two new axioms:
-  - `mul_add_left` - multiplication is additive in first argument
-  - `mul_image_dim_bound` - ℓ(D) + ℓ(K-D) ≤ g + 1 when both ≥ 2
-- **PROVED**: `exists_ne_zero_of_ell_gt_one` - extract nonzero from L(D) when ℓ(D) > 1
-- **PROVED**: `exists_ne_zero_of_ell_K_sub_D_ge_two` - extract nonzero from L(K-D) when ℓ(K-D) ≥ 2
-- **PROVED**: `D_add_K_sub_D_eq_K` - arithmetic: D + (K - D) = K
-- **DEFINED**: `mulMapToK` - linear map L(D) → L(K) via multiplication with g ∈ L(K-D)
-- **PROVED**: `mulMapToK_injective` - injection when g ≠ 0 (uses `mul_injective_of_ne_zero`)
-- **PROVED**: `ell_le_ell_K_of_ell_K_sub_D_ge_two` - ℓ(D) ≤ ℓ(K) via `LinearMap.finrank_le_finrank_of_injective`
-- **PROVED**: `ell_le_genus_of_ell_K_sub_D_ge_two` - ℓ(D) ≤ g when ℓ(K-D) ≥ 2
-- **PROVED**: `clifford_bound'` - **CLIFFORD'S THEOREM**: 2ℓ(D) ≤ deg(D) + 2 for special D
-
-**8/8 candidates PROVED**
-
-### Key Insight
-The naive approach (ℓ(D) ≤ g alone) gives 2ℓ(D) ≤ g + deg D + 1, which only works for g ≤ 1.
-The classical Clifford proof uses the **image dimension bound**: dim(L(D)·L(K-D)) ≥ ℓ(D) + ℓ(K-D) - 1.
-This gives ℓ(D) + ℓ(K-D) ≤ g + 1, and combined with RR yields Clifford.
-
-## PIVOT: From Axioms to Construction (Cycle 17+)
-
-**CRITICAL INSIGHT**: Everything above is circular reasoning. The `rr_axiom` IS Riemann-Roch.
-To make real progress, we must use mathlib's constructive infrastructure.
-
-### Mathlib Components (VERIFIED PRESENT)
-
-| Component | Location | Status |
-|-----------|----------|--------|
-| `HeightOneSpectrum R` | `RingTheory.DedekindDomain.Ideal.Lemmas:456` | Points on curve |
-| `Module.length` | `RingTheory.Length:32` | For ℓ(D) |
-| `IsDedekindDomain` | `RingTheory.DedekindDomain.Basic` | Curve's coordinate ring |
-| `DiscreteValuationRing` | `RingTheory.DedekindDomain.Dvr` | Local at points |
-| `FractionalIdeal` | `RingTheory.FractionalIdeal` | For divisor groups |
-| `FiniteAdeleRing` | `RingTheory.DedekindDomain.FiniteAdeleRing` | Global bounds |
-| `AdicValuation` | `RingTheory.DedekindDomain.AdicValuation:295` | Valuations at points |
-
-### The Constructive Path (Jiedong Jiang Strategy)
-
-**Step 1**: Define divisors properly
-```lean
--- Use HeightOneSpectrum as "points"
-abbrev Divisor (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R] :=
-  HeightOneSpectrum R →₀ ℤ
+BaseDim R K                -- SEPARATE: explicit base dimension constant
 ```
 
-**Step 2**: Define ℓ(D) via Module.length (NOT finrank)
+### Implementation Tasks
+
+#### 1. Define `LocalGapBound` (the provable thing)
 ```lean
--- L(D) as a module, ℓ(D) = Module.length
--- Key: Module.length is additive in exact sequences
+/-- The local gap bound: adding a single point increases dimension by at most 1.
+This is provable from the evaluation map to the residue field κ(v).
+Does NOT require ℓ(0) = 1; works for affine curves. -/
+class LocalGapBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] where
+  gap_le_one : ∀ (D : DivisorV2 R) (v : HeightOneSpectrum R),
+    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1
 ```
 
-**Step 3**: Use DVR localization for local analysis
+#### 2. Refactor `SinglePointBound` to extend `LocalGapBound`
 ```lean
--- At each v : HeightOneSpectrum R, localize to DVR
--- IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain
+/-- Full single-point bound for PROJECTIVE/COMPLETE curves.
+Extends LocalGapBound with the base case ℓ(0) = 1.
+This requires compactification (infinite places) to instantiate. -/
+class SinglePointBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K]
+    extends LocalGapBound R K where
+  ell_zero_eq_one : ellV2_real R K 0 = 1
 ```
 
-**Step 4**: Prove Riemann inequality via approximation
+#### 3. Define `BaseDim` for affine theorems
 ```lean
--- Use FiniteAdeleRing for strong approximation
--- CRT instances give the approximation theorem
+/-- Explicit base dimension for affine Riemann inequality.
+For complete curves: base = 1 (constants only)
+For affine curves: base = Module.length R R (possibly infinite, use with care) -/
+class BaseDim (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] where
+  base : ℕ
+  ell_zero_eq : ellV2_real R K 0 = base
 ```
 
-**Step 5**: Serre duality via residues (NOT cohomology)
+#### 4. Add `riemann_inequality_affine`
 ```lean
--- Define residue map using RingTheory.Derivation
--- Avoid AlgebraicGeometry.Cohomology (blocked)
+/-- Affine Riemann inequality: ℓ(D) ≤ deg(D) + ℓ(0) for effective divisors.
+Uses LocalGapBound (provable) + BaseDim (explicit base).
+For complete curves with BaseDim.base = 1, recovers standard ℓ(D) ≤ deg(D) + 1. -/
+lemma riemann_inequality_affine [LocalGapBound R K] [BaseDim R K]
+    {D : DivisorV2 R} (hD : D.Effective) :
+    (ellV2_real R K D : ℤ) ≤ D.deg + BaseDim.base R K
 ```
 
-### Concrete Next Cycle Tasks
+#### 5. Update helper lemma
+```lean
+-- Change from [SinglePointBound R K] to [LocalGapBound R K]
+lemma ellV2_real_add_single_le_succ [LocalGapBound R K]
+    (D : DivisorV2 R) (v : HeightOneSpectrum R) :
+    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1 :=
+  LocalGapBound.gap_le_one D v
+```
 
-1. **Create `RR_v2.lean`** with Dedekind domain setup
-2. **Define** `Divisor R := HeightOneSpectrum R →₀ ℤ`
-3. **Define** `RRSpace` using fractional ideals, not abstract carrier
-4. **Define** `ell` via `Module.length`, prove it's finite
-5. **Prove** degree-dimension bound using DVR localization
+#### 6. Keep `riemann_inequality_real` as the projective north star
+The existing proof works unchanged with `[SinglePointBound R K]`.
 
-### References
-- Gemini analysis: "Lengths of Modules" strategy
-- Search: Yijun Yuan's Harder-Narasimhan repo (infrastructure superset)
+### Victory Condition for Cycle 23
+- [ ] Clean typeclass hierarchy committed
+- [ ] `riemann_inequality_affine` stated and proved
+- [ ] Documentation explaining affine vs projective model
+- [ ] `ellV2_real_add_single_le_succ` uses `LocalGapBound`
+
+### Future Work (Cycle 24+)
+- Prove `instance : LocalGapBound R K` via evaluation map
+- Explore compactification for `SinglePointBound` instance
+
+---
+
+## Historical Cycles (Summary)
+
+| Cycle | Achievement |
+|-------|-------------|
+| 1-3 | RRData structure, statement elaborates |
+| 4-6 | Divisor, FunctionFieldData, RRSpace as k-Submodule |
+| 7-9 | ell = finrank, quotient infrastructure |
+| 10-11 | SinglePointBound axiom, **Riemann inequality PROVED** |
+| 12-16 | Full RR structure, Clifford's theorem |
+| 17 | **PIVOT**: Created RR_v2.lean with Dedekind domains |
+| 18-19 | Valuation-based L(D), RRModuleV2_real complete |
+| 20 | ellV2_real_mono PROVED |
+| 21 | SinglePointBound typeclass, riemann_inequality_real PROVED |
+| 22 | **DISCOVERY**: Affine model limitation, residue field infrastructure |
+| 23 | (PLANNED) Typeclass hierarchy refactor |
+
+---
+
+## Key References
 - mathlib: `RingTheory.DedekindDomain.*`
-
-### Do NOT do
-- Keep using `rr_axiom` (circular)
-- Schemes/sheaves/cohomology (blocked in mathlib)
-- Abstract `FunctionFieldData` axioms
-
-## Status - Cycle 17 (SUCCESS: RR_v2.lean Created)
-- **PIVOT EXECUTED**: Created `RR_v2.lean` with Dedekind domain foundations
-- **DEFINED**: `DivisorV2 := HeightOneSpectrum R →₀ ℤ` (real points!)
-- **PROVED**: deg_add, deg_zero, deg_neg, deg_single, Effective lemmas
-- **PROVED**: `localization_at_prime_is_dvr` (DVR at height-1 primes)
-- **DEFINED**: `ellV2` using `Module.length` (additive in exact sequences)
-- **PLACEHOLDER**: `RRModuleV2` (needs real valuation condition)
-- **SORRY**: `ellV2_mono`, `riemann_inequality` (blocked on RRModuleV2)
-
-### Key Insight
-The DVR instance `localization_at_prime_is_dvr` is the **bridge** to valuations.
-Each `v : HeightOneSpectrum R` gives `IsDiscreteValuationRing (Localization.AtPrime v.asIdeal)`.
-This provides `ord_v : K× → ℤ` needed for the membership condition.
-
-## Status - Cycle 18 (PARTIAL: Valuation-Based L(D))
-- **IMPORTED**: `Mathlib.RingTheory.DedekindDomain.AdicValuation`
-- **DEFINED**: `satisfiesValuationCondition` (real membership: `f = 0 ∨ ∀ v, v.valuation K f ≥ exp(-D v)`)
-- **DEFINED**: `RRModuleV2_real` (L(D) as R-Submodule with real carrier)
-- **PROVED**: `RRModuleV2_real_zero_mem` (trivial)
-- **PROVED**: `RRModuleV2_mono_inclusion` (L(D) ⊆ L(E) when D ≤ E)
-- **SORRY**: `add_mem'` (needs ultrametric inequality reasoning)
-- **SORRY**: `smul_mem'` (needs ordered monoid reasoning)
-
-### Key Insight (Cycle 18)
-`WithZero (Multiplicative ℤ)` ordering is inverse to additive intuition:
-- Smaller value = larger pole order
-- `v.valuation_le_one` for r ∈ R means r is integral at v
-- `Valuation.map_add_le_max` gives the ultrametric bound we need
-
-### Blockers (Cycle 18)
-- **Blocker A (add_mem')**: Need to show `v(a+b) ≥ min(v(a), v(b))` from `v(a+b) ≤ max(v(a), v(b))`
-  - Requires ordered monoid reasoning in `WithZero (Multiplicative ℤ)`
-- **Blocker B (smul_mem')**: Need to show `v(r) * v(f) ≥ exp(-D)` when `v(r) ≤ 1, v(f) ≥ exp(-D)`
-  - Requires `mul_le_mul'` or similar for ordered monoids
-
-## Status - Cycle 19 (SUCCESS: RRModuleV2_real Complete)
-- **BUG FIX**: Corrected membership direction from `v(f) ≥ exp(-D)` to `v(f) ≤ exp(D)`
-- **PROVED**: `RRModuleV2_real.add_mem'` via `Valuation.map_add_le_max'` + `max_le`
-- **PROVED**: `RRModuleV2_real.smul_mem'` via `valuation_le_one` + `mul_le_mul'`
-- **REMAINING SORRIES**: `ellV2_mono`, `riemann_inequality` (downstream work)
-
-### Key Insight (Cycle 19)
-The membership condition was WRONG. The correct formulation:
-- Standard: ord_v(f) ≥ -D(v) (poles bounded by D)
-- Mathlib's multiplicative valuation: v(f) = exp(-ord_v(f))
-- So ord_v(f) ≥ -D(v) becomes v(f) ≤ exp(D(v)) (NOT v(f) ≥ exp(-D(v)))
-
-With the CORRECT condition `v(f) ≤ exp(D(v))`:
-1. **add_mem'**: `v(a+b) ≤ max(v(a), v(b)) ≤ exp(D)` ✓
-2. **smul_mem'**: `v(r) * v(f) ≤ 1 * exp(D) = exp(D)` ✓
-
-## Status - Cycle 20 (SUCCESS: ellV2_real Monotonicity PROVED)
-- **DEFINED**: `ellV2_real_extended : ℕ∞` and `ellV2_real : ℕ` using `RRModuleV2_real`
-- **PROVED**: `ellV2_real_mono_extended` via `Module.length_le_of_injective + Submodule.inclusion_injective`
-- **PROVED**: `ellV2_real_mono` at ℕ level (with finiteness hypothesis)
-- **PROVED**: `ellV2_real_mono'` alternative formulation
-
-### Key Insight (Cycle 20)
-The `Module.length_le_of_injective` lemma directly applies when we have:
-1. Submodule inclusion `L(D) ≤ L(E)` (from `RRModuleV2_mono_inclusion`, Cycle 19)
-2. Injective linear map via `Submodule.inclusion` (automatic from mathlib)
-
-**Proof pattern**:
-```lean
-have hle := RRModuleV2_mono_inclusion R K hDE  -- L(D) ≤ L(E)
-exact Module.length_le_of_injective
-  (Submodule.inclusion hle)
-  (Submodule.inclusion_injective hle)
-```
-
-### Architecture: `_real` Suffix
-```
-Placeholder:          Real (proven):
-ellV2_mono (sorry)    ellV2_real_mono PROVED
-```
-
-## Status - Cycle 21 (SUCCESS: Riemann Inequality PROVED for RR_v2.lean)
-- **DEFINED**: `SinglePointBound` typeclass - captures single-point dimension bound
-- **PROVED**: `DivisorV2.deg_add_single'` - degree arithmetic
-- **PROVED**: `DivisorV2.exists_pos_of_deg_pos` - key lemma for degree induction
-- **PROVED**: `DivisorV2.effective_sub_single` - effectivity preservation
-- **PROVED**: `DivisorV2.deg_sub_single` - degree subtraction
-- **PROVED**: `DivisorV2.sub_add_single_cancel` - reconstruction identity
-- **PROVED**: `ellV2_real_add_single_le_succ` - typeclass application
-- **PROVED**: `riemann_inequality_real` - **RIEMANN INEQUALITY for constructive approach**
-
-### Key Achievement
-Riemann inequality `ℓ(D) ≤ deg(D) + 1` is now PROVED in RR_v2.lean using:
-1. `SinglePointBound` typeclass (axiomatizes single-point bound + ell(0)=1)
-2. Degree-based induction on `(deg D).toNat`
-3. Valuation-based L(D) definition from Cycle 19-20
-
-### Architecture: Typeclass vs Structure Extension
-```
-RR.lean (v1):                          RR_v2.lean (v2):
-FunctionFieldDataWithBound (structure)  SinglePointBound (class)
-  single_point_bound : field              bound : class method
-  ell_zero_eq_one : field                 ell_zero_eq_one : class method
-```
-Typeclass approach is more idiomatic - allows `[SinglePointBound R K]` hypothesis.
-
-## Status - Cycle 22 (CRITICAL DISCOVERY: Definition Flaw)
-
-### Key Findings
-
-**3/8 candidates OK** (merged into RR_v2.lean):
-- `residueFieldAtPrime` - residue field κ(v) at height-1 prime
-- `residueFieldAtPrime.field` - field instance
-- `residueMapAtPrime` - residue map R → κ(v)
-
-**5/8 candidates BLOCKED**:
-- `RRModuleV2_real_zero_eq_R` - L(0) = R (blocked: needs global-local principle)
-- `ell_zero_eq_one` - **IMPOSSIBLE with current definitions**
-- `uniformizerAt` - uniformizer extraction (limited mathlib API)
-- `evaluationMap` - depends on uniformizer
-- `SinglePointBound instance` - depends on all above
-
-### CRITICAL ARCHITECTURAL DISCOVERY
-
-**The Problem**: `ell_zero_eq_one : ellV2_real R K 0 = 1` is **FALSE** in current setup.
-
-**Why**:
-```
-Complete curve (projective): L(0) = k (constants) → dim = 1 ✓
-Affine curve (Dedekind R):   L(0) = R (integrals) → dim = ∞ ✗
-```
-
-Our `HeightOneSpectrum R` model captures only **FINITE places**:
-- For k(t)/k: finite places = (irreducible polynomials in k[t])
-- **Missing**: place at infinity
-- L(0) = {no poles at finite places} = k[t], NOT k!
-
-**Consequence**:
-- `Module.length R R = ⊤` (infinite for Dedekind domain)
-- `ellV2_real R K 0 = (⊤).toNat = 0`, not 1
-- The `SinglePointBound.ell_zero_eq_one` axiom cannot be satisfied
-
-### What This Means
-
-The current model proves **"affine Riemann inequality"** only:
-- Inductive step (evaluation map, gap ≤ 1): **VIABLE**
-- Base case (ℓ(0) = 1): **IMPOSSIBLE** without compactification
-
-### Options for Cycle 23
-
-1. **Add infinite places**: Compactify to complete curve
-   - Very non-trivial, requires defining "place at infinity"
-
-2. **Change dimension definition**: Use `finrank k` over base field
-   - Requires `[Algebra k R]` hypothesis
-   - Still has L(0) = R issue
-
-3. **Relative formulation**: Define ℓ_rel(D) = length(L(D)/L(0))
-   - Then ℓ_rel(0) = 0 by definition
-   - Proves: ℓ_rel(D) ≤ deg(D) for effective D
-
-4. **Accept affine model**: Document limitations
-   - Prove: ℓ(D+v) - ℓ(D) ≤ 1 (gap bound)
-   - Full RR requires separate compactification project
-
-### Residue Field Infrastructure (Merged - Cycle 22)
-
-Despite the definition issue, the residue field infrastructure is correct and merged:
-```lean
-noncomputable abbrev residueFieldAtPrime (v : HeightOneSpectrum R) : Type _ :=
-  v.asIdeal.ResidueField
-
-noncomputable instance residueFieldAtPrime.field (v : HeightOneSpectrum R) :
-    Field (residueFieldAtPrime R v) := inferInstance
-
-noncomputable def residueMapAtPrime (v : HeightOneSpectrum R) :
-    R →+* residueFieldAtPrime R v :=
-  algebraMap R (residueFieldAtPrime R v)
-```
-
-This infrastructure supports evaluation map construction for the inductive step.
-
-### Next Steps (Cycle 23)
-
-1. **Decide on approach**: relative formulation vs compactification vs accept affine
-2. **Explore uniformizer API** in mathlib for evaluation map
-3. **Document affine vs projective distinction** clearly in file
+- mathlib: `RingTheory.Length` (Module.length_eq_add_of_exact)
+- mathlib: `Ideal.ResidueField` for κ(v)

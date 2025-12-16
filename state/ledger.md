@@ -854,3 +854,33 @@ The Generator agent **correctly identified** that our definitions were subtly wr
 - **Decision**: Choose approach (relative formulation recommended)
 - Continue evaluation map work for inductive step (viable regardless)
 - Document affine vs projective model distinction clearly
+
+### Cycle 23 - PLANNED: Typeclass Hierarchy Refactor
+- **Active edge**: Separate provable LocalGapBound from projective SinglePointBound
+- **Status**: Planning complete, implementation pending
+
+#### Architecture Decision
+```
+LocalGapBound R K          -- PROVABLE (gap ≤ 1 via evaluation map)
+    ↑ extends
+SinglePointBound R K       -- PROJECTIVE (adds ell_zero = 1)
+
+BaseDim R K                -- SEPARATE (explicit base dimension)
+```
+
+#### Rationale
+- `LocalGapBound`: What we CAN prove from finite places (evaluation map to κ(v))
+- `SinglePointBound`: North star for complete curves (requires compactification)
+- `BaseDim`: Explicit base dimension for affine theorems
+
+#### Tasks
+1. Define `LocalGapBound` with just `gap_le_one` field
+2. Make `SinglePointBound extend LocalGapBound`
+3. Define `BaseDim` for explicit base dimension
+4. Prove `riemann_inequality_affine` using `[LocalGapBound R K] [BaseDim R K]`
+5. Update `ellV2_real_add_single_le_succ` to use `LocalGapBound`
+
+#### Victory Condition
+- Clean typeclass hierarchy committed
+- `riemann_inequality_affine` proved
+- Clear documentation of affine vs projective distinction
