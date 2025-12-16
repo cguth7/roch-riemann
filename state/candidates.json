@@ -1,4 +1,12 @@
 {
-  "active_edge": "MAIN_GOAL",
-  "candidates": []
+  "active_edge": "BOOTSTRAP_INVARIANT",
+  "candidates": [],
+  "blockers": [
+    "mathlib lacks WeilDivisor/CartierDivisor for schemes",
+    "mathlib lacks InvertibleSheaf/LineBundle",
+    "mathlib lacks genus definition for curves",
+    "mathlib lacks degree function for divisors",
+    "mathlib lacks canonical sheaf"
+  ],
+  "next_action": "Define foundational types (divisor, line bundle) or find alternative formulation"
 }
