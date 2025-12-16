@@ -8,6 +8,24 @@ Files:
 - state/ledger.md
 - agents/generator.md, reflector.md, curator.md
 
+## Bootstrap Invariant (Cycle 1)
+
+Invariant:
+If the final theorem corresponding to `problem/problem.md`
+does not elaborate in Lean, then the active edge is:
+
+"Translate the target theorem into a Lean statement
+that elaborates (typechecks), possibly with `sorry`."
+
+Rules during bootstrap:
+- Do NOT attempt to prove anything.
+- The only success criterion is elaboration.
+- Object choices may change, but mathematical content
+  must remain equivalent to `problem/problem.md`.
+
+Once the theorem elaborates, this invariant is disabled
+and normal edge-splitting resumes.
+
 Loop (single cycle):
 1) Build/test:
    - run `lake build` (or `lake env lean RrLean/RR.lean`) and capture errors.
