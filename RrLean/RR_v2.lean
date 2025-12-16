@@ -117,16 +117,22 @@ This uses the multiplicative notation where:
 - The condition `ord_v(f) + D(v) ≥ 0` becomes `v.valuation K f ≥ WithZero.exp (-D v)`
 -/
 
--- Candidate 2 [tag: membership_condition] [status: OK]
+-- Candidate 2 [tag: membership_condition] [status: PROVED]
 /-- The membership condition for L(D): f = 0 or all valuations satisfy ord_v(f) + D(v) ≥ 0.
-In multiplicative notation: v.valuation K f ≥ WithZero.exp (-D v). -/
-def satisfiesValuationCondition (D : DivisorV2 R) (f : K) : Prop :=
-  f = 0 ∨ ∀ v : HeightOneSpectrum R, v.valuation K f ≥ WithZero.exp (-(D v))
+In multiplicative notation: v.valuation K f ≤ WithZero.exp (D v).
 
--- Candidate 3 [tag: rrmodule_real] [status: OK]
+Mathematical explanation:
+- Standard convention: ord_v(f) ≥ -D(v) (poles bounded by D)
+- Mathlib's multiplicative valuation: v(f) = exp(-ord_v(f))
+- So ord_v(f) ≥ -D(v) becomes -ord_v(f) ≤ D(v), i.e., v(f) ≤ exp(D(v))
+-/
+def satisfiesValuationCondition (D : DivisorV2 R) (f : K) : Prop :=
+  f = 0 ∨ ∀ v : HeightOneSpectrum R, v.valuation K f ≤ WithZero.exp (D v)
+
+-- Candidate 3 [tag: rrmodule_real] [status: PROVED]
 /-- The Riemann-Roch space L(D) as a submodule of K (REAL VERSION).
 
-L(D) = {f ∈ K : f = 0 ∨ (∀ v, v.valuation K f ≥ WithZero.exp (-D v))}
+L(D) = {f ∈ K : f = 0 ∨ (∀ v, v.valuation K f ≤ WithZero.exp (D v))}
 
 This is the space of functions whose poles are bounded by D. -/
 def RRModuleV2_real (D : DivisorV2 R) : Submodule R K where
@@ -137,11 +143,6 @@ def RRModuleV2_real (D : DivisorV2 R) : Submodule R K where
     · exact Or.inl h
     · right
       intro v
-      -- For valuations, the strong triangle inequality gives:
-      -- val(a + b) ≥ min(val(a), val(b))
-      -- But Valuation.map_add gives val(a + b) ≤ max(val(a), val(b))
-      -- We need a different approach: valuations are non-archimedean
-      -- Fact: min(val(a), val(b)) ≤ val(a + b)
       rcases ha with rfl | ha'
       · simp only [zero_add] at h ⊢
         rcases hb with rfl | hb'
@@ -153,10 +154,12 @@ def RRModuleV2_real (D : DivisorV2 R) : Submodule R K where
       -- Both a and b are nonzero with valuation bounds
       have hav := ha' v
       have hbv := hb' v
-      -- The valuation satisfies: val(a+b) ≥ min(val(a), val(b)) when a + b ≠ 0
-      -- This follows from val(a+b) ≤ max(val(a), val(b)) combined with field properties
-      -- For now, use sorry - need to find the right mathlib lemma
-      sorry
+      -- The ultrametric inequality: v(a+b) ≤ max(v(a), v(b))
+      calc v.valuation K (a + b)
+          ≤ max (v.valuation K a) (v.valuation K b) := by
+            exact Valuation.map_add_le_max' (v.valuation K) a b
+        _ ≤ WithZero.exp (D v) := by
+            exact max_le hav hbv
   smul_mem' := fun r {f} hf => by
     by_cases h : r • f = 0
     · exact Or.inl h
@@ -166,34 +169,25 @@ def RRModuleV2_real (D : DivisorV2 R) : Submodule R K where
       simp only [Algebra.smul_def]
       -- v.valuation K (r * f) = v.valuation K r * v.valuation K f
       rw [(v.valuation K).map_mul]
-      -- Need to show: v.valuation K (algebraMap R K r) * v.valuation K f ≥ exp(-D v)
-      -- Key: v.valuation K (algebraMap R K r) ≤ 1 for all r ∈ R
-      -- Note: ≤ 1 in the value group means the valuation is ≥ 0 in additive notation
-      -- And we multiply, so: val_r ≥ some positive thing, val_f ≥ bound, product ≥ bound
       rcases hf with rfl | hf'
-      · -- f = 0 contradicts h
-        exfalso; apply h; simp only [smul_zero]
+      · exfalso; apply h; simp only [smul_zero]
       have hfv := hf' v
-      -- Since valuation_le_one gives val(r) ≤ 1 for r ∈ R
-      -- and val(r * f) = val(r) * val(f) with val(r) ≤ 1
-      -- We need val(r) * val(f) ≥ exp(-D v)
-      -- This requires val(r) ≥ exp(0) = 1 or val(f) to compensate
-      -- Actually, for r ∈ R nonzero, val(r) ≤ 1 means ord_v(r) ≥ 0
-      -- In multiplicative notation: smaller valuation = larger order
-      -- val(r) ≤ 1 means r is integral at v (no pole)
-      -- So val(r) * val(f) ≤ 1 * val(f) = val(f)
-      -- We need to go the other way...
-      -- Actually in WithZero ordering: smaller is worse (0 < exp(-n) < 1 < exp(n))
-      -- So val(r) ≤ 1 and val(f) ≥ exp(-D v) gives... hmm
-      -- Let me use sorry for now and figure out the exact ordering
-      sorry
+      -- Key: v.valuation K (algebraMap R K r) ≤ 1 for all r ∈ R
+      have hr : v.valuation K (algebraMap R K r) ≤ 1 := by
+        exact HeightOneSpectrum.valuation_le_one v r
+      -- For ordered monoids: if a ≤ b and c ≤ d then a*c ≤ b*d
+      calc v.valuation K (algebraMap R K r) * v.valuation K f
+          ≤ 1 * WithZero.exp (D v) := by
+            exact mul_le_mul' hr hfv
+        _ = WithZero.exp (D v) := by
+            exact one_mul _
 
 -- Candidate 4 [tag: zero_mem_real] [status: PROVED]
 /-- Zero is in L(D) for any divisor D. -/
 lemma RRModuleV2_real_zero_mem (D : DivisorV2 R) :
     (0 : K) ∈ (RRModuleV2_real R K D).carrier := Or.inl rfl
 
--- Candidate 7 [tag: inclusion_submodule] [status: OK]
+-- Candidate 7 [tag: inclusion_submodule] [status: PROVED]
 /-- When D ≤ E, we have L(D) ⊆ L(E), giving a submodule inclusion. -/
 lemma RRModuleV2_mono_inclusion {D E : DivisorV2 R} (hDE : D ≤ E) :
     RRModuleV2_real R K D ≤ RRModuleV2_real R K E := by
@@ -203,14 +197,14 @@ lemma RRModuleV2_mono_inclusion {D E : DivisorV2 R} (hDE : D ≤ E) :
   | inr h =>
     apply Or.inr
     intro v
-    have hDv := hDE v  -- D v ≤ E v means -E v ≤ -D v
-    have hfv := h v    -- v.valuation K f ≥ WithZero.exp (-(D v))
-    -- Since D v ≤ E v, we have -E v ≤ -D v
-    -- So WithZero.exp (-(E v)) ≤ WithZero.exp (-(D v)) ≤ v.valuation K f
-    calc WithZero.exp (-(E v)) ≤ WithZero.exp (-(D v)) := by
+    have hDv := hDE v  -- D v ≤ E v
+    have hfv := h v    -- v.valuation K f ≤ WithZero.exp (D v)
+    -- Since D v ≤ E v, we have WithZero.exp (D v) ≤ WithZero.exp (E v)
+    -- So v.valuation K f ≤ WithZero.exp (D v) ≤ WithZero.exp (E v)
+    calc v.valuation K f ≤ WithZero.exp (D v) := hfv
+       _ ≤ WithZero.exp (E v) := by
            apply WithZero.exp_le_exp.mpr
-           omega
-       _ ≤ v.valuation K f := hfv
+           exact hDv
 
 /-! ## Original placeholder (kept for reference) -/
 

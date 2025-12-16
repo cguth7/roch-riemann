@@ -1,5 +1,5 @@
 {
-  "active_edge": "Complete RRModuleV2_real submodule axioms (add_mem, smul_mem)",
+  "active_edge": "Prove ellV2_mono using exact sequence additivity of Module.length",
   "candidates": [
     {
       "name": "Divisor α",
@@ -128,6 +128,40 @@
       "cycle": 16
     }
   ],
+  "cycle_19_candidates": [
+    {
+      "name": "satisfiesValuationCondition (FIXED)",
+      "status": "PROVED",
+      "statement": "def satisfiesValuationCondition (D) (f) := f = 0 ∨ ∀ v, v.valuation K f ≤ exp(D v)",
+      "approach": "BUG FIX: Changed from ≥ exp(-D) to ≤ exp(D) - correct membership direction",
+      "score": 5,
+      "cycle": 19
+    },
+    {
+      "name": "RRModuleV2_real.add_mem'",
+      "status": "PROVED",
+      "statement": "a ∈ L(D) → b ∈ L(D) → a + b ∈ L(D)",
+      "approach": "Valuation.map_add_le_max' + max_le",
+      "score": 5,
+      "cycle": 19
+    },
+    {
+      "name": "RRModuleV2_real.smul_mem'",
+      "status": "PROVED",
+      "statement": "f ∈ L(D) → r • f ∈ L(D) for r ∈ R",
+      "approach": "valuation_le_one + mul_le_mul' + one_mul",
+      "score": 5,
+      "cycle": 19
+    },
+    {
+      "name": "RRModuleV2_mono_inclusion (updated)",
+      "status": "PROVED",
+      "statement": "D ≤ E → RRModuleV2_real R K D ≤ RRModuleV2_real R K E",
+      "approach": "Updated for corrected membership direction",
+      "score": 5,
+      "cycle": 19
+    }
+  ],
   "cycle_18_candidates": [
     {
       "name": "import AdicValuation",
@@ -138,20 +172,19 @@
       "cycle": 18
     },
     {
-      "name": "satisfiesValuationCondition",
-      "status": "DEFINED",
+      "name": "satisfiesValuationCondition (original - BUGGY)",
+      "status": "SUPERSEDED",
       "statement": "def satisfiesValuationCondition (D) (f) := f = 0 ∨ ∀ v, v.valuation K f ≥ exp(-D v)",
-      "approach": "Real membership condition for L(D) using valuations",
-      "score": 5,
+      "approach": "WRONG direction - fixed in Cycle 19",
+      "score": 0,
       "cycle": 18
     },
     {
-      "name": "RRModuleV2_real",
-      "status": "SORRY (2)",
-      "statement": "def RRModuleV2_real (D) : Submodule R K (with real carrier)",
-      "approach": "L(D) as submodule with valuation-based membership",
-      "score": 3,
-      "blocker": "add_mem' and smul_mem' need ordered monoid reasoning",
+      "name": "RRModuleV2_real (original)",
+      "status": "SUPERSEDED",
+      "statement": "def RRModuleV2_real (D) : Submodule R K (with buggy carrier)",
+      "approach": "Fixed in Cycle 19",
+      "score": 0,
       "cycle": 18
     },
     {
@@ -163,11 +196,11 @@
       "cycle": 18
     },
     {
-      "name": "RRModuleV2_mono_inclusion",
-      "status": "PROVED",
+      "name": "RRModuleV2_mono_inclusion (original)",
+      "status": "SUPERSEDED",
       "statement": "D ≤ E → RRModuleV2_real R K D ≤ RRModuleV2_real R K E",
-      "approach": "Uses WithZero.exp_le_exp for monotonicity",
-      "score": 5,
+      "approach": "Updated in Cycle 19 for correct direction",
+      "score": 3,
       "cycle": 18
     }
   ],
@@ -251,8 +284,8 @@
   "blockers": [
     "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
     "Base RRData.riemannRoch has no proof path without additional structure axioms",
-    "RRModuleV2_real.add_mem' needs ultrametric/ordered monoid reasoning",
-    "RRModuleV2_real.smul_mem' needs ordered monoid reasoning for WithZero ℤᵐ⁰"
+    "ellV2_mono needs exact sequence additivity of Module.length",
+    "riemann_inequality needs single-point bound and induction proof"
   ],
   "resolved_blockers": [
     "CYCLE 4-6: Divisor foundations, FunctionFieldData, RRSpace as k-Submodule",
@@ -266,7 +299,8 @@
     "CYCLE 15: Genus 1 / Elliptic curves - 6 lemmas PROVED",
     "CYCLE 16: Clifford's theorem PROVED via multiplication axiom",
     "CYCLE 17: RR_v2.lean created - Dedekind domain foundations",
-    "CYCLE 18: Valuation-based L(D) defined, RRModuleV2_mono_inclusion PROVED"
+    "CYCLE 18: Valuation-based L(D) defined, RRModuleV2_mono_inclusion PROVED",
+    "CYCLE 19: RRModuleV2_real COMPLETE - bug fix + add_mem'/smul_mem' PROVED"
   ],
-  "next_action": "Cycle 19: Complete RRModuleV2_real submodule axioms using ordered monoid lemmas"
+  "next_action": "Cycle 20: Prove ellV2_mono using Module.length exact sequence additivity"
 }

@@ -226,9 +226,23 @@ This provides `ord_v : K× → ℤ` needed for the membership condition.
 - **Blocker B (smul_mem')**: Need to show `v(r) * v(f) ≥ exp(-D)` when `v(r) ≤ 1, v(f) ≥ exp(-D)`
   - Requires `mul_le_mul'` or similar for ordered monoids
 
-### Next Steps (Cycle 19)
-1. **Priority 1**: Complete RRModuleV2_real (both sorries)
-   - Use `Valuation.map_add_le_max` + ordered monoid lemmas for add_mem'
-   - Use `valuation_le_one` + monotone multiplication for smul_mem'
-2. **Priority 2**: Prove ellV2_mono using RRModuleV2_mono_inclusion
-3. **Priority 3**: State single-point bound axiom for Riemann inequality
+## Status - Cycle 19 (SUCCESS: RRModuleV2_real Complete)
+- **BUG FIX**: Corrected membership direction from `v(f) ≥ exp(-D)` to `v(f) ≤ exp(D)`
+- **PROVED**: `RRModuleV2_real.add_mem'` via `Valuation.map_add_le_max'` + `max_le`
+- **PROVED**: `RRModuleV2_real.smul_mem'` via `valuation_le_one` + `mul_le_mul'`
+- **REMAINING SORRIES**: `ellV2_mono`, `riemann_inequality` (downstream work)
+
+### Key Insight (Cycle 19)
+The membership condition was WRONG. The correct formulation:
+- Standard: ord_v(f) ≥ -D(v) (poles bounded by D)
+- Mathlib's multiplicative valuation: v(f) = exp(-ord_v(f))
+- So ord_v(f) ≥ -D(v) becomes v(f) ≤ exp(D(v)) (NOT v(f) ≥ exp(-D(v)))
+
+With the CORRECT condition `v(f) ≤ exp(D(v))`:
+1. **add_mem'**: `v(a+b) ≤ max(v(a), v(b)) ≤ exp(D)` ✓
+2. **smul_mem'**: `v(r) * v(f) ≤ 1 * exp(D) = exp(D)` ✓
+
+### Next Steps (Cycle 20)
+1. **Priority 1**: Prove `ellV2_mono` using exact sequence additivity of Module.length
+2. **Priority 2**: Add single-point bound axiom or derive from DVR structure
+3. **Priority 3**: Prove `riemann_inequality` by induction on degree
