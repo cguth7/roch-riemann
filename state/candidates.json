@@ -1,6 +1,55 @@
 {
-  "active_edge": "Define Divisor α := α →₀ ℤ, deg, prove additivity, refactor RRData",
+  "active_edge": "Connect Divisor.deg to RRData.deg, define effective divisor, explore ell",
   "candidates": [
+    {
+      "name": "Divisor α",
+      "status": "PROVED",
+      "statement": "abbrev Divisor (α : Type*) := α →₀ ℤ",
+      "approach": "Type alias for Finsupp",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg",
+      "status": "PROVED",
+      "statement": "def deg (D : Divisor α) : ℤ := D.sum (fun _ n => n)",
+      "approach": "Sum of coefficients",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg_add",
+      "status": "PROVED",
+      "statement": "deg (D + E) = deg D + deg E",
+      "approach": "Via Finsupp.sum_add_index'",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg_zero",
+      "status": "PROVED",
+      "statement": "deg 0 = 0",
+      "approach": "Via Finsupp.sum_zero_index",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg_neg",
+      "status": "PROVED",
+      "statement": "deg (-D) = -deg D",
+      "approach": "Derived from deg_add + omega",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg_sub",
+      "status": "PROVED",
+      "statement": "deg (D - E) = deg D - deg E",
+      "approach": "Derived from deg_add + deg_neg",
+      "cycle": 4
+    },
+    {
+      "name": "Divisor.deg_single",
+      "status": "PROVED",
+      "statement": "deg (single p n) = n",
+      "approach": "Via Finsupp.sum_single_index",
+      "cycle": 4
+    },
     {
       "name": "RRDataWithEuler.riemannRoch",
       "status": "DERIVED_FROM_ASSUMPTIONS",
@@ -11,43 +60,19 @@
         "eulerChar_def : ∀ D, eulerChar D = ell D - h1 D",
         "eulerChar_formula : ∀ D, eulerChar D = deg D + 1 - genus"
       ],
-      "note": "eulerChar_formula IS Riemann-Roch for Euler characteristic; this derivation is circular"
-    },
-    {
-      "name": "ell_sub_ell_K_sub_D",
-      "status": "DERIVED_FROM_ASSUMPTIONS",
-      "statement": "ℓ(D) - ℓ(K-D) = deg(D) + 1 - g",
-      "approach": "Combines serreDuality and ell_sub_h1_eq_deg",
-      "assumptions": [
-        "serreDuality",
-        "eulerChar_def",
-        "eulerChar_formula"
-      ]
-    },
-    {
-      "name": "RRDataWithCohomology",
-      "status": "STRUCTURE_WITH_AXIOMS",
-      "statement": "structure extending RRData with h1, serreDuality",
-      "axioms_introduced": ["serreDuality : ∀ D, ell (K - D) = h1 D"]
-    },
-    {
-      "name": "RRDataWithEuler",
-      "status": "STRUCTURE_WITH_AXIOMS",
-      "statement": "structure extending RRDataWithCohomology with eulerChar",
-      "axioms_introduced": [
-        "eulerChar_def : ∀ D, eulerChar D = ell D - h1 D",
-        "eulerChar_formula : ∀ D, eulerChar D = deg D + 1 - genus"
-      ]
+      "note": "eulerChar_formula IS Riemann-Roch; derivation is circular",
+      "cycle": 3
     }
   ],
   "blockers": [
-    "mathlib lacks: divisors, line bundles, sheaf cohomology H⁰/H¹, genus, degree",
-    "Cannot instantiate RRData/RRDataWithEuler with real mathlib objects",
-    "eulerChar_formula assumes RR; derivation is circular"
+    "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
+    "Cannot yet instantiate RRData.Div with Divisor α (needs point type from curve)",
+    "RRData.deg is abstract; not yet connected to Divisor.deg"
   ],
   "resolved_blockers": [
     "PIVOT Cycle 2: defined RRData structure (elaborates)",
-    "PIVOT Cycle 3: extended to RRDataWithEuler (RR derivable from fields)"
+    "PIVOT Cycle 3: extended to RRDataWithEuler (RR derivable from fields)",
+    "CYCLE 4: Defined Divisor α := α →₀ ℤ, proved deg_add/deg_zero/deg_neg/deg_sub/deg_single"
   ],
-  "next_action": "Cycle 4: Define Divisor α := α →₀ ℤ (Finsupp), define deg := sum of coefficients, prove deg_add, refactor RRData.Div to use real Divisor type"
+  "next_action": "Cycle 5: Connect Divisor foundation to RRData, define effective divisor, explore ell"
 }

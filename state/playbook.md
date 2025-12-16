@@ -10,18 +10,18 @@
 - RESOLVED (Cycle 2): Defined `RRData` structure bundling Div, deg, ell, genus, K. RR statement elaborates.
 - RESOLVED (Cycle 3): Extended to `RRDataWithCohomology` and `RRDataWithEuler`.
 - **DERIVED** (not proved): `RRDataWithEuler.riemannRoch` is derived from assumed structure fields.
-  - `eulerChar_formula` field IS Riemann-Roch; derivation is circular.
-  - This is an axiomatized theory interface, not a proof of RR.
+- **RESOLVED (Cycle 4)**: Foundation building - Divisor type and degree
+  - `Divisor α := α →₀ ℤ` (abbrev for transparent unification)
+  - `deg : Divisor α → ℤ` (sum of coefficients)
+  - **PROVED**: `deg_add`, `deg_zero`, `deg_neg`, `deg_sub`, `deg_single`
 
 ## Blockers (fundamental)
-- mathlib lacks: divisors, line bundles, sheaf cohomology H⁰/H¹, genus, degree for schemes
-- Cannot instantiate abstract structures with real mathlib objects
-- No path to actual RR proof without building foundations
+- mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes
+- Cannot yet instantiate `RRData.Div` with real `Divisor α` (needs point type from curve)
+- `RRData.deg` is abstract; not yet connected to `Divisor.deg`
 
-## Next Steps (Cycle 4)
-- **Foundation building**: Define real Divisor type
-- `Divisor α := α →₀ ℤ` (Finsupp - finitely supported functions from points to ℤ)
-- `deg D := D.sum (fun _ n => n)` (sum of coefficients)
-- Prove `deg_add : deg (D + E) = deg D + deg E` (should follow from Finsupp.sum_add)
-- Subtraction `K - D` comes free from AddCommGroup instance on Finsupp
-- Refactor `RRData.Div` to use `Divisor α` instead of abstract `Type*`
+## Next Steps (Cycle 5)
+- Connect `Divisor.deg` to `RRData.deg`
+- Define effective divisor: `D.Effective := ∀ p, 0 ≤ D p`
+- Explore: Can we define `ell` in terms of sections? (May need sheaf structure)
+- Alternative: Define `ℓ(D)` as cardinality of some set related to D

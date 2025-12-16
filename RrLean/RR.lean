@@ -4,6 +4,51 @@ open AlgebraicGeometry
 
 namespace RiemannRoch
 
+/-! ## Divisor Foundations (Cycle 4)
+
+Concrete divisor type grounded in mathlib's Finsupp.
+This provides a real mathematical foundation rather than abstract `Div : Type*`.
+-/
+
+/-- A divisor on a set α is a finitely supported function α → ℤ.
+This is the standard definition: a formal sum of points with integer coefficients. -/
+abbrev Divisor (α : Type*) := α →₀ ℤ
+
+namespace Divisor
+
+variable {α : Type*}
+
+/-- Degree of a divisor is the sum of its coefficients. -/
+def deg (D : Divisor α) : ℤ := D.sum (fun _ n => n)
+
+/-- Single-point divisor constructor (n · p). -/
+noncomputable abbrev single (p : α) (n : ℤ) : Divisor α := Finsupp.single p n
+
+-- Candidate 3: Degree is additive
+lemma deg_add (D E : Divisor α) : deg (D + E) = deg D + deg E := by
+  simp only [deg]
+  exact Finsupp.sum_add_index' (fun _ => rfl) (fun _ _ _ => rfl)
+
+-- Candidate 4: Degree of zero
+lemma deg_zero : deg (0 : Divisor α) = 0 := by
+  simp only [deg, Finsupp.sum_zero_index]
+
+-- Candidate 5: Degree of negation
+lemma deg_neg (D : Divisor α) : deg (-D) = -deg D := by
+  have h : deg (D + (-D)) = deg D + deg (-D) := deg_add D (-D)
+  simp only [add_neg_cancel, deg_zero] at h
+  omega
+
+-- Candidate 6: Degree of subtraction
+lemma deg_sub (D E : Divisor α) : deg (D - E) = deg D - deg E := by
+  rw [sub_eq_add_neg, deg_add, deg_neg, sub_eq_add_neg]
+
+-- Candidate 8: Degree of single-point divisor
+lemma deg_single (p : α) (n : ℤ) : deg (single p n) = n := by
+  simp only [deg, single, Finsupp.sum_single_index]
+
+end Divisor
+
 /-!
 # Riemann-Roch Theorem: Axiomatized Interface
 
