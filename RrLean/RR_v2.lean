@@ -3,6 +3,7 @@ import Mathlib.RingTheory.DedekindDomain.Basic
 import Mathlib.RingTheory.DedekindDomain.Dvr
 import Mathlib.RingTheory.DedekindDomain.AdicValuation
 import Mathlib.RingTheory.DiscreteValuationRing.Basic
+import Mathlib.RingTheory.Valuation.Discrete.Basic
 import Mathlib.RingTheory.Length
 import Mathlib.RingTheory.FractionalIdeal.Basic
 import Mathlib.Data.Finsupp.Basic
@@ -1674,5 +1675,100 @@ noncomputable def localization_residueField_equiv (v : HeightOneSpectrum R) :
   exact (localization_residue_equiv v).symm.trans h2
 
 end Cycle32Candidates
+
+/-! ## Cycle 33 Candidates: Proving valuationRingAt_equiv_localization (DVR Equivalence)
+
+CRITICAL BLOCKER: valuationRingAt_equiv_localization (line 1603 was sorry)
+
+Strategy: Use IsDiscreteValuationRing.equivValuationSubring which gives A ≃+* ((maximalIdeal A).valuation K).valuationSubring
+for DVR A. We have:
+1. Localization.AtPrime v.asIdeal is a DVR (proved: localizationAtPrime_isDVR)
+2. maximalIdeal (Loc.AtPrime) = v.asIdeal.map algebraMap (AtPrime.map_eq_maximalIdeal)
+3. Need to show: valuations correspond appropriately
+4. Then use equivValuationSubring and transport
+
+Key mathlib lemmas:
+- IsDiscreteValuationRing.equivValuationSubring : A ≃+* ((maximalIdeal A).valuation K).valuationSubring
+- IsLocalization.AtPrime.map_eq_maximalIdeal : v.asIdeal.map algebraMap = maximalIdeal Rₚ
+-/
+
+section Cycle33Candidates
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: dvr_bridge] [relevance: 5] [status: OK] [cycle: 33]
+/-- The maximal ideal of Localization.AtPrime v.asIdeal equals
+the image of v.asIdeal under the algebraMap.
+Direct application of IsLocalization.AtPrime.map_eq_maximalIdeal. -/
+lemma localization_maximalIdeal_eq_map (v : HeightOneSpectrum R) :
+    IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) =
+      Ideal.map (algebraMap R (Localization.AtPrime v.asIdeal)) v.asIdeal := by
+  haveI : v.asIdeal.IsPrime := v.isPrime
+  exact (IsLocalization.AtPrime.map_eq_maximalIdeal v.asIdeal (Localization.AtPrime v.asIdeal)).symm
+
+-- Candidate 2 [tag: dvr_bridge] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- Characterization of membership in valuationRingAt via fractions.
+An element g ∈ K is in valuationRingAt v iff it can be written as r/s with s ∉ v.asIdeal.
+This is the key connection between valuation and localization approaches. -/
+lemma valuationRingAt_iff_fraction (v : HeightOneSpectrum R) (g : K) :
+    g ∈ valuationRingAt (R := R) (K := K) v ↔
+      ∃ (r s : R), s ∉ v.asIdeal ∧ algebraMap R K s ≠ 0 ∧ g = algebraMap R K r / algebraMap R K s := by
+  sorry
+
+-- Candidate 3 [tag: dvr_bridge] [relevance: 5] [status: PROVED] [cycle: 33]
+/-- Every element of the form r/s with s ∉ v.asIdeal has valuation ≤ 1.
+This connects fractions from the localization to the valuation ring. -/
+lemma mk_mem_valuationRingAt (v : HeightOneSpectrum R) (r : R) {s : R} (hs : s ∉ v.asIdeal) :
+    (algebraMap R K r / algebraMap R K s) ∈ valuationRingAt (R := R) (K := K) v := by
+  rw [mem_valuationRingAt_iff]
+  -- v(r/s) = v(r) / v(s). Since s ∉ v.asIdeal, v(s) = 1. So v(r/s) = v(r) ≤ 1.
+  have hvs : v.valuation K (algebraMap R K s) = 1 := valuation_eq_one_of_not_mem v hs
+  rw [Valuation.map_div, hvs, div_one]
+  exact v.valuation_le_one r
+
+-- Candidate 4 [tag: dvr_bridge] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- Elements of valuationRingAt can be represented as fractions r/s with s ∉ v.asIdeal.
+This is the converse of Candidate 3 and completes the characterization. -/
+lemma valuationRingAt_exists_fraction (v : HeightOneSpectrum R) (g : K)
+    (hg : g ∈ valuationRingAt (R := R) (K := K) v) :
+    ∃ (r s : R), s ∉ v.asIdeal ∧ algebraMap R K s ≠ 0 ∧ g = algebraMap R K r / algebraMap R K s := by
+  -- g has valuation ≤ 1. Use IsFractionRing to write g = a/b.
+  -- If b ∉ v.asIdeal, we're done with r = a, s = b.
+  -- If b ∈ v.asIdeal, need to adjust...
+  sorry
+
+-- Candidate 5 [tag: dvr_bridge] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- MAIN GOAL: The equivalence between valuationRingAt and Localization.AtPrime.
+Uses the fraction characterization to establish the set equality, then constructs the ring equiv. -/
+noncomputable def valuationRingAt_equiv_localization_v3 (v : HeightOneSpectrum R) :
+    valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal := by
+  haveI : v.asIdeal.IsPrime := v.isPrime
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  -- Strategy: Both represent fractions r/s with s ∉ v.asIdeal
+  sorry
+
+-- Candidate 6 [tag: dvr_bridge] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- Transport the FractionRing version to abstract K via the canonical isomorphism. -/
+noncomputable def valuationRingAt_equiv_localization_v2 (v : HeightOneSpectrum R) :
+    valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal := by
+  sorry
+
+-- Candidate 7 [tag: rr_bundle_bridge] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- Residue field equivalence follows from the ring equivalence. -/
+noncomputable def residueField_equiv_of_valuationRingAt_equiv_v2 (v : HeightOneSpectrum R)
+    (e : valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal) :
+    valuationRingAt.residueField (R := R) (K := K) v ≃+*
+      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal) := by
+  sorry
+
+-- Candidate 8 [tag: main_proof] [relevance: 5] [status: SORRY] [cycle: 33]
+/-- Once we have the equivalence, surjectivity of residueMapFromR follows. -/
+lemma residueMapFromR_surjective_via_localization_v2 (v : HeightOneSpectrum R)
+    (e : valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal) :
+    Function.Surjective (residueMapFromR (R := R) (K := K) v) := by
+  sorry
+
+end Cycle33Candidates
 
 end RiemannRochV2

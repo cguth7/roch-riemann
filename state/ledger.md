@@ -1575,3 +1575,63 @@ R/v.asIdeal ≃ Loc.AtPrime/maxIdeal ≃ valuationRingAt.residueField
 - **Clear next step**: Prove DVR equivalence
 
 **Cycle rating**: 7/10 - Strategic discovery, solid infrastructure progress, clear path forward
+
+### Cycle 33 - Fraction Characterization for DVR Equivalence - PARTIAL
+- **Active edge**: Prove DVR equivalence via fraction characterization
+- **Decision**: Use valuation-based fraction representation instead of complex Algebra instances
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `localization_maximalIdeal_eq_map` | ✅ **PROVED** | maxIdeal (Loc.AtPrime) = map v.asIdeal |
+| `valuationRingAt_iff_fraction` | ⚠️ SORRY | Bidirectional characterization |
+| `mk_mem_valuationRingAt` | ✅ **PROVED** | **KEY**: Forward direction (fractions have valuation ≤ 1) |
+| `valuationRingAt_exists_fraction` | ⚠️ SORRY | **KEY BLOCKER**: Converse direction |
+| `valuationRingAt_equiv_localization_v3` | ⚠️ SORRY | Main goal, depends on fraction converse |
+| `valuationRingAt_equiv_localization_v2` | ⚠️ SORRY | Redundant with v3 |
+| `residueField_equiv_of_valuationRingAt_equiv_v2` | ⚠️ SORRY | Depends on equiv |
+| `residueMapFromR_surjective_via_localization_v2` | ⚠️ SORRY | Final target |
+
+#### Key Discovery: Fraction Characterization
+**`mk_mem_valuationRingAt` PROVED**: For r, s ∈ R with s ∉ v.asIdeal:
+```lean
+(algebraMap R K r / algebraMap R K s) ∈ valuationRingAt v
+```
+
+**Proof**:
+1. Since s ∉ v.asIdeal, we have v(s) = 1 (using `valuation_eq_one_of_not_mem`)
+2. Therefore v(r/s) = v(r)/v(s) = v(r) ≤ 1
+
+This proves that every element of `Localization.AtPrime v.asIdeal` has valuation ≤ 1.
+
+#### New Blocker: Converse Direction
+**`valuationRingAt_exists_fraction`**: Need to prove that every g ∈ K with v(g) ≤ 1 can be written as r/s with s ∉ v.asIdeal.
+
+**Strategy for Cycle 34**:
+1. Use `IsFractionRing.div_surjective` to write g = a/b
+2. If b ∉ v.asIdeal, done with r = a, s = b
+3. If b ∈ v.asIdeal: v(b) < 1, so v(a) = v(g·b) ≤ v(g)·v(b) < 1
+4. Need to find uniformizer π with v(π) = v(b), then rewrite
+
+#### Technical Notes
+- Added import for `Mathlib.RingTheory.Valuation.Discrete.Basic` (for DVR infrastructure)
+- Avoided complex `IsFractionRing (Localization.AtPrime) K` instantiation issues
+- Focused on elementary fraction representation instead
+
+#### Architecture Update
+```
+Fraction Characterization Path:
+mk_mem_valuationRingAt: r/s ∈ valuationRingAt when s ∉ v.asIdeal (✅ PROVED)
+    ↓
+valuationRingAt_exists_fraction: converse (❌ KEY BLOCKER)
+    ↓
+valuationRingAt_equiv_localization: ring equiv
+    ↓
+residueMapFromR_surjective: final target
+```
+
+#### Sorry Count
+- Before Cycle 33: 19 sorries
+- After Cycle 33: 25 sorries (8 new candidates, 2 proved)
+
+**Cycle rating**: 6/10 - Made progress with forward direction, but converse remains challenging
