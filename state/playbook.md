@@ -137,6 +137,123 @@ This requires:
 
 ---
 
+## Cycle 29 Tactical Guide
+
+### Task 1: Complete `shifted_element_valuation_le_one` (Priority: HIGH, Risk: LOW)
+
+**Location**: Line 989-1001 in RR_v2.lean
+
+**Proof Strategy**:
+```
+Given: f ∈ L(D+v), so v(f) ≤ exp(D(v) + 1)
+Goal: v(f * π^n) ≤ 1 where n = (D(v) + 1).toNat
+
+Case 1: D(v) + 1 ≥ 0
+  - n = D(v) + 1 (as ℕ)
+  - v(π^n) = exp(-n) = exp(-(D(v)+1))
+  - v(f * π^n) = v(f) * exp(-(D(v)+1))
+              ≤ exp(D(v)+1) * exp(-(D(v)+1))
+              = exp(0) = 1 ✓
+
+Case 2: D(v) + 1 < 0
+  - n = 0 (toNat of negative is 0)
+  - v(π^0) = 1
+  - v(f * 1) = v(f) ≤ exp(D(v)+1) < exp(0) = 1 ✓
+```
+
+**Key Lemmas to Use**:
+- `Int.toNat_of_nonneg : 0 ≤ n → n.toNat = n`
+- `Int.toNat_of_nonpos : n ≤ 0 → n.toNat = 0`
+- `uniformizerAt_pow_valuation` (already proved)
+- `withzero_exp_mul` / `WithZero.exp_add`
+- `withzero_exp_le_exp` / `WithZero.exp_le_exp`
+
+**Estimated Difficulty**: 3/5 - Case analysis is straightforward, just needs careful WithZero.exp manipulation.
+
+---
+
+### Task 2: Residue Field Bridge (Priority: HIGH, Risk: MEDIUM)
+
+**The Problem**:
+- We have `valuationRingAt.residueField v` (from ValuationSubring)
+- We need `residueFieldAtPrime R v` (= `v.asIdeal.ResidueField`)
+- `local_gap_bound_of_exists_map` expects the latter
+
+**Investigation Paths** (try in order):
+
+**Path A: Find existing isomorphism in mathlib**
+```
+Search queries:
+- "ValuationSubring.*residue.*Localization"
+- "equivValuationSubring" (in RingTheory/Valuation/Discrete/Basic.lean)
+- "IsDiscreteValuationRing.*residue"
+```
+
+For Dedekind domains at height-1 primes:
+- `Localization.AtPrime v.asIdeal` is a DVR
+- DVRs have unique valuation → their valuation ring = themselves
+- So `valuationRingAt v ≃ Localization.AtPrime v.asIdeal`?
+
+**Path B: Reformulate target to use valuationRingAt.residueField**
+If the bridge is hard, consider:
+1. Redefine `residueFieldAtPrime` as `valuationRingAt.residueField`
+2. OR prove `residueFieldAtPrime.isSimpleModule` for `valuationRingAt.residueField` directly
+3. This avoids the bridge entirely
+
+**Path C: Direct construction**
+Build `evaluationMapAt` targeting `valuationRingAt.residueField v`:
+```lean
+def evaluationMapAt' (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    RRModuleV2_real R K (D + DivisorV2.single v 1) →ₗ[R]
+    valuationRingAt.residueField (R := R) (K := K) v := ...
+```
+Then prove `valuationRingAt.residueField` has length 1 (it should, as residue field of a DVR).
+
+**Decision Point**: If Path A takes >30 min of searching, switch to Path B or C.
+
+---
+
+### Task 3: evaluationMapAt Construction (after Task 2 resolved)
+
+**Once residue field target is decided**, the construction is:
+```lean
+def evaluationMapAt v D : L(D+v) →ₗ[R] target_residue_field := {
+  toFun := fun ⟨f, hf⟩ =>
+    let g := f * algebraMap R K (uniformizerAt v ^ (D v + 1).toNat)
+    let hg : v.valuation K g ≤ 1 := shifted_element_valuation_le_one v D f hf
+    partialResidueMap v g hg  -- or composed with bridge
+  map_add' := ... -- use partialResidueMap_add
+  map_smul' := ... -- use partialResidueMap_smul
+}
+```
+
+**Key Challenge**: The linearity proofs need to show that shifting by π^n is compatible with addition/scalar multiplication. This should follow from:
+- `algebraMap` is a ring homomorphism
+- Multiplication distributes
+
+---
+
+### Fallback Strategy
+
+If both residue field approaches prove difficult:
+
+**Option: Axiomatize the evaluation map temporarily**
+Add to a new typeclass `HasEvaluationMap R K`:
+```lean
+class HasEvaluationMap ... where
+  evaluationMapAt : ∀ v D, L(D+v) →ₗ[R] residueFieldAtPrime R v
+  kernel_condition : ∀ v D, ker (evaluationMapAt v D) = range (inclusion ...)
+```
+
+This would let us:
+1. Complete `instLocalGapBound` conditionally
+2. Make `riemann_inequality_affine` work with `[HasEvaluationMap R K]`
+3. Defer the construction to a future cycle
+
+**Risk**: Adds another assumption layer. Use only if stuck >2 cycles.
+
+---
+
 ## Historical Cycles
 
 | Cycle | Achievement |
