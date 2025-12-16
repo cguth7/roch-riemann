@@ -717,6 +717,92 @@
             </p>
         </section>
 
+        <!-- Meta: Process -->
+        <section>
+            <h2>Meta: How This Project Evolved</h2>
+
+            <p style="margin-bottom: 1.5rem;">
+                This project used an <strong>ACE-style orchestration loop</strong>: an LLM (Claude) guided by
+                a human through iterative "cycles" of planning, implementation, and review. Each cycle
+                targets a specific edge of the proof graph, builds it, tests it, and commits.
+            </p>
+
+            <div class="two-col">
+                <div class="approach-box">
+                    <h4 style="color: var(--green);">What Worked Well</h4>
+                    <ul>
+                        <li><strong>Iterative cycles</strong> &mdash; Small, focused commits kept progress visible and reversible</li>
+                        <li><strong>Two-file strategy</strong> &mdash; Axiom-based (RR.lean) let us explore consequences while constructive (RR_v2.lean) built foundations</li>
+                        <li><strong>Typeclass abstraction</strong> &mdash; <code>LocalGapBound</code> / <code>SinglePointBound</code> hierarchy cleanly separated affine vs projective concerns</li>
+                        <li><strong>Module.length over finrank</strong> &mdash; Key pivot in Cycle 20; length is additive in exact sequences, finrank isn't</li>
+                        <li><strong>Mathlib discovery</strong> &mdash; Finding <code>bijective_algebraMap_quotient_residueField</code> unlocked the isSimpleModule proof</li>
+                        <li><strong>State files</strong> &mdash; playbook.md and ledger.md provided persistent memory across sessions</li>
+                    </ul>
+                </div>
+                <div class="approach-box">
+                    <h4 style="color: var(--red);">What Was Hard / Didn't Work</h4>
+                    <ul>
+                        <li><strong>Instance plumbing</strong> &mdash; Lean's typeclass system sometimes times out on "obvious" instances (IsFractionRing K K for fields)</li>
+                        <li><strong>Affine model surprise</strong> &mdash; Cycle 22 discovered HeightOneSpectrum only gives finite places; took 3 cycles to cleanly resolve</li>
+                        <li><strong>finrank dead end</strong> &mdash; Cycles 17-19 tried finrank-based dimension; had to pivot when monotonicity failed</li>
+                        <li><strong>API exploration</strong> &mdash; Finding the right mathlib lemma often took longer than writing the proof</li>
+                        <li><strong>Serre duality gap</strong> &mdash; The "other half" of RR (l(K-D) term) needs differentials/residues that mathlib doesn't have</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 1.5rem;">Key Pivots</h3>
+            <table class="status-table">
+                <thead>
+                    <tr>
+                        <th>Cycle</th>
+                        <th>Discovery</th>
+                        <th>Response</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>17</td>
+                        <td>Axiom approach hit ceiling; couldn't instantiate</td>
+                        <td>Created RR_v2.lean with Dedekind domain foundations</td>
+                    </tr>
+                    <tr>
+                        <td>20</td>
+                        <td>finrank not monotonic for infinite-dimensional quotients</td>
+                        <td>Switched to Module.length (ENat-valued, additive)</td>
+                    </tr>
+                    <tr>
+                        <td>22</td>
+                        <td>HeightOneSpectrum = finite places only</td>
+                        <td>Split into LocalGapBound (affine) + SinglePointBound (projective)</td>
+                    </tr>
+                    <tr>
+                        <td>24</td>
+                        <td>IsFractionRing timeout blocking isSimpleModule</td>
+                        <td>Found bijective_algebraMap lemma, avoided IsFractionRing entirely</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 1.5rem;">Honest Assessment</h3>
+            <p style="margin-bottom: 1rem;">
+                <strong>What we achieved:</strong> A working proof of the Riemann inequality from Dedekind domain
+                foundations, plus a complete axiom-based development of RR consequences (genus formulas, Clifford).
+                The core algebraic machinery is solid.
+            </p>
+            <p style="margin-bottom: 1rem;">
+                <strong>What's missing for "real" RR:</strong> The l(K-D) term requires Serre duality, which requires
+                differentials, residues, and the residue theorem. This is substantial algebraic geometry that
+                mathlib doesn't have. We'd need to either axiomatize it (like we did) or build it from scratch
+                (months of work).
+            </p>
+            <p style="color: var(--muted);">
+                <strong>Bottom line:</strong> This is a honest partial formalization. We proved the "easy half"
+                (Riemann inequality) constructively and axiomatized the "hard half" (duality). The axiom-based
+                results are mathematically valid conditional on RR holding; the constructive results are unconditional.
+            </p>
+        </section>
+
         <footer>
             <p>
                 Lean 4 + mathlib &bull;
