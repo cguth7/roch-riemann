@@ -268,6 +268,32 @@ ellV2_mono (sorry)    ellV2_real_mono ✅ PROVED
 ```
 
 ### Next Steps (Cycle 21)
-1. **Priority 1**: Add single-point bound axiom to extend architecture for Riemann inequality
-2. **Priority 2**: Prove `riemann_inequality` via induction on `deg(D).toNat`
-3. **Priority 3**: Deprecate placeholder `ellV2_mono`, `ellV2`, etc.
+
+#### Priority 1: Define `SinglePointBound` typeclass
+Use a **class** (not structure extension) for composability:
+```lean
+class SinglePointBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] where
+  bound : ∀ (D : DivisorV2 R) (v : HeightOneSpectrum R),
+    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1
+  ell_zero_eq_one : ellV2_real R K 0 = 1
+```
+
+**Rationale**: More idiomatic than V1's structure extension. Allows `[SinglePointBound R K]` hypothesis
+in lemmas without threading structure. Instance can be filled with real proof later.
+
+#### Priority 2: Prove `riemann_inequality` via induction
+Port the proof from RR.lean (Cycle 11) `ell.le_deg_add_ell_zero_from_bound`:
+- Induct on `n = (deg D).toNat`
+- Base: deg = 0 implies D = 0 (for effective D)
+- Step: peel off one point, use `SinglePointBound.bound`
+
+Expected signature:
+```lean
+lemma riemann_inequality [SinglePointBound R K] {D : DivisorV2 R} (hD : D.Effective) :
+    (ellV2_real R K D : ℤ) ≤ D.deg + 1
+```
+
+#### Priority 3: Cleanup
+- Mark `ellV2`, `ellV2_extended`, `ellV2_mono` as deprecated
+- Consider removing placeholder `RRModuleV2` entirely

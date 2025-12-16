@@ -225,5 +225,5 @@
     "CYCLE 19: RRModuleV2_real COMPLETE - bug fix + add_mem'/smul_mem' PROVED",
     "CYCLE 20: ellV2_real_mono PROVED - Module.length_le_of_injective + Submodule.inclusion"
   ],
-  "next_action": "Cycle 21: Add single-point bound axiom, prove riemann_inequality using ellV2_real"
+  "next_action": "Cycle 21: Define SinglePointBound typeclass, prove riemann_inequality via degree induction"
 }
