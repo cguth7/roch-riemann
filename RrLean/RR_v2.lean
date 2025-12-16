@@ -525,4 +525,52 @@ lemma riemann_inequality {D : DivisorV2 R} (hD : D.Effective) :
     (ellV2 R K D : ℤ) ≤ D.deg + 1 := by
   sorry
 
+/-! ## Cycle 22: Residue Field Infrastructure
+
+These definitions support the evaluation map construction for proving SinglePointBound.
+
+**ARCHITECTURAL DISCOVERY (Cycle 22)**:
+The current model using `HeightOneSpectrum R` captures only FINITE places.
+For a function field k(t)/k:
+- Finite places = height-1 primes of k[t]
+- Missing = place at infinity
+- L(0) = {no poles at finite places} = k[t], NOT k!
+
+This means `ell_zero_eq_one` is FALSE in the current setup:
+- L(0) = R (integral elements), not k (constants)
+- Module.length R R = ∞ for Dedekind domains
+- So ellV2_real R K 0 = 0, not 1
+
+**CONSEQUENCE**: Current model proves "affine Riemann inequality" only.
+For complete curve RR, need to add compactification (infinite places).
+-/
+
+-- Candidate 1 [tag: residue_field] [status: OK] [cycle: 22]
+/-- The residue field at a height-1 prime v of a Dedekind domain R.
+This is the quotient of the localization at v by its maximal ideal.
+
+Geometrically: κ(v) is the "value field" at point v. For a curve over k,
+this is a finite extension of k (dimension 1 when k is algebraically closed).
+
+Uses: `Ideal.ResidueField (v.asIdeal)` from mathlib. -/
+noncomputable abbrev residueFieldAtPrime (v : HeightOneSpectrum R) : Type _ :=
+  v.asIdeal.ResidueField
+
+-- Candidate 2 [tag: residue_field] [status: OK] [cycle: 22]
+/-- The residue field at a height-1 prime is a field.
+Automatic from mathlib's `Ideal.ResidueField` infrastructure. -/
+noncomputable instance residueFieldAtPrime.field (v : HeightOneSpectrum R) :
+    Field (residueFieldAtPrime R v) :=
+  inferInstance
+
+-- Candidate 3 [tag: residue_field] [status: OK] [cycle: 22]
+/-- The residue map from R to κ(v), sending r ↦ r mod v.
+This is the composition R → Localization.AtPrime v.asIdeal → κ(v).
+
+Key property: r ∈ ker(residue) ⟺ r ∈ v (membership in the prime ideal).
+From mathlib: `Ideal.algebraMap_residueField_eq_zero`. -/
+noncomputable def residueMapAtPrime (v : HeightOneSpectrum R) :
+    R →+* residueFieldAtPrime R v :=
+  algebraMap R (residueFieldAtPrime R v)
+
 end RiemannRochV2

@@ -1,5 +1,5 @@
 {
-  "active_edge": "Cycle 22: Serre duality or full Riemann-Roch",
+  "active_edge": "Cycle 23: Resolve affine vs projective model - decide dimension approach",
   "candidates": [
     {
       "name": "Divisor α",
@@ -16,76 +16,6 @@
       "cycle": 4
     },
     {
-      "name": "Divisor.deg_add",
-      "status": "PROVED",
-      "statement": "deg (D + E) = deg D + deg E",
-      "approach": "Via Finsupp.sum_add_index'",
-      "cycle": 4
-    },
-    {
-      "name": "Divisor.deg_zero",
-      "status": "PROVED",
-      "statement": "deg 0 = 0",
-      "approach": "Via Finsupp.sum_zero_index",
-      "cycle": 4
-    },
-    {
-      "name": "Divisor.deg_neg",
-      "status": "PROVED",
-      "statement": "deg (-D) = -deg D",
-      "approach": "Derived from deg_add + omega",
-      "cycle": 4
-    },
-    {
-      "name": "Divisor.deg_sub",
-      "status": "PROVED",
-      "statement": "deg (D - E) = deg D - deg E",
-      "approach": "Derived from deg_add + deg_neg",
-      "cycle": 4
-    },
-    {
-      "name": "Divisor.deg_single",
-      "status": "PROVED",
-      "statement": "deg (single p n) = n",
-      "approach": "Via Finsupp.sum_single_index",
-      "cycle": 4
-    },
-    {
-      "name": "Divisor.Effective",
-      "status": "PROVED",
-      "statement": "def Effective (D : Divisor α) : Prop := 0 ≤ D",
-      "approach": "Uses mathlib's Finsupp pointwise order",
-      "cycle": 5
-    },
-    {
-      "name": "FunctionFieldData",
-      "status": "DEFINED",
-      "statement": "structure FunctionFieldData (α : Type*) with K, div, div_mul, div_one, div_inv, deg_div",
-      "approach": "Axiomatizes function field with principal divisor map",
-      "cycle": 5
-    },
-    {
-      "name": "RRSpace (Submodule)",
-      "status": "DEFINED",
-      "statement": "def RRSpace (data : FunctionFieldData α k) (D : Divisor α) : Submodule k data.K",
-      "approach": "Full k-submodule structure with zero_mem', add_mem', smul_mem'",
-      "cycle": 6
-    },
-    {
-      "name": "ell",
-      "status": "DEFINED",
-      "statement": "def ell (data : FunctionFieldData α k) (D : Divisor α) := Module.finrank k (RRSpace data D)",
-      "approach": "Semantic dimension using mathlib's finrank",
-      "cycle": 7
-    },
-    {
-      "name": "FunctionFieldDataWithBound",
-      "status": "DEFINED",
-      "statement": "structure extending FunctionFieldData with single_point_bound : ∀ D p, ell (D + p) ≤ ell D + 1",
-      "approach": "Axiomatize single-point dimension bound",
-      "cycle": 10
-    },
-    {
       "name": "ell.le_deg_add_ell_zero_from_bound",
       "status": "PROVED",
       "statement": "Effective D → (ell data D : ℤ) ≤ deg D + ell data 0",
@@ -93,31 +23,10 @@
       "cycle": 11
     },
     {
-      "name": "FunctionFieldDataWithRR",
-      "status": "DEFINED",
-      "statement": "structure extending FunctionFieldDataWithBound with genus, K_div, deg_K, rr_axiom",
-      "approach": "Axiomatize full Riemann-Roch as structure fields",
-      "cycle": 12
-    },
-    {
       "name": "FunctionFieldDataWithRR.riemannRoch_eq",
       "status": "PROVED",
       "statement": "ℓ(D) - ℓ(K-D) = deg D + 1 - g",
       "approach": "Direct application of rr_axiom",
-      "cycle": 12
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_K",
-      "status": "PROVED",
-      "statement": "ℓ(K) = g",
-      "approach": "Apply RR to D = K, use ℓ(0) = 1 and deg(K) = 2g-2",
-      "cycle": 12
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_K_sub_D_eq_zero_of_deg_gt",
-      "status": "PROVED",
-      "statement": "deg D > 2g - 2 → ℓ(K-D) = 0",
-      "approach": "Vanishing via deg_div semantic content",
       "cycle": 12
     },
     {
@@ -128,86 +37,99 @@
       "cycle": 16
     }
   ],
-  "cycle_20_candidates": [
+  "cycle_22_candidates": [
     {
-      "name": "ellV2_real_extended",
-      "status": "DEFINED",
-      "statement": "noncomputable def ellV2_real_extended (D : DivisorV2 R) : ℕ∞ := Module.length R (RRModuleV2_real R K D)",
-      "approach": "Module.length on valuation-based L(D), returns ℕ∞",
+      "name": "residueFieldAtPrime",
+      "status": "OK",
+      "statement": "noncomputable abbrev residueFieldAtPrime (v : HeightOneSpectrum R) : Type _ := v.asIdeal.ResidueField",
+      "approach": "Residue field κ(v) at height-1 prime",
       "score": 5,
-      "cycle": 20
+      "cycle": 22
     },
     {
-      "name": "ellV2_real",
-      "status": "DEFINED",
-      "statement": "noncomputable def ellV2_real (D : DivisorV2 R) : ℕ := (ellV2_real_extended R K D).toNat",
-      "approach": "Natural number extraction via toNat",
+      "name": "residueFieldAtPrime.field",
+      "status": "OK",
+      "statement": "noncomputable instance residueFieldAtPrime.field (v) : Field (residueFieldAtPrime R v) := inferInstance",
+      "approach": "Field instance automatic from mathlib",
       "score": 5,
-      "cycle": 20
+      "cycle": 22
     },
     {
-      "name": "ellV2_real_mono_extended",
-      "status": "PROVED",
-      "statement": "D ≤ E → ellV2_real_extended R K D ≤ ellV2_real_extended R K E",
-      "approach": "RRModuleV2_mono_inclusion + Submodule.inclusion_injective + Module.length_le_of_injective",
+      "name": "residueMapAtPrime",
+      "status": "OK",
+      "statement": "noncomputable def residueMapAtPrime (v) : R →+* residueFieldAtPrime R v := algebraMap R _",
+      "approach": "Residue map R → κ(v)",
       "score": 5,
-      "cycle": 20
+      "cycle": 22
     },
     {
-      "name": "ellV2_real_mono",
-      "status": "PROVED",
-      "statement": "D ≤ E → (finiteness) → ellV2_real R K D ≤ ellV2_real R K E",
-      "approach": "ellV2_real_mono_extended + ENat.toNat_le_toNat with finiteness hypothesis",
-      "score": 5,
-      "cycle": 20
+      "name": "RRModuleV2_real_zero_eq_R",
+      "status": "BLOCKED",
+      "statement": "(RRModuleV2_real R K 0).carrier = Set.range (algebraMap R K)",
+      "approach": "L(0) = R (global-local principle)",
+      "blocker": "Needs IsDedekindDomain.eq_of_localization_eq_localization adaptation",
+      "score": 2,
+      "cycle": 22
     },
     {
-      "name": "ellV2_real_mono'",
-      "status": "PROVED",
-      "statement": "D ≤ E → (ellV2_real R K D ≤ ellV2_real R K E) ∨ (ellV2_real_extended R K E = ⊤)",
-      "approach": "Alternative formulation covering infinite case",
-      "score": 4,
-      "cycle": 20
+      "name": "ell_zero_eq_one",
+      "status": "IMPOSSIBLE",
+      "statement": "ellV2_real R K 0 = 1",
+      "approach": "L(0) = 1-dimensional",
+      "blocker": "FUNDAMENTAL FLAW: L(0) = R (infinite-dimensional), NOT k. Model captures only FINITE places.",
+      "score": 0,
+      "cycle": 22
+    },
+    {
+      "name": "uniformizerAt",
+      "status": "BLOCKED",
+      "statement": "noncomputable def uniformizerAt (v) : Localization.AtPrime v.asIdeal",
+      "approach": "Extract uniformizer from DVR",
+      "blocker": "mathlib DVR API limited for uniformizer extraction",
+      "score": 2,
+      "cycle": 22
+    },
+    {
+      "name": "evaluationMap",
+      "status": "BLOCKED",
+      "statement": "noncomputable def evaluationMap (D) (v) : RRModuleV2_real R K (D + v) →ₗ[R] residueFieldAtPrime R v",
+      "approach": "Evaluation via uniformizer multiplication",
+      "blocker": "Depends on uniformizerAt",
+      "score": 2,
+      "cycle": 22
+    },
+    {
+      "name": "SinglePointBound instance",
+      "status": "BLOCKED",
+      "statement": "instance : SinglePointBound R K",
+      "approach": "Via evaluationMap kernel bound",
+      "blocker": "Depends on evaluationMap AND ell_zero_eq_one (impossible)",
+      "score": 0,
+      "cycle": 22
     }
   ],
-  "cycle_19_candidates": [
+  "cycle_21_candidates": [
     {
-      "name": "satisfiesValuationCondition (FIXED)",
-      "status": "PROVED",
-      "statement": "def satisfiesValuationCondition (D) (f) := f = 0 ∨ ∀ v, v.valuation K f ≤ exp(D v)",
-      "approach": "BUG FIX: Changed from ≥ exp(-D) to ≤ exp(D) - correct membership direction",
+      "name": "SinglePointBound",
+      "status": "DEFINED",
+      "statement": "class SinglePointBound with bound : ℓ(D+v) ≤ ℓ(D)+1, ell_zero_eq_one : ℓ(0) = 1",
+      "approach": "Typeclass encapsulating single-point bound axioms",
       "score": 5,
-      "cycle": 19
+      "cycle": 21
     },
     {
-      "name": "RRModuleV2_real.add_mem'",
+      "name": "riemann_inequality_real",
       "status": "PROVED",
-      "statement": "a ∈ L(D) → b ∈ L(D) → a + b ∈ L(D)",
-      "approach": "Valuation.map_add_le_max' + max_le",
+      "statement": "[SinglePointBound R K] → Effective D → (ℓ(D) : ℤ) ≤ deg(D) + 1",
+      "approach": "Degree induction on (deg D).toNat - KEY THEOREM",
       "score": 5,
-      "cycle": 19
-    },
-    {
-      "name": "RRModuleV2_real.smul_mem'",
-      "status": "PROVED",
-      "statement": "f ∈ L(D) → r • f ∈ L(D) for r ∈ R",
-      "approach": "valuation_le_one + mul_le_mul' + one_mul",
-      "score": 5,
-      "cycle": 19
-    },
-    {
-      "name": "RRModuleV2_mono_inclusion (updated)",
-      "status": "PROVED",
-      "statement": "D ≤ E → RRModuleV2_real R K D ≤ RRModuleV2_real R K E",
-      "approach": "Updated for corrected membership direction",
-      "score": 5,
-      "cycle": 19
+      "cycle": 21
     }
   ],
   "blockers": [
     "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
-    "Base RRData.riemannRoch has no proof path without additional structure axioms",
-    "riemann_inequality needs single-point bound axiom or evaluation map construction"
+    "CRITICAL (Cycle 22): HeightOneSpectrum captures only FINITE places - L(0) = R not k",
+    "SinglePointBound.ell_zero_eq_one is UNPROVABLE in current affine model"
   ],
   "resolved_blockers": [
     "CYCLE 4-6: Divisor foundations, FunctionFieldData, RRSpace as k-Submodule",
@@ -224,73 +146,8 @@
     "CYCLE 18: Valuation-based L(D) defined, RRModuleV2_mono_inclusion PROVED",
     "CYCLE 19: RRModuleV2_real COMPLETE - bug fix + add_mem'/smul_mem' PROVED",
     "CYCLE 20: ellV2_real_mono PROVED - Module.length_le_of_injective + Submodule.inclusion",
-    "CYCLE 21: SinglePointBound typeclass + riemann_inequality_real PROVED - 8/8 candidates"
+    "CYCLE 21: SinglePointBound typeclass + riemann_inequality_real PROVED - 8/8 candidates",
+    "CYCLE 22: Residue field infrastructure merged (3/8), CRITICAL DISCOVERY: affine model limitation"
   ],
-  "next_action": "Cycle 22: Prove SinglePointBound instance via evaluation map (makes Riemann inequality unconditional)",
-  "cycle_21_candidates": [
-    {
-      "name": "SinglePointBound",
-      "status": "DEFINED",
-      "statement": "class SinglePointBound with bound : ℓ(D+v) ≤ ℓ(D)+1, ell_zero_eq_one : ℓ(0) = 1",
-      "approach": "Typeclass encapsulating single-point bound axioms",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "DivisorV2.deg_add_single'",
-      "status": "PROVED",
-      "statement": "(D + single v 1).deg = D.deg + 1",
-      "approach": "deg_add + deg_single",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "DivisorV2.exists_pos_of_deg_pos",
-      "status": "PROVED",
-      "statement": "Effective D → 0 < deg D → ∃ v, 0 < D v",
-      "approach": "Contradiction via Finsupp.sum_eq_zero",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "DivisorV2.effective_sub_single",
-      "status": "PROVED",
-      "statement": "Effective D → 0 < D v → Effective (D - single v 1)",
-      "approach": "by_cases on w = v",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "DivisorV2.deg_sub_single",
-      "status": "PROVED",
-      "statement": "(D - single v 1).deg = D.deg - 1",
-      "approach": "sub_eq_add_neg + deg_add + deg_neg + deg_single",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "DivisorV2.sub_add_single_cancel",
-      "status": "PROVED",
-      "statement": "(D - single v 1) + single v 1 = D",
-      "approach": "sub_add_cancel",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "ellV2_real_add_single_le_succ",
-      "status": "PROVED",
-      "statement": "[SinglePointBound R K] → ℓ(D + v) ≤ ℓ(D) + 1",
-      "approach": "SinglePointBound.bound application",
-      "score": 5,
-      "cycle": 21
-    },
-    {
-      "name": "riemann_inequality_real",
-      "status": "PROVED",
-      "statement": "[SinglePointBound R K] → Effective D → (ℓ(D) : ℤ) ≤ deg(D) + 1",
-      "approach": "Degree induction on (deg D).toNat - KEY THEOREM",
-      "score": 5,
-      "cycle": 21
-    }
-  ]
+  "next_action": "Cycle 23: Decide approach for dimension definition (relative vs compactification vs accept affine)"
 }

@@ -132,13 +132,13 @@ To make real progress, we must use mathlib's constructive infrastructure.
 
 | Component | Location | Status |
 |-----------|----------|--------|
-| `HeightOneSpectrum R` | `RingTheory.DedekindDomain.Ideal.Lemmas:456` | ✅ Points on curve |
-| `Module.length` | `RingTheory.Length:32` | ✅ For ℓ(D) |
-| `IsDedekindDomain` | `RingTheory.DedekindDomain.Basic` | ✅ Curve's coordinate ring |
-| `DiscreteValuationRing` | `RingTheory.DedekindDomain.Dvr` | ✅ Local at points |
-| `FractionalIdeal` | `RingTheory.FractionalIdeal` | ✅ For divisor groups |
-| `FiniteAdeleRing` | `RingTheory.DedekindDomain.FiniteAdeleRing` | ✅ Global bounds |
-| `AdicValuation` | `RingTheory.DedekindDomain.AdicValuation:295` | ✅ Valuations at points |
+| `HeightOneSpectrum R` | `RingTheory.DedekindDomain.Ideal.Lemmas:456` | Points on curve |
+| `Module.length` | `RingTheory.Length:32` | For ℓ(D) |
+| `IsDedekindDomain` | `RingTheory.DedekindDomain.Basic` | Curve's coordinate ring |
+| `DiscreteValuationRing` | `RingTheory.DedekindDomain.Dvr` | Local at points |
+| `FractionalIdeal` | `RingTheory.FractionalIdeal` | For divisor groups |
+| `FiniteAdeleRing` | `RingTheory.DedekindDomain.FiniteAdeleRing` | Global bounds |
+| `AdicValuation` | `RingTheory.DedekindDomain.AdicValuation:295` | Valuations at points |
 
 ### The Constructive Path (Jiedong Jiang Strategy)
 
@@ -264,39 +264,8 @@ exact Module.length_le_of_injective
 ### Architecture: `_real` Suffix
 ```
 Placeholder:          Real (proven):
-ellV2_mono (sorry)    ellV2_real_mono ✅ PROVED
+ellV2_mono (sorry)    ellV2_real_mono PROVED
 ```
-
-### Next Steps (Cycle 21)
-
-#### Priority 1: Define `SinglePointBound` typeclass
-Use a **class** (not structure extension) for composability:
-```lean
-class SinglePointBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
-    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] where
-  bound : ∀ (D : DivisorV2 R) (v : HeightOneSpectrum R),
-    ellV2_real R K (D + DivisorV2.single v 1) ≤ ellV2_real R K D + 1
-  ell_zero_eq_one : ellV2_real R K 0 = 1
-```
-
-**Rationale**: More idiomatic than V1's structure extension. Allows `[SinglePointBound R K]` hypothesis
-in lemmas without threading structure. Instance can be filled with real proof later.
-
-#### Priority 2: Prove `riemann_inequality` via induction
-Port the proof from RR.lean (Cycle 11) `ell.le_deg_add_ell_zero_from_bound`:
-- Induct on `n = (deg D).toNat`
-- Base: deg = 0 implies D = 0 (for effective D)
-- Step: peel off one point, use `SinglePointBound.bound`
-
-Expected signature:
-```lean
-lemma riemann_inequality [SinglePointBound R K] {D : DivisorV2 R} (hD : D.Effective) :
-    (ellV2_real R K D : ℤ) ≤ D.deg + 1
-```
-
-#### Priority 3: Cleanup
-- Mark `ellV2`, `ellV2_extended`, `ellV2_mono` as deprecated
-- Consider removing placeholder `RRModuleV2` entirely
 
 ## Status - Cycle 21 (SUCCESS: Riemann Inequality PROVED for RR_v2.lean)
 - **DEFINED**: `SinglePointBound` typeclass - captures single-point dimension bound
@@ -323,65 +292,84 @@ FunctionFieldDataWithBound (structure)  SinglePointBound (class)
 ```
 Typeclass approach is more idiomatic - allows `[SinglePointBound R K]` hypothesis.
 
-### Next Steps (Cycle 22)
+## Status - Cycle 22 (CRITICAL DISCOVERY: Definition Flaw)
 
-#### Priority 1: SinglePointBound Instance (MAIN GOAL)
-Prove `instance : SinglePointBound R K` by constructing the evaluation map.
+### Key Findings
 
-**Strategy**:
-```lean
--- The evaluation map at v sends f ∈ L(D+v) to its residue class in κ(v)
--- κ(v) = residue field = LocalRing.ResidueField (Localization.AtPrime v.asIdeal)
+**3/8 candidates OK** (merged into RR_v2.lean):
+- `residueFieldAtPrime` - residue field κ(v) at height-1 prime
+- `residueFieldAtPrime.field` - field instance
+- `residueMapAtPrime` - residue map R → κ(v)
 
--- Key insight: if f ∈ L(D+v) and ord_v(f) ≥ 1, then f ∈ L(D)
--- This is because: v.valuation K f ≤ exp((D+v)(v)) = exp(D(v) + 1)
---                  If ord_v(f) ≥ 1, then v.valuation K f ≤ exp(-1) < exp(D(v))
---                  Wait, need to think about the direction more carefully...
+**5/8 candidates BLOCKED**:
+- `RRModuleV2_real_zero_eq_R` - L(0) = R (blocked: needs global-local principle)
+- `ell_zero_eq_one` - **IMPOSSIBLE with current definitions**
+- `uniformizerAt` - uniformizer extraction (limited mathlib API)
+- `evaluationMap` - depends on uniformizer
+- `SinglePointBound instance` - depends on all above
 
--- Actually: L(D+v) membership means ord_v(f) ≥ -(D(v) + 1)
--- L(D) membership means ord_v(f) ≥ -D(v)
--- So if ord_v(f) ≥ 1 (i.e., f vanishes at v), definitely ord_v(f) ≥ -D(v)
--- The evaluation map extracts the "principal part" at v
+### CRITICAL ARCHITECTURAL DISCOVERY
+
+**The Problem**: `ell_zero_eq_one : ellV2_real R K 0 = 1` is **FALSE** in current setup.
+
+**Why**:
+```
+Complete curve (projective): L(0) = k (constants) → dim = 1 ✓
+Affine curve (Dedekind R):   L(0) = R (integrals) → dim = ∞ ✗
 ```
 
-**Mathlib components needed**:
-- `LocalRing.ResidueField` for κ(v)
-- `Ideal.Quotient.mk` for the projection map
-- Show evaluation is well-defined on L(D+v)
-- Show kernel contains L(D)
-- Conclude dim(L(D+v)/L(D)) ≤ dim(κ(v)) = 1
+Our `HeightOneSpectrum R` model captures only **FINITE places**:
+- For k(t)/k: finite places = (irreducible polynomials in k[t])
+- **Missing**: place at infinity
+- L(0) = {no poles at finite places} = k[t], NOT k!
 
-**Expected result**: Unconditional Riemann inequality without typeclass assumption.
+**Consequence**:
+- `Module.length R R = ⊤` (infinite for Dedekind domain)
+- `ellV2_real R K 0 = (⊤).toNat = 0`, not 1
+- The `SinglePointBound.ell_zero_eq_one` axiom cannot be satisfied
 
-#### Priority 2: Full RR (Optional)
-State full RR conditionally with genus axiom:
+### What This Means
+
+The current model proves **"affine Riemann inequality"** only:
+- Inductive step (evaluation map, gap ≤ 1): **VIABLE**
+- Base case (ℓ(0) = 1): **IMPOSSIBLE** without compactification
+
+### Options for Cycle 23
+
+1. **Add infinite places**: Compactify to complete curve
+   - Very non-trivial, requires defining "place at infinity"
+
+2. **Change dimension definition**: Use `finrank k` over base field
+   - Requires `[Algebra k R]` hypothesis
+   - Still has L(0) = R issue
+
+3. **Relative formulation**: Define ℓ_rel(D) = length(L(D)/L(0))
+   - Then ℓ_rel(0) = 0 by definition
+   - Proves: ℓ_rel(D) ≤ deg(D) for effective D
+
+4. **Accept affine model**: Document limitations
+   - Prove: ℓ(D+v) - ℓ(D) ≤ 1 (gap bound)
+   - Full RR requires separate compactification project
+
+### Residue Field Infrastructure (Merged - Cycle 22)
+
+Despite the definition issue, the residue field infrastructure is correct and merged:
 ```lean
-class HasCanonicalDivisor (R K) where
-  K_div : DivisorV2 R
-  genus : ℕ
-  deg_K : K_div.deg = 2 * genus - 2
+noncomputable abbrev residueFieldAtPrime (v : HeightOneSpectrum R) : Type _ :=
+  v.asIdeal.ResidueField
+
+noncomputable instance residueFieldAtPrime.field (v : HeightOneSpectrum R) :
+    Field (residueFieldAtPrime R v) := inferInstance
+
+noncomputable def residueMapAtPrime (v : HeightOneSpectrum R) :
+    R →+* residueFieldAtPrime R v :=
+  algebraMap R (residueFieldAtPrime R v)
 ```
 
-#### Priority 3: Serre Duality (HARD - Future Project)
-**Status**: Very challenging but potentially achievable via algebraic (adele) path.
+This infrastructure supports evaluation map construction for the inductive step.
 
-**Two-Phase Structure of Riemann-Roch**:
-- **Part 1 (Inequality)**: ℓ(D) ≤ deg(D) + 1. Tools: Divisors, Valuations, Module Length. **90% DONE**.
-- **Part 2 (Serre Duality)**: The error term is exactly ℓ(K-D). Tools: Differentials, Residues, Residue Theorem.
+### Next Steps (Cycle 23)
 
-**Why Part 2 is harder**:
-- Part 1: Count poles (integers, combinatorics)
-- Part 2: Integrate functions (algebraically). Need to define differentials on curve, define residue map, prove Σres = 0.
-
-**Algebraic Path (Viable)**:
-- mathlib has `KahlerDifferential` (algebraic differentials)
-- mathlib has `AdicValuation`
-- Would need to build "Residue API" from scratch:
-  1. Define `Residue : K → k` at point v
-  2. Define canonical divisor K as divisor of nonzero differential ω
-  3. Prove duality pairing ⟨f,ω⟩ → Σres(fω)
-
-**Geometric Path (Not viable)**: Sheaves/Cohomology infrastructure not ready in mathlib.
-
-**Verdict**: Not blocked, but requires 2-3x the effort of the Inequality. A separate project.
-After Cycle 22: Decide whether to climb the "Residue mountain".
+1. **Decide on approach**: relative formulation vs compactification vs accept affine
+2. **Explore uniformizer API** in mathlib for evaluation map
+3. **Document affine vs projective distinction** clearly in file

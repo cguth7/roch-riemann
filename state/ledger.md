@@ -780,3 +780,77 @@ lemma riemann_inequality_real [SinglePointBound R K] {D : DivisorV2 R} (hD : D.E
 
 **Part 1** is counting poles (integers, combinatorics).
 **Part 2** is integrating functions (algebraically) - requires defining differentials, residue map, proving residue theorem.
+
+### Cycle 22 - CRITICAL DISCOVERY: Definition Flaw Identified - COMPLETED
+- **Active edge**: Prove `instance : SinglePointBound R K` via evaluation map
+- **Outcome**: 3/8 candidates OK, 5/8 BLOCKED; CRITICAL architectural flaw discovered
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `residueFieldAtPrime` | ✅ **OK** | κ(v) = v.asIdeal.ResidueField |
+| `residueFieldAtPrime.field` | ✅ **OK** | Field instance via inferInstance |
+| `residueMapAtPrime` | ✅ **OK** | R →+* κ(v) via algebraMap |
+| `RRModuleV2_real_zero_eq_R` | ❌ BLOCKED | Needs global-local principle |
+| `ell_zero_eq_one` | ❌ **IMPOSSIBLE** | FUNDAMENTAL FLAW |
+| `uniformizerAt` | ❌ BLOCKED | Limited mathlib DVR API |
+| `evaluationMap` | ❌ BLOCKED | Depends on uniformizer |
+| `SinglePointBound instance` | ❌ BLOCKED | Depends on ell_zero_eq_one |
+
+#### CRITICAL ARCHITECTURAL DISCOVERY
+
+**The Problem**: `SinglePointBound.ell_zero_eq_one` cannot be satisfied.
+
+**Why**:
+```
+Complete curve (projective): L(0) = k (constants only) → dim = 1 ✓
+Affine curve (Dedekind R):   L(0) = R (all integrals) → dim = ∞ ✗
+```
+
+Our `HeightOneSpectrum R` model captures only **FINITE places**:
+- For function field k(t)/k: finite places = height-1 primes of k[t]
+- **Missing**: place at infinity
+- L(0) = {f : no poles at finite places} = k[t], NOT just k!
+
+**Consequence**:
+- `Module.length R R = ⊤` (infinite chain of ideals in Dedekind domain)
+- `ellV2_real R K 0 = (⊤).toNat = 0`, not 1
+- `SinglePointBound.ell_zero_eq_one` is **FALSE**, not just unproved
+
+#### What This Means
+
+The current model proves **"affine Riemann inequality"** only:
+- **Inductive step** (evaluation map, gap ≤ 1): VIABLE with current definitions
+- **Base case** (ℓ(0) = 1): IMPOSSIBLE without compactification
+
+#### Residue Field Infrastructure (Merged)
+
+Despite the discovery, 3 candidates are correct and merged into RR_v2.lean:
+```lean
+noncomputable abbrev residueFieldAtPrime (v : HeightOneSpectrum R) := v.asIdeal.ResidueField
+noncomputable instance residueFieldAtPrime.field (v) : Field (residueFieldAtPrime R v)
+noncomputable def residueMapAtPrime (v) : R →+* residueFieldAtPrime R v
+```
+
+This infrastructure supports evaluation map construction for the inductive step.
+
+#### Options for Cycle 23
+
+1. **Add infinite places**: Compactify to complete curve (very non-trivial)
+2. **Change dimension definition**: Use `finrank k` over base field (still has L(0) = R issue)
+3. **Relative formulation**: Define ℓ_rel(D) = length(L(D)/L(0)), then ℓ_rel(0) = 0 by definition
+4. **Accept affine model**: Document limitations, prove gap bound only
+
+**Cycle rating**: 7/10 - Valuable discovery despite blockers. Generator exposed definition flaw.
+
+#### Value of This Cycle
+
+The Generator agent **correctly identified** that our definitions were subtly wrong:
+- Attempting to instantiate `SinglePointBound` revealed the fundamental tension
+- This is exactly how type systems catch mathematical errors
+- Better to discover now than to have proved something vacuous
+
+#### Next Cycle (Cycle 23)
+- **Decision**: Choose approach (relative formulation recommended)
+- Continue evaluation map work for inductive step (viable regardless)
+- Document affine vs projective model distinction clearly
