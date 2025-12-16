@@ -43,6 +43,28 @@ Rules during bootstrap:
 Once the theorem elaborates, this invariant is disabled
 and normal edge-splitting resumes.
 
+## Progress Gate (anti-churn)
+
+If the same blocker list repeats for 2 consecutive cycles with no new mathlib objects found,
+the active edge MUST pivot to one of:
+
+1. **Define internal interface**: Create `structure RRData` or similar that bundles:
+   - A scheme/curve object using existing mathlib types
+   - Divisor-like object as a field (not axiom) - e.g., `Divisor : Type`
+   - `deg : Divisor → ℤ` as a field
+   - `ℓ : Divisor → ℕ` as a field (dimension of sections)
+   - `genus : ℕ` as a field
+   - The RR equation as a `Prop` field or separate lemma
+   This makes the theorem *statement* elaborate, even if proofs are `sorry`.
+
+2. **Reformulate target**: Use a weaker/different RR variant that mathlib supports today.
+   Update playbook to note the reformulation.
+
+3. **Switch domain**: If mathlib's complex-analytic tools (meromorphic divisors on Riemann surfaces)
+   are more developed, pivot to that formulation.
+
+The pivot decision must be recorded in ledger.md with justification.
+
 ## Loop (single cycle)
 
 1) **Build/test**:
