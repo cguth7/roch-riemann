@@ -1,12 +1,23 @@
 {
-  "active_edge": "BOOTSTRAP_INVARIANT",
-  "candidates": [],
-  "blockers": [
-    "mathlib lacks WeilDivisor/CartierDivisor for schemes",
-    "mathlib lacks InvertibleSheaf/LineBundle",
-    "mathlib lacks genus definition for curves",
-    "mathlib lacks degree function for divisors",
-    "mathlib lacks canonical sheaf"
+  "active_edge": "RRData.riemannRochEq → proof",
+  "candidates": [
+    {
+      "name": "riemannRoch",
+      "status": "ELABORATES",
+      "statement": "∀ D, ℓ(D) - ℓ(K-D) = deg(D) + 1 - g",
+      "approach": "RRData structure bundles abstract Div, deg, ell, genus, K"
+    },
+    {
+      "name": "riemannRoch'",
+      "status": "ELABORATES",
+      "statement": "expanded form with explicit subtraction",
+      "approach": "same as riemannRoch"
+    }
   ],
-  "next_action": "Define foundational types (divisor, line bundle) or find alternative formulation"
+  "blockers": [],
+  "resolved_blockers": [
+    "PIVOT: defined RRData structure per Progress Gate (Cycle 2)",
+    "RR statement now elaborates without axioms"
+  ],
+  "next_action": "Fill sorry in riemannRoch; consider Serre duality, Euler characteristic approach"
 }
