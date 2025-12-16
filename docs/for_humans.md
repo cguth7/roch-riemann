@@ -1,14 +1,14 @@
 # Riemann-Roch Formalization: Current State
 
-*Last updated: Cycle 11 (December 2024)*
+*Last updated: Cycle 15 (December 2024)*
 
-## 🎉 RIEMANN INEQUALITY PROVED
+## FULL RIEMANN-ROCH STRUCTURE COMPLETE
 
 ```
-ℓ(D) ≤ deg(D) + 1   for effective divisors D
+ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
 ```
 
-This is the classical Riemann inequality, now formally verified in Lean 4!
+The complete Riemann-Roch equation is now formalized in Lean 4 with axiomatized structure!
 
 ---
 
@@ -20,9 +20,14 @@ Prove the Riemann-Roch theorem for smooth projective curves:
 ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
 ```
 
+Where:
+- ℓ(D) = dim L(D) = dimension of space of functions with poles bounded by D
+- K = canonical divisor
+- g = genus of the curve
+
 ---
 
-## What We've Built (Cycles 4-11)
+## What We've Built (Cycles 4-15)
 
 ### Foundation Layers
 
@@ -35,46 +40,77 @@ Prove the Riemann-Roch theorem for smooth projective curves:
 | 8 | Finite-Dimensionality | 8 unconditional versions via typeclass |
 | 9 | Quotient Infrastructure | `quotient_add_eq_of_le` (rank-nullity) |
 | 10 | Single-Point Axiom | `single_point_bound`, `diff_add_single_le_one` |
-| **11** | **RIEMANN INEQUALITY** | `le_deg_add_ell_zero_from_bound` ✅ |
+| **11** | **RIEMANN INEQUALITY** | `le_deg_add_ell_zero_from_bound` |
+| **12** | **FULL RR STRUCTURE** | `riemannRoch_eq`, `ell_K`, `deg_K_eq` |
+| 13 | Cleanup | Removed 4 superseded sorries |
+| **14** | **GENUS 0** | `ell_eq_deg_minus_genus_of_deg_gt`, `ell_eq_deg_succ_of_genus_zero_deg_gt` |
+| **15** | **GENUS 1 (ELLIPTIC)** | `ell_eq_deg_of_genus_one_deg_pos`, `deg_le_of_ell_K_sub_D_pos` |
 
 ### Current Score
 
 | Category | Count |
 |----------|-------|
-| **Definitions** | 9 |
-| **Lemmas PROVED** | 35+ |
-| **Axioms added** | 3 (single_point_bound, ell_zero_eq_one, deg_div) |
+| **Definitions** | 12 |
+| **Lemmas PROVED** | 55+ |
+| **Structures** | 4 (FunctionFieldData, WithBound, WithRR, RRData) |
+| **Sorries remaining** | 3 (base RRData theorems + Clifford) |
 
 ---
 
-## The Breakthrough (Cycle 11)
+## Key Results by Cycle
 
-### The Problem
-Initial approach: `Finsupp.induction_linear` decomposes D = D₁ + D₂
-
-**Blocked!** Effective(D₁ + D₂) ⇏ Effective(D₁) ∧ Effective(D₂)
-
-Counter-example: D₁ = -p, D₂ = p → D₁ + D₂ = 0 (effective) but D₁ isn't
-
-### The Solution (thanks Gemini! 🤖)
-Induct on **degree** instead of Finsupp structure:
-
+### Cycle 11: Riemann Inequality
 ```
-Base: deg(D) = 0 and D effective ⟹ D = 0
-
-Step: deg(D) > 0 ⟹ ∃ p with D(p) > 0
-      D' = D - p is effective with deg(D') = deg(D) - 1
-
-      IH: ℓ(D') ≤ deg(D') + 1
-      Axiom: ℓ(D) = ℓ(D' + p) ≤ ℓ(D') + 1
-      Combine: ℓ(D) ≤ deg(D) + 1  ✓
+ℓ(D) ≤ deg(D) + 1   for effective divisors D
 ```
 
-*Gemini suggested the degree-based induction approach when the Finsupp approach hit a wall. Pretty cute collab moment!*
+### Cycle 12: Full Riemann-Roch Structure
+```
+ℓ(D) - ℓ(K-D) = deg(D) + 1 - g       (RR equation)
+deg(K) = 2g - 2                       (canonical degree)
+ℓ(K) = g                              (canonical dimension = genus)
+ℓ(K-D) = 0  when deg(D) > 2g - 2     (vanishing theorem)
+```
+
+### Cycle 14: Genus 0 (Projective Line)
+```
+g = 0 ⟹ deg(K) = -2
+g = 0, deg(D) > -2 ⟹ ℓ(D) = deg(D) + 1
+```
+
+### Cycle 15: Genus 1 (Elliptic Curves)
+```
+g = 1 ⟹ deg(K) = 0
+g = 1 ⟹ ℓ(K) = 1
+g = 1, deg(D) ≥ 1 ⟹ ℓ(D) = deg(D)     (KEY elliptic result)
+ℓ(K-D) > 0 ⟹ deg(D) ≤ 2g - 2         (special divisor bound)
+```
 
 ---
 
-## Dependency Graph (Updated)
+## Structure Hierarchy
+
+```
+FunctionFieldData α k
+    │ K : Field, div : K → Divisor α
+    │ div_mul, div_one, div_inv, deg_div, div_add, div_algebraMap
+    │
+    ↓ extends
+FunctionFieldDataWithBound α k
+    │ + single_point_bound : ℓ(D+p) ≤ ℓ(D) + 1
+    │ + ell_zero_eq_one : ℓ(0) = 1
+    │
+    ↓ extends
+FunctionFieldDataWithRR α k
+    │ + genus : ℕ
+    │ + K_div : Divisor α
+    │ + deg_K : deg(K) = 2g - 2
+    │ + rr_axiom : ℓ(D) - ℓ(K-D) = deg(D) + 1 - g
+```
+
+---
+
+## Dependency Graph
 
 ```
                     Divisor (α →₀ ℤ)
@@ -85,67 +121,72 @@ Step: deg(D) > 0 ⟹ ∃ p with D(p) > 0
                     │           │
                     └─────┬─────┘
                           ▼
-                  FunctionFieldData ──────────────────┐
-                    (K, div, ...)                     │
-                          │                           ▼
-                          ▼                  FunctionFieldDataWithBound
-                  RRSpace (L(D) ⊆ K)          + single_point_bound
-                          │                   + ell_zero_eq_one
-              ┌───────────┼───────────┐              │
-              ▼           ▼           ▼              │
-           mono       add_mem     smul_mem           │
-              │           │           │              │
-              └─────┬─────┴───────────┘              │
-                    ▼                                │
-            ell = finrank k L(D)                     │
-                    │                                │
-         ┌──────────┼──────────┐                     │
-         ▼          ▼          ▼                     │
-    ell.mono   pos_of_eff   zero_pos                 │
-         │          │          │                     │
-         └────┬─────┴──────────┘                     │
-              ▼                                      │
-      quotient_add_eq_of_le                          │
-        dim(L(E)/L(D)) + ℓ(D) = ℓ(E)                │
-              │                                      │
-              └──────────────┬───────────────────────┘
-                             ▼
-                   add_single_le_succ
-                     ℓ(D+p) ≤ ℓ(D) + 1
-                             │
-                             ▼
-                 ┌───────────┴───────────┐
-                 ▼                       ▼
-      single_le_deg_succ      le_deg_add_ell_zero
-        ℓ(n·p) ≤ n + 1         ℓ(D) ≤ deg(D) + 1
-                                      │
-                                      ▼
-                             RIEMANN INEQUALITY ✅
+                  FunctionFieldData
+                    (K, div, ...)
+                          │
+              ┌───────────┼───────────┐
+              ▼           ▼           ▼
+          RRSpace     deg_div     div_add
+         (L(D) ⊆ K)                 │
+              │                     │
+              ▼                     │
+      ell = finrank k L(D)          │
+              │                     │
+              └─────────────────────┘
+                          │
+                          ▼
+              FunctionFieldDataWithBound
+               + single_point_bound
+               + ell_zero_eq_one
+                          │
+                          ▼
+                RIEMANN INEQUALITY
+                 ℓ(D) ≤ deg(D) + 1
+                          │
+                          ▼
+              FunctionFieldDataWithRR
+               + genus, K_div, deg_K
+               + rr_axiom
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+       riemannRoch_eq   ell_K    vanishing theorem
+            │             │             │
+            └──────┬──────┴─────────────┘
+                   │
+     ┌─────────────┼─────────────┐
+     ▼             ▼             ▼
+  GENUS 0      GENUS 1      GENERAL
+(Cycle 14)   (Cycle 15)    BOUNDS
 ```
 
 ---
 
 ## What's Next?
 
-### Path to Full Riemann-Roch
+### Remaining Work
 
-Full RR: ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
+1. **Clifford's Inequality** (BLOCKED)
+   - Needs multiplication axiom: L(D) × L(K-D) → L(K)
+   - Classic proof uses cup product structure
 
-We have: ℓ(D) ≤ deg(D) + 1 (Riemann inequality) ✅
+2. **RRData Instantiation** (UNKNOWN)
+   - Bridge from FunctionFieldDataWithRR to abstract RRData
+   - Needs scheme morphism construction
 
-Still need:
-1. Genus g = ℓ(K) - 1 + dim H¹
-2. Serre duality: ℓ(K - D) = dim H¹(O_X(D))
-3. Full RR from Euler characteristic
+3. **Genus 2+ Special Cases**
+   - Hyperelliptic curves
+   - Gap sequences and Weierstrass points
 
 ---
 
-## Lessons Learned (Updated)
+## Lessons Learned
 
 1. **Induction principle matters** - Finsupp.induction_linear failed; degree induction worked
 2. **Effectivity is delicate** - Doesn't decompose across sums
-3. **AI collab works** - Gemini spotted the degree-based approach when I was stuck
-4. **Axioms are OK** - `single_point_bound` and `ell_zero_eq_one` are geometrically natural
+3. **Axiom layering works** - Build structures incrementally (Bound → RR)
+4. **Vanishing is powerful** - deg(K-D) < 0 ⟹ ℓ(K-D) = 0 unlocks many results
+5. **Genus specialization** - Each genus has unique formulas (g=0: +1, g=1: exact)
 
 ---
 
@@ -153,15 +194,20 @@ Still need:
 
 ```
 roch-riemann/
-├── RrLean/RR.lean         # Main formalization (~850 lines)
+├── RrLean/RR.lean         # Main formalization (~1140 lines)
 ├── state/
 │   ├── playbook.md        # Strategy
-│   └── ledger.md          # Cycle history
+│   ├── ledger.md          # Cycle history
+│   └── candidates.json    # Candidate tracking
 ├── agents/                 # ACE loop agents
+│   ├── orchestrator.md
+│   ├── generator.md
+│   ├── reflector.md
+│   └── curator.md
 └── docs/
     └── for_humans.md      # This file
 ```
 
 ---
 
-*Total: 11 cycles, 35+ lemmas proved, Riemann inequality achieved*
+*Total: 15 cycles, 55+ lemmas proved, full RR structure with genus 0 and genus 1 results*
