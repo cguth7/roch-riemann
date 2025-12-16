@@ -10,14 +10,31 @@ Input:
 
 Output:
 - Exactly 8 candidate Lean *lemma statements* (stubs) with NO proofs.
-- Each candidate must be a standalone `lemma` declaration without `:= by`.
+- Each candidate must be a standalone `lemma` declaration ending with `:= sorry`.
 - Tag each with one of:
   bundle_divisor_bridge, serre_duality_bridge, rr_bundle_bridge,
   degree_bridge, genus_bridge, rewrite_bridge, coercion_simplify.
 
-Rules:
+## HARD PROHIBITIONS (never violate)
+
+- Do NOT output `axiom`, `constant`, or `opaque` declarations.
+- Do NOT invent placeholder types. Use ONLY types that exist in mathlib.
+- Do NOT "flatten" dependent types to `Type` just to make elaboration pass.
+- If a required mathlib object doesn't exist, report it as a BLOCKER — do not fake it.
+
+## Rules
+
 - Your job is representation, not renegotiating the math. The target in problem.md is fixed.
 - Prefer fewer binders. Prefer explicit types over heavy coercion chains.
 - Use exact mathlib names from discovery results when available.
-- If you are unsure of exact mathlib names, use placeholders BUT keep the shape realistic.
-- Do not output tactics or proof terms. Do not use `by`.
+- If discovery did not find an object, do NOT invent it. Instead, mark that candidate as BLOCKED.
+- Do not output tactics or proof terms. Do not use `by` (except `:= sorry`).
+
+## Output format
+
+For each candidate:
+```
+-- Candidate N [tag: <tag>] [status: OK | BLOCKED]
+-- If BLOCKED: <reason>
+<lean lemma stub or empty if blocked>
+```
