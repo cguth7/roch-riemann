@@ -1,4 +1,11 @@
-import Mathlib
+-- Specific imports for ~12x faster build times (8s vs 90s)
+import Mathlib.Data.Finsupp.Basic
+import Mathlib.Data.Finsupp.Order
+import Mathlib.Data.Finsupp.BigOperators
+import Mathlib.Order.Preorder.Finsupp
+import Mathlib.AlgebraicGeometry.Scheme
+import Mathlib.Algebra.Field.Basic
+import Mathlib.FieldTheory.IsAlgClosed.Basic
 
 open AlgebraicGeometry
 
