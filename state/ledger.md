@@ -102,6 +102,16 @@ The "proof" is algebraically valid but mathematically vacuous—we assumed the a
 **First real mathlib-grounded proofs** in this project. All 5 lemmas are derived from mathlib facts about Finsupp, not assumed as structure fields.
 
 #### Next cycle
-- Connect `Divisor.deg` to abstract `RRData.deg`
-- Define effective divisor
-- Explore `ell` definition (sections of divisor)
+- See playbook for detailed Cycle 5 plan
+
+### Cycle 5 (Planning) - Function Field Interface
+- **Active edge**: Define L(D) = { f ∈ K | div(f) + D ≥ 0 } (Riemann-Roch space)
+- **Approach**: Introduce FunctionFieldData structure with axiomatized div : K → Divisor α
+- **Rationale**: Gives semantic meaning to ℓ(D) = dim L(D) instead of opaque field
+- **Constraint**: NO schemes, NO sheaf cohomology (complexity cliff)
+
+#### Expected deliverables
+1. Effective : Divisor α → Prop (+ partial order instance)
+2. FunctionFieldData structure (K, div, div_mul, div_one, deg_div)
+3. L(D) : Set K definition
+4. Basic lemmas: L_zero, L_mono (if time)

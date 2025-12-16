@@ -1,5 +1,5 @@
 {
-  "active_edge": "Connect Divisor.deg to RRData.deg, define effective divisor, explore ell",
+  "active_edge": "Define FunctionFieldData, Effective, L(D) Riemann-Roch space",
   "candidates": [
     {
       "name": "Divisor α",
@@ -74,5 +74,5 @@
     "PIVOT Cycle 3: extended to RRDataWithEuler (RR derivable from fields)",
     "CYCLE 4: Defined Divisor α := α →₀ ℤ, proved deg_add/deg_zero/deg_neg/deg_sub/deg_single"
   ],
-  "next_action": "Cycle 5: Connect Divisor foundation to RRData, define effective divisor, explore ell"
+  "next_action": "Cycle 5: Define Effective, FunctionFieldData (K, div, div_mul, div_one, deg_div), L(D) Riemann-Roch space. NO schemes/sheaves."
 }
