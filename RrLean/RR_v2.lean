@@ -908,4 +908,158 @@ lemma local_gap_bound_of_exists_map
 
 end LinearAlgebraBridge
 
+/-! ## Cycle 24 Phase 2: Uniformizer Infrastructure
+
+The uniformizer π at a height-1 prime v is a generator of v (up to units).
+It satisfies v.intValuation π = exp(-1), meaning ord_v(π) = 1.
+
+This infrastructure is essential for the "shifted evaluation" strategy:
+- For f ∈ L(D+v), multiply by π^{D(v)+1} to shift poles
+- The shifted element has valuation ≤ 1 at v
+- Map to κ(v) via the residue structure
+-/
+
+section UniformizerInfrastructure
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- Choose a uniformizer at v: an element π ∈ R with v.intValuation π = exp(-1).
+
+This exists by `IsDedekindDomain.HeightOneSpectrum.intValuation_exists_uniformizer`.
+Geometric meaning: π generates the maximal ideal v (up to units). -/
+noncomputable def uniformizerAt (v : HeightOneSpectrum R) : R :=
+  Classical.choose v.intValuation_exists_uniformizer
+
+-- Candidate 2 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- The chosen uniformizer satisfies v.intValuation π = exp(-1). -/
+lemma uniformizerAt_val (v : HeightOneSpectrum R) :
+    v.intValuation (uniformizerAt v) = WithZero.exp (-1 : ℤ) :=
+  Classical.choose_spec v.intValuation_exists_uniformizer
+
+-- Candidate 3 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- The uniformizer is nonzero in R. -/
+lemma uniformizerAt_ne_zero (v : HeightOneSpectrum R) : uniformizerAt v ≠ 0 := by
+  intro h
+  have hval := uniformizerAt_val v
+  rw [h, map_zero] at hval
+  -- 0 ≠ exp(-1), use that 0 is the absorbing element
+  exact (WithZero.coe_ne_zero).symm hval
+
+-- Candidate 4 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- The valuation of π^n is exp(-n) in the integral valuation. -/
+lemma uniformizerAt_pow_val (v : HeightOneSpectrum R) (n : ℕ) :
+    v.intValuation ((uniformizerAt v) ^ n) = WithZero.exp (-(n : ℤ)) := by
+  induction n with
+  | zero =>
+    simp only [pow_zero, map_one, Nat.cast_zero, neg_zero, WithZero.exp_zero]
+  | succ n ih =>
+    rw [pow_succ, map_mul, ih, uniformizerAt_val]
+    -- exp(-n) * exp(-1) = exp(-n + (-1)) = exp(-(n+1))
+    rw [← WithZero.exp_add, Nat.cast_succ]
+    ring_nf
+
+-- Candidate 5 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- The valuation of the uniformizer in K (via algebraMap). -/
+lemma uniformizerAt_valuation (v : HeightOneSpectrum R) :
+    v.valuation K (algebraMap R K (uniformizerAt v)) = WithZero.exp (-1 : ℤ) := by
+  rw [HeightOneSpectrum.valuation_of_algebraMap]
+  exact uniformizerAt_val v
+
+-- Candidate 6 [tag: bundle_divisor_bridge] [status: PROVED] [cycle: 24.2]
+/-- The valuation of π^n in K (via algebraMap). -/
+lemma uniformizerAt_pow_valuation (v : HeightOneSpectrum R) (n : ℕ) :
+    v.valuation K (algebraMap R K ((uniformizerAt v) ^ n)) = WithZero.exp (-(n : ℤ)) := by
+  rw [HeightOneSpectrum.valuation_of_algebraMap]
+  exact uniformizerAt_pow_val v n
+
+-- Candidate 7 [tag: coercion_simplify] [status: SORRY] [cycle: 24.2]
+/-- For f ∈ L(D+v), the shifted element f · π^{D(v)+1} has valuation ≤ 1 at v.
+
+This is KEY: allows us to "evaluate f at v" by shifting the pole away.
+
+PROOF OUTLINE:
+- f ∈ L(D+v) means v(f) ≤ exp(D(v)+1)
+- By uniformizer: v(π^{D(v)+1}) = exp(-(D(v)+1))
+- Product: v(f·π^{D(v)+1}) ≤ exp(D(v)+1) · exp(-(D(v)+1)) = 1
+
+TECHNICAL NOTE: The proof involves careful case analysis on whether D(v)+1 ≥ 0
+and manipulation of WithZero.exp with integer arguments. -/
+lemma shifted_element_valuation_le_one
+    (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : K) (hf : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1)) :
+    v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) ≤ 1 := by
+  -- Handle f = 0 case
+  rcases hf with rfl | hf'
+  · simp only [zero_mul, map_zero, zero_le']
+  -- f ≠ 0 case: use membership condition and uniformizer properties
+  have hfv := hf' v
+  simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_eq_same] at hfv
+  rw [Valuation.map_mul]
+  -- Technical proof: v(f) * v(π^n) ≤ 1 using uniformizer valuation
+  sorry -- Valuation arithmetic with WithZero.exp
+
+end UniformizerInfrastructure
+
+/-! ## Cycle 25: Evaluation Map and LocalGapBound Instance
+
+With the uniformizer infrastructure, we can construct the evaluation map:
+  evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)
+
+The key property is:
+- ker(evaluationMapAt) = L(D) (embedded in L(D+v))
+
+This allows us to apply `local_gap_bound_of_exists_map` to get the instance. -/
+
+section EvaluationMapConstruction
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 25]
+/-- The evaluation map φ : L(D+v) →ₗ[R] κ(v) defined by shifted evaluation.
+
+CONSTRUCTION: For f ∈ L(D+v):
+1. Compute g = f · π^{D(v)+1}
+2. By shifted_element_valuation_le_one, v(g) ≤ 1
+3. Map g to κ(v) via mem_integers → residue map
+
+NOTE: This requires careful handling of the fraction field structure. -/
+noncomputable def evaluationMapAt (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    RRModuleV2_real R K (D + DivisorV2.single v 1) →ₗ[R] residueFieldAtPrime R v := sorry
+
+-- Candidate 2 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 25]
+/-- The kernel of evaluationMapAt is exactly L(D).
+
+ker(evaluationMapAt v D) = range(Submodule.inclusion : L(D) → L(D+v))
+
+PROOF OUTLINE:
+- L(D) ⊆ ker: If f ∈ L(D), then v(f·π^{D(v)+1}) ≤ exp(-1) < 1, so maps to 0
+- ker ⊆ L(D): If f maps to 0, then f·π^{D(v)+1} ∈ v.asIdeal, so v(f) ≤ exp(D(v)) -/
+lemma kernel_evaluationMapAt (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    LinearMap.ker (evaluationMapAt v D) = LinearMap.range (Submodule.inclusion
+      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) := sorry
+
+-- Candidate 3 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 25]
+/-- LocalGapBound instance for Dedekind domains.
+
+This completes the proof that ℓ(D+v) ≤ ℓ(D) + 1 unconditionally.
+Uses local_gap_bound_of_exists_map with evaluationMapAt and kernel_evaluationMapAt. -/
+instance instLocalGapBound (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] : LocalGapBound R K where
+  gap_le_one := fun D v => by
+    -- Apply the bridge lemma
+    have h := local_gap_bound_of_exists_map (R := R) (K := K) D v
+      (evaluationMapAt v D)
+      (kernel_evaluationMapAt v D)
+    -- h : ellV2_real_extended R K (D + single v 1) ≤ ellV2_real_extended R K D + 1
+    -- Convert from ℕ∞ to ℕ using toNat
+    unfold ellV2_real
+    -- Need to show: (ellV2_real_extended R K (D + single v 1)).toNat ≤ (ellV2_real_extended R K D).toNat + 1
+    -- From h at ℕ∞ level, need ENat reasoning
+    sorry -- Technical ℕ∞ → ℕ conversion via ENat.toNat_le_toNat
+
+end EvaluationMapConstruction
+
 end RiemannRochV2

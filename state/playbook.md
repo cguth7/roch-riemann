@@ -77,17 +77,32 @@ lemma local_gap_bound_of_exists_map
 3. Map to κ(v) via residue structure
 4. The kernel captures exactly L(D)
 
-### Cycle 25 Tasks (REMAINING)
-- [ ] Construct `evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)` using shifted evaluation
-- [ ] Prove kernel condition: ker(evaluationMapAt) = range(inclusion)
-- [ ] Instantiate `LocalGapBound R K`
+### Cycle 25 Status (IN PROGRESS)
+- [x] Integrated uniformizer infrastructure from Cycle 24.2 into RR_v2.lean
+- [x] Added `evaluationMapAt`, `kernel_evaluationMapAt`, `instLocalGapBound` stubs
+- [ ] **BLOCKER**: `evaluationMapAt` construction (shifted evaluation linear map)
+- [ ] **BLOCKED**: `kernel_evaluationMapAt` (depends on evaluationMapAt)
+- [ ] **BLOCKED**: `instLocalGapBound` (depends on kernel proof)
 
-### Victory Condition for Cycle 25
+### Key Technical Blockers
+1. **evaluationMapAt**: Need to construct R-linear map L(D+v) → κ(v)
+   - Strategy: shift by π^{D(v)+1}, map to integers, then to κ(v) via residue
+   - Needs: intermediate lemma showing shifted element lands in integers
+
+2. **shifted_element_valuation_le_one**: SORRY due to WithZero.exp arithmetic issues
+   - Math is straightforward but type coercions are finicky
+   - Can proceed with sorry, proof is well-understood
+
+### Victory Condition for Cycle 25+
 - [ ] instance : LocalGapBound R K (making riemann_inequality_affine unconditional)
 
 ### Current Sorry Count (RR_v2.lean)
-1. Line 335: `ellV2_mono` (deprecated, superseded by `ellV2_real_mono`)
-2. Line 713: `riemann_inequality` (deprecated, superseded by `riemann_inequality_real`)
+1. Line 335: `ellV2_mono` (deprecated placeholder)
+2. Line 713: `riemann_inequality` (deprecated placeholder)
+3. Line 989: `shifted_element_valuation_le_one` (technical WithZero.exp arithmetic)
+4. Line 1029: `evaluationMapAt` (linear map construction - MAIN BLOCKER)
+5. Line 1040: `kernel_evaluationMapAt` (depends on #4)
+6. Line 1049: `instLocalGapBound` (depends on #5)
 
 ---
 
