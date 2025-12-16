@@ -24,7 +24,7 @@
 
 **Reframing Rule**: If a "converse" lemma is hard, check if there's a higher-level equivalence that gives both directions for free (e.g., ring isomorphism instead of set equality).
 
-## Current Status Summary (Cycle 36)
+## Current Status Summary (Cycle 37)
 
 **RR.lean (v1)**: Axiom-based approach with `FunctionFieldDataWithRR`. Complete but circular - ARCHIVED.
 
@@ -50,6 +50,8 @@
 - Instance chain: primeCompl_isUnit_in_K → localizationToK → algebraLocalizationK → scalarTowerLocalizationK (Cycle 35)
 - **`algebraMap_localization_mk'_eq_div'`: mk' maps to r/s division in K (Cycle 36) ⭐**
 - **`range_algebraMap_subset_valuationRingAt`: Forward set inclusion PROVED (Cycle 36) ⭐**
+- **`dvr_valuationSubring_eq_range`: DVR range = valuationSubring (Cycle 37) ⭐**
+- **`valuationRingAt_subset_range_algebraMap'`: Converse (conditional on valuation eq) (Cycle 37) ⭐**
 
 ### Typeclass Hierarchy
 ```
@@ -62,26 +64,53 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 
 ---
 
-## Current Sorry Count (RR_v2.lean after Cycle 36)
+## Current Sorry Count (RR_v2.lean after Cycle 37)
 
-**Total**: 32 sorries (mostly from Cycle 35-36 candidates, 1 key blocker remaining)
+**Total**: 33 sorries (+1 from Cycle 37 key lemma)
 
 **Key Active Blockers**:
 | Line | Name | Status | Notes |
 |------|------|--------|-------|
-| 2099 | `valuationRingAt_subset_range_algebraMap` | **KEY BLOCKER** | Converse: v(g)≤1 → g from localization (Cycle 36) |
+| 2176 | `dvr_valuation_eq_height_one'` | **KEY BLOCKER** | DVR valuation = HeightOneSpectrum valuation (Cycle 37) |
 
-**Cycle 36 Candidates**:
-- `localRing_maximalIdeal_eq_map'` - PROVED (wrapper)
-- `valuationRingAt_eq_localization_valuationRing` - PROVED (rfl)
-- `algebraMap_localization_mk'_eq_div'` - PROVED ⭐
-- `valuation_eq_intValuation_extendToLocalization` - PROVED (rfl)
-- `range_algebraMap_subset_valuationRingAt` - PROVED ⭐ (forward direction!)
-- `valuationRingAt_subset_range_algebraMap` - **SORRY** (KEY BLOCKER)
-- `valuationSubring_eq_localization_image'` - SORRY (depends on blocker)
-- `exists_coprime_rep_via_set_eq` - SORRY (depends on blocker)
+**Cycle 37 Candidates**:
+- `dvr_maximalIdeal_asIdeal_eq` - PROVED (rfl)
+- `dvr_valuation_eq_height_one'` - **SORRY** (KEY BLOCKER)
+- `exists_lift_from_dvr_valuation` - PROVED* (depends on blocker)
+- `dvr_valuationSubring_eq_range` - PROVED (uses mathlib)
+- `dvr_valuationSubring_eq_valuationRingAt` - PROVED* (depends on blocker)
+- `valuationRingAt_subset_range_algebraMap'` - PROVED* (TARGET, depends on blocker)
+- `valuationRingAt_mem_implies_range` - PROVED* (alt path)
+- `valuationSubring_eq_localization_image_complete` - PROVED* (full equality)
 
-**Note**: 5/8 candidates PROVED in Cycle 36. Forward direction of set equality complete!
+**Note**: 7/8 candidates compile! Only 1 sorry (`dvr_valuation_eq_height_one'`) blocks the cascade.
+
+---
+
+## Cycle 37 Accomplishments
+
+**Goal**: Complete the converse direction `valuationRingAt_subset_range_algebraMap`
+
+**Results**: 7/8 candidates compile, 1 sorry (KEY BLOCKER)
+
+**Key Achievement**: Complete proof structure!
+- **`dvr_valuationSubring_eq_range`**: Uses `IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring` (PROVED)
+- **`dvr_valuationSubring_eq_valuationRingAt`**: Shows DVR's valuationSubring = our valuationRingAt (PROVED*)
+- **`valuationRingAt_subset_range_algebraMap'`**: TARGET LEMMA - 2-line proof via rewrites (PROVED*)
+- **`valuationSubring_eq_localization_image_complete`**: Full set equality (PROVED*)
+
+**New Blocker**: `dvr_valuation_eq_height_one'` - need to show:
+```lean
+(IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+  v.valuation K g
+```
+
+**Why this should work**:
+1. DVR's maximalIdeal = `IsLocalRing.maximalIdeal (Loc.AtPrime v.asIdeal)` = `Ideal.map v.asIdeal`
+2. Both valuations measure divisibility by the same prime ideal
+3. Need to show the extendToLocalization definitions agree
+
+**Once blocker resolved**: All 7 conditional lemmas automatically complete, and set equality is PROVED.
 
 ---
 

@@ -2146,4 +2146,126 @@ lemma exists_coprime_rep_via_set_eq (v : HeightOneSpectrum R) (g : K)
 
 end Cycle36Candidates
 
+/-! ## Cycle 37 Candidates: Proving valuationRingAt_subset_range_algebraMap
+
+KEY BLOCKER: `valuationRingAt_subset_range_algebraMap` (line 2099)
+
+Strategy: Use the DVR structure of Localization.AtPrime v.asIdeal
+1. Show DVR valuation equals HeightOneSpectrum valuation
+2. Apply `IsDiscreteValuationRing.exists_lift_of_le_one` to get lift
+3. Use `IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring` for set equality
+
+Key mathlib lemmas:
+- `IsDiscreteValuationRing.exists_lift_of_le_one`: v(x) ≤ 1 → ∃ a : A, algebraMap A K a = x
+- `IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring`: range(algebraMap A K) = valuationSubring
+-/
+
+section Cycle37Candidates
+
+-- Candidate 1 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- The DVR maximal ideal (as HeightOneSpectrum) equals the original HeightOneSpectrum.
+This relates the DVR maximalIdeal to v.asIdeal. -/
+lemma dvr_maximalIdeal_asIdeal_eq (v : HeightOneSpectrum R) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).asIdeal =
+      IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) := by
+  rfl
+
+-- Candidate 2 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- The DVR maximal ideal valuation equals the HeightOneSpectrum valuation.
+This is the critical bridge lemma. Both valuations are defined from the same prime ideal. -/
+lemma dvr_valuation_eq_height_one' (v : HeightOneSpectrum R) (g : K) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+      v.valuation K g := by
+  -- Both are defined via extension to localization from the same prime ideal
+  -- The maximalIdeal of the localization equals Ideal.map algebraMap v.asIdeal
+  -- So their valuations should agree
+  sorry
+
+-- Candidate 3 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- Apply IsDiscreteValuationRing.exists_lift_of_le_one with DVR valuation equality.
+If v(g) ≤ 1, then g lifts to an element of the localization. -/
+lemma exists_lift_from_dvr_valuation (v : HeightOneSpectrum R) (g : K)
+    (hg : v.valuation K g ≤ 1) :
+    ∃ y : Localization.AtPrime v.asIdeal, algebraMap (Localization.AtPrime v.asIdeal) K y = g := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- Rewrite hg using DVR valuation equality, then apply exists_lift_of_le_one
+  have hg' : (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g ≤ 1 := by
+    rw [dvr_valuation_eq_height_one' v g]
+    exact hg
+  exact IsDiscreteValuationRing.exists_lift_of_le_one hg'
+
+-- Candidate 4 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- The valuationSubring of a DVR equals the range of algebraMap from DVR to its fraction field.
+Uses IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring. -/
+lemma dvr_valuationSubring_eq_range (v : HeightOneSpectrum R) :
+    Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) =
+      (((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring : Set K) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- Apply map_algebraMap_eq_valuationSubring
+  have h := IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring
+    (A := Localization.AtPrime v.asIdeal) (K := K)
+  ext x
+  constructor
+  · intro ⟨y, hy⟩
+    rw [SetLike.mem_coe, ValuationSubring.mem_toSubring]
+    rw [← hy]
+    have : (Subring.map (algebraMap (Localization.AtPrime v.asIdeal) K) ⊤).carrier =
+           ((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring.toSubring.carrier := by
+      exact congrArg Subring.carrier h
+    simp only [Subring.map_coe, Set.top_eq_univ, Set.image_univ] at this
+    rw [this]
+    exact ⟨y, hy⟩
+  · intro hx
+    rw [SetLike.mem_coe, ValuationSubring.mem_toSubring] at hx
+    have : (Subring.map (algebraMap (Localization.AtPrime v.asIdeal) K) ⊤).carrier =
+           ((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring.toSubring.carrier := by
+      exact congrArg Subring.carrier h
+    simp only [Subring.map_coe, Set.top_eq_univ, Set.image_univ] at this
+    rw [← this]
+    exact hx
+
+-- Candidate 5 [tag: valuation_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- The DVR's valuationSubring equals valuationRingAt v.
+This combines valuation equality with the definition of valuationRingAt. -/
+lemma dvr_valuationSubring_eq_valuationRingAt (v : HeightOneSpectrum R) :
+    (((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring : Set K) =
+      (valuationRingAt (R := R) (K := K) v : Set K) := by
+  -- Both are {g : K | valuation g ≤ 1}, and valuations agree by dvr_valuation_eq_height_one'
+  ext g
+  simp only [SetLike.mem_coe, Valuation.mem_valuationSubring_iff, mem_valuationRingAt_iff]
+  rw [dvr_valuation_eq_height_one' (K := K) v g]
+
+-- Candidate 6 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
+/-- Prove valuationRingAt_subset_range_algebraMap using set transitivity.
+Combines Candidates 4 and 5 to get the desired inclusion. -/
+lemma valuationRingAt_subset_range_algebraMap' (v : HeightOneSpectrum R) :
+    (valuationRingAt (R := R) (K := K) v : Set K) ⊆
+      Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  -- Chain: valuationRingAt = DVR.valuationSubring = range(algebraMap)
+  rw [← dvr_valuationSubring_eq_valuationRingAt (K := K) v]
+  rw [← dvr_valuationSubring_eq_range (K := K) v]
+
+-- Candidate 7 [tag: valuation_bridge] [relevance: 4/5] [status: SORRY] [cycle: 37]
+/-- Alternative proof via exists_lift_from_dvr_valuation directly.
+Given g with v(g) ≤ 1, construct the lift explicitly. -/
+lemma valuationRingAt_mem_implies_range (v : HeightOneSpectrum R) (g : K)
+    (hg : g ∈ valuationRingAt (R := R) (K := K) v) :
+    g ∈ Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  rw [mem_valuationRingAt_iff] at hg
+  obtain ⟨y, hy⟩ := exists_lift_from_dvr_valuation (K := K) v g hg
+  exact ⟨y, hy⟩
+
+-- Candidate 8 [tag: rewrite_bridge] [relevance: 4/5] [status: SORRY] [cycle: 37]
+/-- Complete the set equality for valuationSubring once we have converse. -/
+lemma valuationSubring_eq_localization_image_complete (v : HeightOneSpectrum R) :
+    (valuationRingAt (R := R) (K := K) v : Set K) =
+      Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  apply Set.eq_of_subset_of_subset
+  · exact valuationRingAt_subset_range_algebraMap' (K := K) v
+  · exact range_algebraMap_subset_valuationRingAt (K := K) v
+
+end Cycle37Candidates
+
 end RiemannRochV2

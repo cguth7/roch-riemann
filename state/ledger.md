@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 36)
+## Summary: Where We Are (End of Cycle 37)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -10,9 +10,11 @@
 
 **Blocking Chain**:
 ```
-valuationRingAt_subset_range_algebraMap (Cycle 36 - KEY BLOCKER)
+dvr_valuation_eq_height_one' (Cycle 37 - KEY BLOCKER)
     ↓
-valuationSubring_eq_localization_image' (set equality)
+valuationRingAt_subset_range_algebraMap' (PROVED*, depends on above)
+    ↓
+valuationSubring_eq_localization_image_complete (PROVED*, set equality)
     ↓
 exists_coprime_rep_via_set_eq
     ↓
@@ -23,11 +25,52 @@ residueMapFromR_surjective
 evaluationMapAt → kernel → LocalGapBound → VICTORY
 ```
 
-**Cycle 36 Progress**: Forward direction `range(algebraMap) ⊆ valuationRingAt` PROVED!
+**Cycle 37 Progress**: Complete proof structure! 7/8 candidates compile, 1 key sorry remaining.
 
 ---
 
 ## 2025-12-16
+
+### Cycle 37 - Complete Proof Structure (7/8 candidates compile) - PROGRESS
+- **Active edge**: Prove DVR valuation = HeightOneSpectrum valuation
+- **Strategy**: Use DVR structure + mathlib's `exists_lift_of_le_one` and `map_algebraMap_eq_valuationSubring`
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `dvr_maximalIdeal_asIdeal_eq` | ✅ **PROVED** | Simple rfl |
+| `dvr_valuation_eq_height_one'` | ⚠️ **SORRY** | **KEY BLOCKER**: DVR val = HeightOneSpectrum val |
+| `exists_lift_from_dvr_valuation` | ✅ **PROVED*** | Uses exists_lift_of_le_one (depends on #2) |
+| `dvr_valuationSubring_eq_range` | ✅ **PROVED** | Uses map_algebraMap_eq_valuationSubring |
+| `dvr_valuationSubring_eq_valuationRingAt` | ✅ **PROVED*** | Sets equal via val equality (depends on #2) |
+| `valuationRingAt_subset_range_algebraMap'` | ✅ **PROVED*** | **TARGET**: 2-line proof via rewrites |
+| `valuationRingAt_mem_implies_range` | ✅ **PROVED*** | Alt path via exists_lift |
+| `valuationSubring_eq_localization_image_complete` | ✅ **PROVED*** | Full set equality |
+
+#### Key Achievement: Complete Proof Structure
+The entire proof chain is now structurally complete! Only one sorry remains:
+- `dvr_valuation_eq_height_one'` blocks all 7 dependent lemmas
+- Once proved, the full set equality `valuationRingAt = range(algebraMap)` is complete
+
+#### New Blocker: Valuation Equality
+**`dvr_valuation_eq_height_one'`**: Need to show:
+```lean
+(IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+  v.valuation K g
+```
+
+**Mathematical insight**:
+- DVR's maximalIdeal = IsLocalRing.maximalIdeal = Ideal.map v.asIdeal
+- Both valuations extend intValuation from the same prime
+- They should agree by construction
+
+#### Sorry Count
+- Total in RR_v2.lean: 33 sorries (+1 from key blocker)
+- Cycle 37 section: 8 candidates (7 compile, 1 SORRY)
+
+**Cycle rating**: 7/10 - Excellent architecture (single blocker, clean cascade)
+
+---
 
 ### Cycle 36 - Forward Set Inclusion PROVED - PROGRESS
 - **Active edge**: Prove valuationRingAt = range(algebraMap from Localization.AtPrime)
