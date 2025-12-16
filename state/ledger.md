@@ -454,3 +454,31 @@ All genus 0 lemmas follow from the general `ell_eq_deg_minus_genus_of_deg_gt` by
 The vanishing theorem `ell_K_sub_D_eq_zero_of_deg_gt` (from Cycle 12) is the key enabler.
 
 **Cycle rating**: 9/10 - 7/8 lemmas PROVED, Clifford genuinely blocked
+
+### Cycle 15 - Genus 1 / Elliptic Curves - COMPLETED
+- **Active edge**: Genus 1 special cases and derived bounds
+- **Decision**: Derive elliptic curve formulas where RR simplifies
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `deg_K_genus_one` | ✅ **PROVED** | g=1 → deg(K) = 0 |
+| `ell_K_genus_one` | ✅ **PROVED** | g=1 → ℓ(K) = 1 |
+| `ell_eq_deg_of_genus_one_deg_pos` | ✅ **PROVED** | **KEY**: g=1, deg≥1 → ℓ(D) = deg(D) |
+| `ell_pos_of_effective'` | ✅ **PROVED** | Effective D → ℓ(D) ≥ 1 (wrapper) |
+| `deg_le_of_ell_K_sub_D_pos` | ✅ **PROVED** | **KEY**: ℓ(K-D) > 0 → deg D ≤ 2g-2 |
+| `ell_ge_max_one_deg_minus_genus` | ✅ **PROVED** | Combined lower bound with max |
+
+#### Key Results
+1. **Elliptic curve dimension formula**: For genus 1 curves and deg(D) ≥ 1, dimension equals degree exactly
+2. **Special divisor characterization**: Divisors with ℓ(K-D) > 0 (special) are bounded by 2g-2
+
+#### Proof Technique
+The elliptic curve formula uses:
+- deg(K) = 0 when g = 1
+- Vanishing theorem: deg(K-D) < 0 implies ℓ(K-D) = 0
+- RR simplification: ℓ(D) - 0 = deg(D) + 1 - 1 = deg(D)
+
+The special divisor bound is the contrapositive of the vanishing theorem.
+
+**Cycle rating**: 10/10 - 6/6 lemmas PROVED, two key results for elliptic curves

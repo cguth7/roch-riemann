@@ -93,14 +93,25 @@
 
 **7/8 lemmas PROVED**
 
-## Next Steps (Cycle 15)
+## Status - Cycle 15 (SUCCESS: Genus 1 / Elliptic Curves)
+- **PROVED**: `deg_K_genus_one` (g=1 ⟹ deg K = 0)
+- **PROVED**: `ell_K_genus_one` (g=1 ⟹ ℓ(K) = 1)
+- **PROVED**: `ell_eq_deg_of_genus_one_deg_pos` (**KEY**: g=1, deg D ≥ 1 ⟹ ℓ(D) = deg D)
+- **PROVED**: `ell_pos_of_effective'` (effective D ⟹ ℓ(D) ≥ 1, wrapper)
+- **PROVED**: `deg_le_of_ell_K_sub_D_pos` (**KEY**: ℓ(K-D) > 0 ⟹ deg D ≤ 2g-2, special divisors)
+- **PROVED**: `ell_ge_max_one_deg_minus_genus` (ℓ(D) ≥ max(1, deg D + 1 - g))
+
+**6/6 lemmas PROVED**
+
+## Next Steps (Cycle 16)
 
 **WARNING**: Do NOT touch Schemes or Sheaf Cohomology. Complexity cliff.
 
-### Options for Cycle 15
+### Options for Cycle 16
 1. **Add Clifford axiom** - extend structure with multiplication map
-2. **Add instantiation lemma** - FunctionFieldDataWithRR → RRData
-3. **Genus 1 special case** - elliptic curves
+2. **Add instantiation lemma** - FunctionFieldDataWithRR → RRData (needs scheme morphism)
+3. **Genus 2+ special cases** - hyperelliptic curves
+4. **Gap sequence lemmas** - Weierstrass points on curves
 
 ### Do NOT do
 - Schemes, sheaves, cohomology

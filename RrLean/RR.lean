@@ -1062,6 +1062,75 @@ lemma clifford_bound [∀ D, Module.Finite k (RRSpace data.fd D)]
   -- Without a multiplication axiom, we cannot prove this.
   sorry
 
+/-! ## Cycle 15 Candidates: Genus 1 and Derived Bounds -/
+
+-- Candidate 1 [tag: genus_bridge] [status: OK]
+-- For genus 1 (elliptic curves): deg(K) = 0
+lemma deg_K_genus_one (h_genus : data.genus = 1) :
+    Divisor.deg data.K_div = 0 := by
+  rw [data.deg_K, h_genus]
+  norm_num
+
+-- Candidate 2 [tag: genus_bridge] [status: OK]
+-- For genus 1 (elliptic curves): ℓ(K) = 1
+lemma ell_K_genus_one [∀ D, Module.Finite k (RRSpace data.fd D)]
+    (h_genus : data.genus = 1) :
+    ell data.fd data.K_div = 1 := by
+  have h := data.ell_K
+  rw [h_genus] at h
+  exact Int.ofNat_inj.mp h
+
+-- Candidate 3 [tag: rr_bundle_bridge] [status: OK]
+-- For genus 1 and effective D with deg(D) ≥ 1: ℓ(D) = deg(D)
+lemma ell_eq_deg_of_genus_one_deg_pos [∀ D, Module.Finite k (RRSpace data.fd D)]
+    (h_genus : data.genus = 1) {D : Divisor α}
+    (_hD : Divisor.Effective D) (h_deg : 1 ≤ Divisor.deg D) :
+    (ell data.fd D : ℤ) = Divisor.deg D := by
+  -- deg(K-D) = 0 - deg(D) < 0 for g = 1
+  have hdeg_K : Divisor.deg data.K_div = 0 := data.deg_K_genus_one h_genus
+  have hdeg_KD : Divisor.deg (data.K_div - D) < 0 := by
+    rw [Divisor.deg_sub, hdeg_K]
+    omega
+  -- Vanishing: deg(K-D) < 0 implies ℓ(K-D) = 0
+  have hell_KD : ell data.fd (data.K_div - D) = 0 := by
+    have h_deg_bound : 2 * (data.genus : ℤ) - 2 < Divisor.deg D := by
+      simp [h_genus]; omega
+    exact data.ell_K_sub_D_eq_zero_of_deg_gt D h_deg_bound
+  -- From RR: ℓ(D) - 0 = deg(D) + 1 - 1 = deg(D)
+  have hrr := data.rr_axiom D
+  rw [hell_KD, h_genus] at hrr
+  simp only [Nat.cast_zero, sub_zero, Nat.cast_one, add_sub_cancel_right] at hrr
+  exact hrr
+
+-- Candidate 6 [tag: genus_bridge] [status: OK]
+-- For any effective D, we always have ℓ(D) ≥ 1 (wrapper for unconditional lemma)
+lemma ell_pos_of_effective' [∀ D, Module.Finite k (RRSpace data.fd D)]
+    {D : Divisor α} (hD : Divisor.Effective D) :
+    1 ≤ ell data.fd D :=
+  ell.pos_of_effective_unconditional data.toFunctionFieldDataWithBound.toFunctionFieldData hD
+
+-- Candidate 7 [tag: serre_duality_bridge] [status: OK]
+-- Gap sequence bound: if ℓ(K-D) > 0 (D is special), then deg(D) ≤ 2g - 2
+lemma deg_le_of_ell_K_sub_D_pos [∀ D, Module.Finite k (RRSpace data.fd D)]
+    (D : Divisor α) (h : 0 < ell data.fd (data.K_div - D)) :
+    Divisor.deg D ≤ 2 * (data.genus : ℤ) - 2 := by
+  by_contra hneg
+  push_neg at hneg
+  have h0 := data.ell_K_sub_D_eq_zero_of_deg_gt D hneg
+  omega
+
+-- Candidate 8 [tag: genus_bridge] [status: OK]
+-- Combined lower bound using existing lemmas
+lemma ell_ge_max_one_deg_minus_genus [∀ D, Module.Finite k (RRSpace data.fd D)]
+    {D : Divisor α} (hD : Divisor.Effective D) :
+    (ell data.fd D : ℤ) ≥ max 1 (Divisor.deg D + 1 - (data.genus : ℤ)) := by
+  have h1 : 1 ≤ (ell data.fd D : ℤ) := by
+    have hpos : 1 ≤ ell data.fd D :=
+      ell.pos_of_effective_unconditional data.toFunctionFieldDataWithBound.toFunctionFieldData hD
+    omega
+  have h2 := data.ell_ge_deg_minus_genus D
+  exact max_le_iff.mpr ⟨h1, h2⟩
+
 end FunctionFieldDataWithRR
 
 end RiemannRoch
