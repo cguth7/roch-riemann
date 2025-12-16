@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riemann-Roch Formalization</title>
+    <link href="https://fonts.googleapis.com/css2?family=CMU+Serif:wght@400;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --text: #1a1a1a;
+            --muted: #666;
+            --border: #ddd;
+            --accent: #2563eb;
+            --green: #16a34a;
+            --yellow: #ca8a04;
+            --red: #dc2626;
+            --code-bg: #f3f4f6;
+            --math-bg: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        header a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Section styling */
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        /* The main theorem box */
+        .theorem-box {
+            background: var(--math-bg);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .theorem-box .label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .theorem-box .equation {
+            font-family: 'Times New Roman', Georgia, serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        .theorem-box .gloss {
+            font-size: 0.9rem;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        /* Math areas diagram */
+        .areas-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .area-box {
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: white;
+        }
+
+        .area-box h4 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .area-box ul {
+            list-style: none;
+            font-size: 0.9rem;
+        }
+
+        .area-box li {
+            padding: 0.25rem 0;
+            color: var(--text);
+        }
+
+        .area-box li code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background: var(--code-bg);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+        }
+
+        /* Flowchart */
+        .flowchart {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            overflow-x: auto;
+        }
+
+        .flowchart svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Status table */
+        .status-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .status-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: var(--code-bg);
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .status-table code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            background: var(--code-bg);
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+        }
+
+        .status {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+        }
+
+        .status.done { background: #dcfce7; color: var(--green); }
+        .status.wip { background: #fef3c7; color: var(--yellow); }
+        .status.blocked { background: #fee2e2; color: var(--red); }
+
+        /* Dependency legend */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.done { background: var(--green); }
+        .legend-dot.wip { background: var(--yellow); }
+        .legend-dot.blocked { background: var(--red); }
+
+        /* Stats row */
+        .stats-row {
+            display: flex;
+            gap: 2rem;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Notes */
+        .note {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .note strong {
+            color: var(--yellow);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .areas-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-row {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Formalizing Riemann-Roch in Lean 4</h1>
+            <p>
+                A work-in-progress formalization of the Riemann-Roch theorem for algebraic curves.
+                <a href="https://github.com/cguth7/roch-riemann">Source on GitHub</a>
+            </p>
+        </header>
+
+        <!-- Target Theorem -->
+        <section>
+            <h2>Target Theorem</h2>
+            <div class="theorem-box">
+                <div class="label">Riemann-Roch</div>
+                <div class="equation">
+                    l(D) - l(K - D) = deg(D) + 1 - g
+                </div>
+                <div class="gloss">
+                    For a divisor D on a smooth projective curve of genus g, with canonical divisor K
+                </div>
+            </div>
+        </section>
+
+        <!-- Mathematical Areas -->
+        <section>
+            <h2>Mathematical Areas Involved</h2>
+            <div class="areas-grid">
+                <div class="area-box">
+                    <h4>Linear Algebra</h4>
+                    <ul>
+                        <li><code>Submodule k K</code></li>
+                        <li><code>Module.finrank</code></li>
+                        <li>Quotient spaces</li>
+                        <li>Rank-nullity</li>
+                    </ul>
+                </div>
+                <div class="area-box">
+                    <h4>Commutative Algebra</h4>
+                    <ul>
+                        <li><code>Finsupp</code> (divisors)</li>
+                        <li><code>Field</code>, <code>Algebra</code></li>
+                        <li>Valuations</li>
+                        <li>Localization</li>
+                    </ul>
+                </div>
+                <div class="area-box">
+                    <h4>Algebraic Geometry</h4>
+                    <ul>
+                        <li><code>Scheme</code> (mathlib)</li>
+                        <li>Line bundles (missing)</li>
+                        <li>Sheaf cohomology (missing)</li>
+                        <li>Genus (missing)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="note">
+                <strong>Note:</strong> mathlib lacks Weil/Cartier divisors, line bundles, and sheaf cohomology H<sup>0</sup>/H<sup>1</sup>.
+                We work with an axiomatized function field interface instead.
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section>
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-num">10</div>
+                    <div class="stat-label">Cycles</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">8</div>
+                    <div class="stat-label">Definitions</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">32</div>
+                    <div class="stat-label">Lemmas Proved</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-num">7</div>
+                    <div class="stat-label">Lemmas Pending</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Proof Dependency Graph -->
+        <section>
+            <h2>Proof Architecture</h2>
+            <div class="flowchart">
+                <svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Definitions -->
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#999"/>
+                        </marker>
+                    </defs>
+
+                    <!-- Layer labels -->
+                    <text x="20" y="30" font-size="11" fill="#666" font-weight="600">FOUNDATIONS</text>
+                    <text x="20" y="150" font-size="11" fill="#666" font-weight="600">STRUCTURE</text>
+                    <text x="20" y="290" font-size="11" fill="#666" font-weight="600">DIMENSION</text>
+                    <text x="20" y="420" font-size="11" fill="#666" font-weight="600">TARGET</text>
+
+                    <!-- Horizontal dividers -->
+                    <line x1="0" y1="100" x2="800" y2="100" stroke="#eee" stroke-width="1"/>
+                    <line x1="0" y1="230" x2="800" y2="230" stroke="#eee" stroke-width="1"/>
+                    <line x1="0" y1="360" x2="800" y2="360" stroke="#eee" stroke-width="1"/>
+
+                    <!-- Foundation layer -->
+                    <rect x="150" y="50" width="140" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="220" y="73" text-anchor="middle" font-size="12" font-weight="500">Divisor := alpha ->0 Z</text>
+
+                    <rect x="330" y="50" width="120" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="390" y="73" text-anchor="middle" font-size="12" font-weight="500">deg : Divisor -> Z</text>
+
+                    <rect x="490" y="50" width="130" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="555" y="73" text-anchor="middle" font-size="12" font-weight="500">Effective D := 0 le D</text>
+
+                    <!-- Structure layer -->
+                    <rect x="150" y="130" width="180" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="240" y="153" text-anchor="middle" font-size="12" font-weight="500">FunctionFieldData alpha k</text>
+
+                    <rect x="370" y="130" width="200" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="470" y="153" text-anchor="middle" font-size="12" font-weight="500">RRSpace : Submodule k K</text>
+
+                    <rect x="610" y="130" width="150" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="685" y="153" text-anchor="middle" font-size="12" font-weight="500">...WithBound (axiom)</text>
+
+                    <!-- Arrows: Foundation -> Structure -->
+                    <path d="M220,86 L220,100 L240,130" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M390,86 L390,100 L470,130" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+
+                    <!-- Dimension layer -->
+                    <rect x="150" y="260" width="160" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="230" y="283" text-anchor="middle" font-size="12" font-weight="500">ell D = finrank L(D)</text>
+
+                    <rect x="350" y="260" width="140" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="420" y="283" text-anchor="middle" font-size="12" font-weight="500">ell.mono (D le E)</text>
+
+                    <rect x="530" y="260" width="160" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="610" y="283" text-anchor="middle" font-size="12" font-weight="500">quotient_add_eq</text>
+
+                    <!-- Arrows: Structure -> Dimension -->
+                    <path d="M240,166 L230,260" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M470,166 L420,260" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M470,166 L610,260" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+
+                    <!-- Target layer -->
+                    <rect x="150" y="390" width="180" height="36" rx="4" fill="#dcfce7" stroke="#16a34a"/>
+                    <text x="240" y="413" text-anchor="middle" font-size="12" font-weight="500">add_single_le_succ (axiom)</text>
+
+                    <rect x="370" y="390" width="180" height="36" rx="4" fill="#fef3c7" stroke="#ca8a04"/>
+                    <text x="460" y="413" text-anchor="middle" font-size="12" font-weight="500">le_deg_add_ell_zero</text>
+                    <text x="460" y="408" text-anchor="middle" font-size="9" fill="#ca8a04">(Riemann ineq.)</text>
+
+                    <rect x="590" y="390" width="160" height="36" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+                    <text x="670" y="413" text-anchor="middle" font-size="12" font-weight="500">Riemann-Roch</text>
+
+                    <!-- Arrows: Dimension -> Target -->
+                    <path d="M230,296 L240,390" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M610,296 L610,350 L460,390" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M685,166 L685,350 L240,390" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+
+                    <!-- Arrows within target layer -->
+                    <path d="M330,408 L370,408" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+                    <path d="M550,408 L590,408" stroke="#999" fill="none" marker-end="url(#arrow)"/>
+
+                    <!-- Dashed future arrow -->
+                    <path d="M460,426 L460,480 L670,480 L670,426" stroke="#999" stroke-dasharray="4,4" fill="none" marker-end="url(#arrow)"/>
+                    <text x="565" y="495" text-anchor="middle" font-size="10" fill="#999">+ Serre duality (future)</text>
+                </svg>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot done"></div> Proved</div>
+                <div class="legend-item"><div class="legend-dot wip"></div> In progress (sorry)</div>
+                <div class="legend-item"><div class="legend-dot blocked"></div> Blocked (needs more infrastructure)</div>
+            </div>
+        </section>
+
+        <!-- Build Progress -->
+        <section>
+            <h2>Build Progress by Cycle</h2>
+            <table class="status-table">
+                <thead>
+                    <tr>
+                        <th>Cycle</th>
+                        <th>Focus</th>
+                        <th>Key Results</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>4</td>
+                        <td>Divisors</td>
+                        <td><code>Divisor</code>, <code>deg_add</code>, <code>deg_single</code></td>
+                        <td><span class="status done">5 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Function fields</td>
+                        <td><code>FunctionFieldData</code>, <code>Effective</code>, <code>div_zero</code></td>
+                        <td><span class="status done">5 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>L(D) structure</td>
+                        <td><code>RRSpace : Submodule k K</code>, <code>add_mem'</code>, <code>smul_mem'</code></td>
+                        <td><span class="status done">4 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>Dimension</td>
+                        <td><code>ell</code>, <code>mono</code>, <code>pos_of_effective</code></td>
+                        <td><span class="status done">6 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>Finite-dimensionality</td>
+                        <td>Typeclass <code>[forall D, Module.Finite k L(D)]</code></td>
+                        <td><span class="status done">8 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>Quotients</td>
+                        <td><code>quotient_add_eq_of_le</code>, rank-nullity for L(D) subset L(E)</td>
+                        <td><span class="status done">3 proved</span></td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>Single-point axiom</td>
+                        <td><code>FunctionFieldDataWithBound</code>, <code>deg_add_single</code></td>
+                        <td><span class="status done">4 proved</span> <span class="status wip">3 sorry</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Current State -->
+        <section>
+            <h2>Current State</h2>
+            <p style="margin-bottom: 1rem;">
+                We have the single-point dimension bound as an axiom:
+            </p>
+            <div class="theorem-box">
+                <div class="label">Axiom (single_point_bound)</div>
+                <div class="equation" style="font-size: 1.2rem;">
+                    l(D + p) &le; l(D) + 1
+                </div>
+                <div class="gloss">
+                    Adding one point to a divisor increases dimension by at most 1
+                </div>
+            </div>
+            <p style="margin-bottom: 1rem;">
+                <strong>Next step:</strong> Prove Riemann's inequality <code>l(D) &le; deg(D) + l(0)</code> by induction on effective divisors.
+            </p>
+            <p style="color: var(--muted);">
+                The full Riemann-Roch theorem additionally requires Serre duality <code>l(K-D) = h<sup>1</sup>(D)</code>,
+                which we have axiomatized in a separate structure. The main theorem statement typechecks but the
+                proof path from first principles remains incomplete pending mathlib infrastructure.
+            </p>
+        </section>
+
+        <footer>
+            <p>
+                Lean 4 + mathlib &bull;
+                <a href="https://github.com/cguth7/roch-riemann">GitHub</a> &bull;
+                Cycle 10 &bull;
+                Last updated: Dec 2024
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
