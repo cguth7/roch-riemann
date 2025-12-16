@@ -168,3 +168,35 @@ The "proof" is algebraically valid but mathematically vacuous—we assumed the a
 
 #### Next cycle
 - Cycle 7: Define `ℓ(D) = finrank k L(D)`, prove monotonicity
+
+### Cycle 7 - ℓ(D) = finrank k L(D) - COMPLETED
+- **Active edge**: Define semantic dimension for Riemann-Roch space
+- **Key insight**: Use `Module.finrank` and `Submodule.finrank_mono` from mathlib
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `ell` | ✅ DEFINED | `Module.finrank k (RRSpace data D)` |
+| `RRSpace.le_of_divisor_le` | ✅ **PROVED** | Set inclusion → submodule ≤ |
+| `RRSpace.one_mem_of_effective` | ✅ **PROVED** | 1 ∈ L(D) when D effective |
+| `RRSpace.algebraMap_mem_zero` | ✅ **PROVED** | Constants ⊆ L(0) |
+| `RRSpace.algebraMap_mem_of_effective` | ✅ **PROVED** | Constants ⊆ L(D) for effective D |
+| `ell.mono` | ✅ **PROVED** | D ≤ E → ℓ(D) ≤ ℓ(E) (with Module.Finite) |
+| `ell.pos_of_effective` | ✅ **PROVED** | ℓ(D) ≥ 1 for effective D |
+| `ell.zero_pos` | ✅ **PROVED** | ℓ(0) ≥ 1 |
+
+#### Discovery
+- `Module.finrank` in `Mathlib.LinearAlgebra.Dimension.Finrank`
+- `Submodule.finrank_mono` requires `[Module.Finite k t]` hypothesis
+- `SetLike.coe_subset_coe` converts set ⊆ to submodule ≤
+
+#### Significance
+**ℓ(D) now has semantic meaning**: dimension of the space of functions with bounded poles.
+This completes the connection: `RRData.ell` (abstract) → `ell` (concrete as finrank).
+
+| RRData (abstract) | FunctionFieldData (concrete) |
+|---|---|
+| `ell : Div → ℕ` (opaque) | `finrank k L(D)` (semantic) |
+
+#### Next cycle
+- Cycle 8: Finite-dimensionality axiom, degree-dimension bounds

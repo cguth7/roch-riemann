@@ -7,6 +7,7 @@ import Mathlib.AlgebraicGeometry.Scheme
 import Mathlib.Algebra.Field.Basic
 import Mathlib.FieldTheory.IsAlgClosed.Basic
 import Mathlib.Algebra.Module.Submodule.Basic
+import Mathlib.LinearAlgebra.Dimension.Finrank
 
 open AlgebraicGeometry
 
@@ -249,6 +250,81 @@ lemma mono {D E : Divisor α} (h : D ≤ E) : (RRSpace data D : Set data.K) ⊆ 
     omega
 
 end RRSpace
+
+/-! ## Dimension ℓ(D) = finrank k L(D) (Cycle 7)
+
+The dimension ℓ(D) of the Riemann-Roch space L(D) is what appears in the
+Riemann-Roch theorem: ℓ(D) - ℓ(K - D) = deg D + 1 - g
+-/
+
+/-- The dimension ℓ(D) of the Riemann-Roch space L(D).
+This is the key invariant in the Riemann-Roch theorem. -/
+noncomputable def ell {α : Type*} {k : Type*} [Field k] (data : FunctionFieldData α k)
+    (D : Divisor α) : ℕ := Module.finrank k (RRSpace data D)
+
+namespace RRSpace
+
+variable {α : Type*} {k : Type*} [Field k] (data : FunctionFieldData α k)
+
+-- Candidate 2: Convert set inclusion to submodule inequality
+lemma le_of_divisor_le {D E : Divisor α} (h : D ≤ E) :
+    RRSpace data D ≤ RRSpace data E :=
+  SetLike.coe_subset_coe.mp (mono data h)
+
+-- Candidate 4: 1 ∈ L(D) if D is effective
+lemma one_mem_of_effective {D : Divisor α} (hD : Divisor.Effective D) :
+    (1 : data.K) ∈ RRSpace data D := by
+  right
+  rw [data.div_one, zero_add]
+  exact hD
+
+-- Candidate 6: Constants are in L(0)
+lemma algebraMap_mem_zero (c : k) :
+    algebraMap k data.K c ∈ RRSpace data 0 := by
+  by_cases hc : c = 0
+  · simp only [hc, map_zero]; exact Or.inl rfl
+  · right
+    rw [data.div_algebraMap, zero_add]
+    exact Divisor.Effective_zero
+
+-- Candidate 8: Constants are in L(D) for effective D
+lemma algebraMap_mem_of_effective {D : Divisor α} (hD : Divisor.Effective D) (c : k) :
+    algebraMap k data.K c ∈ RRSpace data D := by
+  by_cases hc : c = 0
+  · simp only [hc, map_zero]; exact Or.inl rfl
+  · right
+    rw [data.div_algebraMap, zero_add]
+    exact hD
+
+end RRSpace
+
+namespace ell
+
+variable {α : Type*} {k : Type*} [Field k] (data : FunctionFieldData α k)
+
+-- Candidate 3: Monotonicity of ℓ
+lemma mono {D E : Divisor α} [Module.Finite k (RRSpace data E)] (h : D ≤ E) :
+    ell data D ≤ ell data E := by
+  unfold ell
+  exact Submodule.finrank_mono (RRSpace.le_of_divisor_le data h)
+
+-- Candidate 5: ℓ(D) ≥ 1 for effective D
+lemma pos_of_effective {D : Divisor α} [Module.Finite k (RRSpace data D)]
+    (hD : Divisor.Effective D) : 1 ≤ ell data D := by
+  unfold ell
+  have h1 : (1 : data.K) ∈ RRSpace data D := RRSpace.one_mem_of_effective data hD
+  have hne : (1 : data.K) ≠ 0 := one_ne_zero
+  -- L(D) contains a nonzero element, so finrank ≥ 1
+  have hnt : Nontrivial (RRSpace data D) := ⟨⟨⟨1, h1⟩, ⟨0, (RRSpace data D).zero_mem⟩,
+    fun heq => hne (Subtype.ext_iff.mp heq)⟩⟩
+  exact Module.finrank_pos_iff.mpr hnt
+
+-- Candidate 7: ℓ(0) ≥ 1
+lemma zero_pos [Module.Finite k (RRSpace data (0 : Divisor α))] [Nontrivial k] :
+    1 ≤ ell data 0 :=
+  pos_of_effective data Divisor.Effective_zero
+
+end ell
 
 /-!
 # Riemann-Roch Theorem: Axiomatized Interface

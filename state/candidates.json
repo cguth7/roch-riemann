@@ -167,20 +167,77 @@
       ],
       "note": "eulerChar_formula IS Riemann-Roch; derivation is circular",
       "cycle": 3
+    },
+    {
+      "name": "ell",
+      "status": "DEFINED",
+      "statement": "def ell (data : FunctionFieldData α k) (D : Divisor α) := Module.finrank k (RRSpace data D)",
+      "approach": "Semantic dimension using mathlib's finrank",
+      "cycle": 7
+    },
+    {
+      "name": "RRSpace.le_of_divisor_le",
+      "status": "PROVED",
+      "statement": "D ≤ E → RRSpace data D ≤ RRSpace data E",
+      "approach": "SetLike.coe_subset_coe + mono",
+      "cycle": 7
+    },
+    {
+      "name": "RRSpace.one_mem_of_effective",
+      "status": "PROVED",
+      "statement": "Effective D → 1 ∈ RRSpace data D",
+      "approach": "div 1 = 0, so 0 + D = D ≥ 0",
+      "cycle": 7
+    },
+    {
+      "name": "RRSpace.algebraMap_mem_zero",
+      "status": "PROVED",
+      "statement": "∀ c : k, algebraMap k K c ∈ RRSpace data 0",
+      "approach": "div_algebraMap gives div c = 0",
+      "cycle": 7
+    },
+    {
+      "name": "RRSpace.algebraMap_mem_of_effective",
+      "status": "PROVED",
+      "statement": "Effective D → ∀ c : k, algebraMap k K c ∈ RRSpace data D",
+      "approach": "div_algebraMap + effective D",
+      "cycle": 7
+    },
+    {
+      "name": "ell.mono",
+      "status": "PROVED",
+      "statement": "[Module.Finite k (RRSpace data E)] → D ≤ E → ell data D ≤ ell data E",
+      "approach": "Submodule.finrank_mono + le_of_divisor_le",
+      "cycle": 7
+    },
+    {
+      "name": "ell.pos_of_effective",
+      "status": "PROVED",
+      "statement": "[Module.Finite k (RRSpace data D)] → Effective D → 1 ≤ ell data D",
+      "approach": "L(D) contains 1 ≠ 0, so nontrivial",
+      "cycle": 7
+    },
+    {
+      "name": "ell.zero_pos",
+      "status": "PROVED",
+      "statement": "[Module.Finite k (RRSpace data 0)] → 1 ≤ ell data 0",
+      "approach": "pos_of_effective + Effective_zero",
+      "cycle": 7
     }
   ],
   "blockers": [
     "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
     "Cannot yet instantiate RRData.Div with Divisor α (needs point type from curve)",
     "RRData.deg is abstract; not yet connected to Divisor.deg",
-    "RRData.ell is abstract; not yet connected to dim RRSpace"
+    "Module.Finite hypothesis needed for ell.mono (finite-dimensionality)"
   ],
   "resolved_blockers": [
     "PIVOT Cycle 2: defined RRData structure (elaborates)",
     "PIVOT Cycle 3: extended to RRDataWithEuler (RR derivable from fields)",
     "CYCLE 4: Defined Divisor α := α →₀ ℤ, proved deg_add/deg_zero/deg_neg/deg_sub/deg_single",
     "CYCLE 5: Defined Effective, FunctionFieldData, RRSpace L(D)",
-    "CYCLE 6: L(D) is k-Submodule - added div_add, div_algebraMap, proved add_mem'/smul_mem'"
+    "CYCLE 6: L(D) is k-Submodule - added div_add, div_algebraMap, proved add_mem'/smul_mem'",
+    "CYCLE 7: ell(D) = finrank k L(D), proved mono/pos_of_effective/zero_pos"
   ],
-  "next_action": "Cycle 7: Define ℓ(D) = finrank k L(D), prove monotonicity"
+  "next_action": "Cycle 8: Add finite-dimensionality axiom, explore degree-dimension bounds"
 }

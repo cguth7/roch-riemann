@@ -30,31 +30,33 @@
 - `RRData.deg` is abstract; not yet connected to `Divisor.deg`
 - `RRData.ell` is abstract; not yet connected to `finrank k (RRSpace data D)`
 
-## Next Steps (Cycle 7) - Connect ℓ(D) to finrank
+- **RESOLVED (Cycle 7)**: ℓ(D) = finrank k L(D)
+  - `ell : FunctionFieldData α k → Divisor α → ℕ` (semantic dimension)
+  - `RRSpace.le_of_divisor_le` converts set inclusion to submodule ≤
+  - **PROVED**: `ell.mono`, `ell.pos_of_effective`, `ell.zero_pos`
+  - **PROVED**: `RRSpace.one_mem_of_effective`, `RRSpace.algebraMap_mem_zero`, `RRSpace.algebraMap_mem_of_effective`
+
+## Next Steps (Cycle 8) - Degree-Dimension Inequality (Riemann's Theorem)
 
 **WARNING**: Do NOT touch Schemes or Sheaf Cohomology. Complexity cliff.
 
-**Goal**: Define `ℓ(D) = finrank k (RRSpace data D)` and prove basic properties.
+**Goal**: Establish ℓ(D) - ℓ(0) ≤ deg(D) for effective D (weak Riemann inequality).
 
-### Deliverables (in order)
-1. **Define ℓ(D)**:
-   - `def ell (data : FunctionFieldData α k) (D : Divisor α) := finrank k (RRSpace data D)`
-   - May need to import `Mathlib.LinearAlgebra.Dimension.Finrank`
+### Mathematical Background
+Riemann's inequality: ℓ(D) ≥ deg(D) + 1 - g for effective D
+This is half of Riemann-Roch. For now, aim for simpler bounds.
 
-2. **Prove ℓ monotonicity**:
-   - `ell_mono : D ≤ E → ℓ(D) ≤ ℓ(E)` (larger divisor = more functions = larger dimension)
+### Possible Deliverables
+1. **Finite-dimensionality**: Add axiom to `FunctionFieldData`:
+   - `finite_dimensional : ∀ D, Module.Finite k (RRSpace data D)`
+   - This is needed for `ell.mono` to apply unconditionally
 
-3. **Finite-dimensionality assumption**:
-   - May need to add `[FiniteDimensional k (RRSpace data D)]` hypothesis
-   - Or add as field to FunctionFieldData
+2. **Degree bounds** (if finite-dimensional holds):
+   - Explore what can be said about ℓ(D) vs deg(D)
+   - May need additional axioms about the function field
 
-4. **Connect ℓ to RRData.ell** (stretch goal):
-   - Show how abstract `RRData.ell` can be instantiated with `finrank k (RRSpace data D)`
-
-### Why this matters
-| Old (RRData) | New (FunctionFieldData) |
-|---|---|
-| `ell : Div → ℕ` (opaque) | `finrank k L(D)` (semantic) |
+3. **Connect to RRData** (stretch goal):
+   - Bridge between concrete `ell data D` and abstract `RRData.ell`
 
 ### Do NOT do
 - Schemes, sheaves, cohomology
