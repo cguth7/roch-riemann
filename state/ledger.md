@@ -766,6 +766,17 @@ lemma riemann_inequality_real [SinglePointBound R K] {D : DivisorV2 R} (hD : D.E
 - Define genus axiomatically via `HasCanonicalDivisor` class
 - State full theorem conditionally
 
-**Priority 3: Serre Duality** (BLOCKED)
-- Not achievable without adelic machinery
-- Skip - axiom-based version in RR.lean sufficient
+**Priority 3: Serre Duality** (HARD - Future Project)
+- Very challenging but potentially achievable via algebraic (adele) path
+- Would require building "Residue API" from scratch (~2-3x effort of Inequality)
+- mathlib has KahlerDifferential and AdicValuation as starting points
+- Decision point after Cycle 22: climb the "Residue mountain" or stop with Inequality trophy
+
+### Two-Phase Structure of Riemann-Roch
+| Phase | Theorem | Tools | Difficulty | Status |
+|-------|---------|-------|------------|--------|
+| Part 1 | ℓ(D) ≤ deg(D) + 1 | Divisors, Valuations, Module.length | Medium | 90% Done |
+| Part 2 | Error = ℓ(K-D) | Differentials, Residues, Σres=0 | Very Hard | Future |
+
+**Part 1** is counting poles (integers, combinatorics).
+**Part 2** is integrating functions (algebraically) - requires defining differentials, residue map, proving residue theorem.

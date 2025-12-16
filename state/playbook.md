@@ -362,10 +362,26 @@ class HasCanonicalDivisor (R K) where
   deg_K : K_div.deg = 2 * genus - 2
 ```
 
-#### Priority 3: Serre Duality (BLOCKED)
-**Status**: Not achievable with current mathlib. Would require:
-- Global residue theorem for function fields
-- Adelic/idelic machinery
-- Perfect pairing construction
+#### Priority 3: Serre Duality (HARD - Future Project)
+**Status**: Very challenging but potentially achievable via algebraic (adele) path.
 
-**Decision**: Skip. The axiom-based version in RR.lean covers the theorem shape.
+**Two-Phase Structure of Riemann-Roch**:
+- **Part 1 (Inequality)**: ℓ(D) ≤ deg(D) + 1. Tools: Divisors, Valuations, Module Length. **90% DONE**.
+- **Part 2 (Serre Duality)**: The error term is exactly ℓ(K-D). Tools: Differentials, Residues, Residue Theorem.
+
+**Why Part 2 is harder**:
+- Part 1: Count poles (integers, combinatorics)
+- Part 2: Integrate functions (algebraically). Need to define differentials on curve, define residue map, prove Σres = 0.
+
+**Algebraic Path (Viable)**:
+- mathlib has `KahlerDifferential` (algebraic differentials)
+- mathlib has `AdicValuation`
+- Would need to build "Residue API" from scratch:
+  1. Define `Residue : K → k` at point v
+  2. Define canonical divisor K as divisor of nonzero differential ω
+  3. Prove duality pairing ⟨f,ω⟩ → Σres(fω)
+
+**Geometric Path (Not viable)**: Sheaves/Cohomology infrastructure not ready in mathlib.
+
+**Verdict**: Not blocked, but requires 2-3x the effort of the Inequality. A separate project.
+After Cycle 22: Decide whether to climb the "Residue mountain".
