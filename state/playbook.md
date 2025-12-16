@@ -43,29 +43,46 @@
   - **PROVED**: `RRSpace.nontrivial_of_effective`, `ell.diff_le_deg_diff`
   - All Cycle 7 conditional lemmas now have unconditional versions
 
-## Next Steps (Cycle 9) - Riemann Inequality Bound
+## Status - Cycle 9 (Success: Quotient Infrastructure)
+- **PROVED**: `RRSpace.submodule_inclusion_injective`, `ell.quotient_add_eq_of_le`, `ell.quotient_le_of_le`
+- **STATED**: `ell.add_single_le_succ` (key target), `ell.le_deg_add_ell_zero` (Riemann inequality)
+- **BLOCKER**: Cannot prove quotient dimension ≤ degree difference without evaluation map
+- **KEY LEMMA**: `ell.quotient_add_eq_of_le` gives `dim(L(E)/L(D)) + ℓ(D) = ℓ(E)` - reduces single-point bound to quotient bound
+
+## Next Steps (Cycle 10) - Evaluation Map or Axiom
 
 **WARNING**: Do NOT touch Schemes or Sheaf Cohomology. Complexity cliff.
 
-**Goal**: Establish degree-dimension relationship ℓ(D) ≤ deg(D) + 1 for effective D.
+**Goal**: Unlock Riemann inequality by either axiomatizing or constructing evaluation machinery.
 
-### Mathematical Background
-Riemann's inequality: ℓ(D) ≥ deg(D) + 1 - g for effective D
-This is half of Riemann-Roch. The key insight is that adding a single point
-to an effective divisor increases ℓ by at most 1.
+### Option A: Axiomatize Single-Point Bound (Simplest)
+Add to `FunctionFieldData`:
+```lean
+single_point_bound : ∀ (D : Divisor α) (p : α),
+    ell data (D + Divisor.single p 1) ≤ ell data D + 1
+```
+This directly gives Riemann inequality by induction.
 
-### Possible Deliverables
-1. **Single point bound**: For effective D and point p:
-   - `ell data (D + single p 1) ≤ ell data D + 1`
-   - This requires axiomatizing the "quotient space" dimension bound
+### Option B: Add Evaluation Map (More Principled)
+Extend `FunctionFieldData` with:
+```lean
+-- Evaluation at a point (well-defined for f ∈ L(D + p))
+eval : α → data.K → k
+eval_zero : ∀ p, eval p 0 = 0
+eval_add : ∀ p f g, eval p (f + g) = eval p f + eval p g
+eval_smul : ∀ p c f, eval p (c • f) = c * eval p f
+-- Key property: f ∈ L(D) iff f ∈ L(D+p) and eval p f = 0
+eval_kernel : ∀ D p f, f ∈ RRSpace data D ↔ (f ∈ RRSpace data (D + single p 1) ∧ eval p f = 0)
+```
+This gives a 1-dim quotient via first isomorphism theorem.
 
-2. **Induction on degree**:
-   - Base case: ℓ(0) ≥ 1 (have it)
-   - Inductive: adding point increases ℓ by at most 1
-   - Conclude: ℓ(D) ≤ deg(D) + ℓ(0)
+### Option C: Valuation Approach (Most General)
+Add local valuations `v_p : K* → ℤ` for each point p.
+Most mathematically faithful but requires more infrastructure.
 
-3. **Genus introduction**:
-   - Eventually need genus g to state: ℓ(D) ≥ deg(D) + 1 - g
+### Recommendation
+Start with **Option A** (axiom) to unblock progress. Later cycles can strengthen
+to Option B/C if needed for deeper results.
 
 ### Do NOT do
 - Schemes, sheaves, cohomology

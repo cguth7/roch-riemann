@@ -232,3 +232,45 @@ This is cleaner because:
 
 #### Next cycle
 - Cycle 9: Single-point dimension bound ℓ(D + p) ≤ ℓ(D) + 1 for Riemann inequality
+
+### Cycle 9 - Quotient Infrastructure and Riemann Inequality Statements - PARTIAL
+- **Active edge**: Single-point dimension bound `ℓ(D + single p 1) ≤ ℓ(D) + 1`
+- **Goal**: Establish degree-dimension relationship for Riemann inequality
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `RRSpace.submodule_inclusion_injective` | ✅ **PROVED** | Submodule.inclusion_injective _ |
+| `ell.quotient_add_eq_of_le` | ✅ **PROVED** | Rank-nullity via comapSubtypeEquivOfLe |
+| `ell.quotient_le_of_le` | ✅ **PROVED** | Submodule.finrank_quotient_le |
+| `ell.add_single_le_succ` | 📋 STATED | **TARGET** - needs quotient-degree bound |
+| `ell.le_deg_add_ell_zero` | 📋 STATED | Riemann inequality - needs add_single_le_succ |
+| `ell.single_le_deg_succ` | 📋 STATED | Special case - needs add_single_le_succ |
+| `ell.le_toNat_deg_add_ell_zero` | 📋 STATED | Natural version - needs le_deg_add_ell_zero |
+
+#### Discovery (mathlib)
+- `Submodule.finrank_quotient_add_finrank`: `finrank R (M ⧸ N) + finrank R N = finrank R M`
+- `Submodule.finrank_quotient_le`: quotient dimension ≤ ambient dimension
+- `Submodule.inclusion_injective`: inclusions are always injective
+- `Submodule.comapSubtypeEquivOfLe`: `comap q.subtype p ≃ₗ[R] p` when `p ≤ q` (KEY for quotient_add_eq_of_le)
+
+#### Analysis
+The key blocker is **Candidate #4** (BLOCKED): connecting quotient dimension to degree difference.
+To prove `dim(L(E)/L(D)) ≤ deg(E) - deg(D)`, we need one of:
+1. **Evaluation map** `ev_p : L(D + p) → k` with `ker(ev_p) = L(D)`
+2. **Valuation axiom** connecting `div` to local valuations at points
+3. **Direct axiom** stating quotient-degree relationship
+
+Without this, the Riemann inequality chain (Candidates #5-8) remains `sorry`.
+
+#### Significance
+- **3 lemmas PROVED**: complete quotient infrastructure for L(D) ⊆ L(E)
+  - Inclusion injectivity, quotient dimension bound, rank-nullity identity
+- **4 statements ADDED**: degree-dimension bounds ready for proof
+- **Blocker identified**: Need evaluation/residue machinery for quotient-degree connection
+
+#### Next cycle (Cycle 10)
+Options:
+1. **Axiomatize** `ell.add_single_le_succ` directly as structure field
+2. **Extend FunctionFieldData** with evaluation map or valuations
+3. **Pivot** to different proof strategy not requiring point evaluation

@@ -590,4 +590,76 @@ lemma ell.diff_le_deg_diff {α : Type*} {k : Type*} [Field k]
     (ell data D : ℤ) ≤ (ell data E : ℤ) := by
   exact Int.ofNat_le.mpr (ell.mono_unconditional data h)
 
+/-! ## Cycle 9 Candidates: Single-Point Dimension Bound -/
+
+-- Candidate 1 [tag: degree_bridge] [status: PROVED]
+-- Inclusion from L(D) to L(E) is injective when D ≤ E
+lemma RRSpace.submodule_inclusion_injective {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) {D E : Divisor α} (h : D ≤ E) :
+    Function.Injective (Submodule.inclusion (RRSpace.le_of_divisor_le data h)) :=
+  Submodule.inclusion_injective _
+
+-- Candidate 2 [tag: degree_bridge] [status: PROVED]
+-- Rank-nullity for L(D) ⊆ L(E): dim(L(E)/L(D)) + dim L(D) = dim L(E)
+-- Uses comap to get L(D) as a submodule of L(E)
+lemma ell.quotient_add_eq_of_le {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [hFin : ∀ D, Module.Finite k (RRSpace data D)]
+    {D E : Divisor α} (h : D ≤ E) :
+    Module.finrank k ((RRSpace data E) ⧸ (RRSpace data D).comap (RRSpace data E).subtype) + ell data D = ell data E := by
+  haveI : Module.Finite k (RRSpace data E) := hFin E
+  haveI : Module.Finite k (RRSpace data D) := hFin D
+  -- Step 1: Apply rank-nullity to get finrank(quotient) + finrank(comap) = finrank(E)
+  have hrn := Submodule.finrank_quotient_add_finrank ((RRSpace data D).comap (RRSpace data E).subtype)
+  -- Step 2: Show finrank(comap) = finrank(L(D)) using the linear equivalence
+  have hle := RRSpace.le_of_divisor_le data h
+  -- comapSubtypeEquivOfLe gives: comap q.subtype p ≃ₗ[R] p when p ≤ q
+  have hequiv : Module.finrank k ((RRSpace data D).comap (RRSpace data E).subtype) =
+      Module.finrank k (RRSpace data D) :=
+    LinearEquiv.finrank_eq (Submodule.comapSubtypeEquivOfLe hle)
+  -- Combine
+  rw [hequiv] at hrn
+  exact hrn
+
+-- Candidate 3 [tag: degree_bridge] [status: PROVED]
+-- Quotient dimension is bounded: dim(L(E)/L(D)) ≤ dim L(E)
+lemma ell.quotient_le_of_le {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [hFin : ∀ D, Module.Finite k (RRSpace data D)]
+    {D E : Divisor α} (_h : D ≤ E) :
+    Module.finrank k ((RRSpace data E) ⧸ (RRSpace data D).comap (RRSpace data E).subtype) ≤ ell data E := by
+  haveI : Module.Finite k (RRSpace data E) := hFin E
+  exact Submodule.finrank_quotient_le _
+
+-- Candidate 4 [tag: degree_bridge] [status: BLOCKED]
+-- Quotient dimension bound by degree: dim(L(E)/L(D)) ≤ deg(E) - deg(D)
+-- BLOCKED: Requires connecting quotient dimension to degree difference
+
+-- Candidate 5 [tag: degree_bridge] [status: sorry - needs quotient-degree axiom]
+-- Single-point dimension bound
+-- KEY TARGET: This is exactly the bound needed for Riemann inequality
+lemma ell.add_single_le_succ {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [∀ D, Module.Finite k (RRSpace data D)]
+    (D : Divisor α) (p : α) :
+    ell data (D + Divisor.single p 1) ≤ ell data D + 1 := sorry
+
+-- Candidate 6 [tag: degree_bridge] [status: sorry - needs Candidate 5]
+-- Riemann's inequality: ℓ(D) ≤ deg(D) + ℓ(0) for effective D
+lemma ell.le_deg_add_ell_zero {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [∀ D, Module.Finite k (RRSpace data D)]
+    {D : Divisor α} (hD : Divisor.Effective D) :
+    (ell data D : ℤ) ≤ Divisor.deg D + (ell data 0 : ℤ) := sorry
+
+-- Candidate 7 [tag: degree_bridge] [status: sorry - needs Candidate 5]
+-- Dimension bound for single-point divisors: ℓ(n·p) ≤ n + 1
+lemma ell.single_le_deg_succ {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [∀ D, Module.Finite k (RRSpace data D)]
+    (p : α) (n : ℕ) :
+    ell data (Divisor.single p (n : ℤ)) ≤ n + 1 := sorry
+
+-- Candidate 8 [tag: degree_bridge] [status: sorry - needs Candidate 6]
+-- Natural number version: ℓ(D) ≤ deg(D).toNat + ℓ(0) when deg(D) ≥ 0
+lemma ell.le_toNat_deg_add_ell_zero {α : Type*} {k : Type*} [Field k]
+    (data : FunctionFieldData α k) [∀ D, Module.Finite k (RRSpace data D)]
+    {D : Divisor α} (hD : Divisor.Effective D) (hDeg : 0 ≤ Divisor.deg D) :
+    ell data D ≤ (Divisor.deg D).toNat + ell data 0 := sorry
+
 end RiemannRoch

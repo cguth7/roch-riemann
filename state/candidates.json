@@ -1,5 +1,5 @@
 {
-  "active_edge": "Define ℓ(D) = finrank k L(D)",
+  "active_edge": "Single-point dimension bound: ell(D + p) ≤ ell(D) + 1",
   "candidates": [
     {
       "name": "Divisor α",
@@ -279,13 +279,66 @@
       "statement": "[∀ D, Module.Finite k (RRSpace data D)] → Effective D → D ≤ E → (ell data D : ℤ) ≤ (ell data E : ℤ)",
       "approach": "Int.ofNat_le + mono_unconditional",
       "cycle": 8
+    },
+    {
+      "name": "RRSpace.submodule_inclusion_injective",
+      "status": "PROVED",
+      "statement": "D ≤ E → Function.Injective (Submodule.inclusion (RRSpace.le_of_divisor_le data h))",
+      "approach": "Submodule.inclusion_injective",
+      "cycle": 9
+    },
+    {
+      "name": "ell.quotient_add_eq_of_le",
+      "status": "PROVED",
+      "statement": "finrank k ((RRSpace data E) ⧸ comap) + ell data D = ell data E",
+      "approach": "Rank-nullity via Submodule.comapSubtypeEquivOfLe + LinearEquiv.finrank_eq",
+      "cycle": 9
+    },
+    {
+      "name": "ell.quotient_le_of_le",
+      "status": "PROVED",
+      "statement": "D ≤ E → finrank k ((RRSpace data E) ⧸ comap) ≤ ell data E",
+      "approach": "Submodule.finrank_quotient_le",
+      "cycle": 9
+    },
+    {
+      "name": "ell.add_single_le_succ",
+      "status": "STATED",
+      "statement": "ell data (D + Divisor.single p 1) ≤ ell data D + 1",
+      "approach": "KEY TARGET - needs quotient-degree bound axiom",
+      "blocker": "Requires dim(L(E)/L(D)) ≤ deg(E) - deg(D)",
+      "cycle": 9
+    },
+    {
+      "name": "ell.le_deg_add_ell_zero",
+      "status": "STATED",
+      "statement": "Effective D → (ell data D : ℤ) ≤ Divisor.deg D + (ell data 0 : ℤ)",
+      "approach": "Riemann inequality - follows from add_single_le_succ by induction",
+      "blocker": "Needs add_single_le_succ",
+      "cycle": 9
+    },
+    {
+      "name": "ell.single_le_deg_succ",
+      "status": "STATED",
+      "statement": "ell data (Divisor.single p n) ≤ n + 1",
+      "approach": "Special case of Riemann inequality",
+      "blocker": "Needs add_single_le_succ",
+      "cycle": 9
+    },
+    {
+      "name": "ell.le_toNat_deg_add_ell_zero",
+      "status": "STATED",
+      "statement": "Effective D → 0 ≤ deg D → ell data D ≤ (deg D).toNat + ell data 0",
+      "approach": "Natural number version of Riemann inequality",
+      "blocker": "Needs le_deg_add_ell_zero",
+      "cycle": 9
     }
   ],
   "blockers": [
     "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
     "Cannot yet instantiate RRData.Div with Divisor α (needs point type from curve)",
     "RRData.deg is abstract; not yet connected to Divisor.deg",
-    "Need single-point dimension bound: ell(D + single p 1) ≤ ell(D) + 1"
+    "CYCLE 9 BLOCKER: Need evaluation map or axiom to prove dim(L(E)/L(D)) ≤ deg(E) - deg(D)"
   ],
   "resolved_blockers": [
     "PIVOT Cycle 2: defined RRData structure (elaborates)",
@@ -294,7 +347,8 @@
     "CYCLE 5: Defined Effective, FunctionFieldData, RRSpace L(D)",
     "CYCLE 6: L(D) is k-Submodule - added div_add, div_algebraMap, proved add_mem'/smul_mem'",
     "CYCLE 7: ell(D) = finrank k L(D), proved mono/pos_of_effective/zero_pos",
-    "CYCLE 8: Finite-dimensionality via typeclass [∀ D, Module.Finite k (RRSpace data D)], all 8 lemmas PROVED"
+    "CYCLE 8: Finite-dimensionality via typeclass [∀ D, Module.Finite k (RRSpace data D)], all 8 lemmas PROVED",
+    "CYCLE 9: Quotient infrastructure (3 proved), Riemann inequality statements (4 stated)"
   ],
-  "next_action": "Cycle 9: Establish single-point dimension bound for Riemann inequality"
+  "next_action": "Cycle 10: Add evaluation map axiom or single_point_bound to FunctionFieldData"
 }
