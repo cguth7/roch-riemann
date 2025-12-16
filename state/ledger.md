@@ -529,3 +529,44 @@ FunctionFieldDataWithMul (+ mul_sections, mul_add_left, mul_image_dim_bound, ...
 ```
 
 **Cycle rating**: 10/10 - **CLIFFORD'S THEOREM PROVED**, 8/8 candidates complete
+
+### Cycle 17 - Dedekind Domain Pivot: RR_v2.lean Created - COMPLETED
+- **Active edge**: Pivot from axiom-based to constructive Dedekind domain approach
+- **Decision**: Create `RR_v2.lean` using real mathlib infrastructure
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `DivisorV2` | ✅ DEFINED | `HeightOneSpectrum R →₀ ℤ` - real points |
+| `DivisorV2.deg` | ✅ DEFINED | Sum of coefficients |
+| `DivisorV2.deg_add` | ✅ **PROVED** | Via Finsupp.sum_add_index' |
+| `DivisorV2.deg_zero` | ✅ **PROVED** | Via Finsupp.sum_zero_index |
+| `DivisorV2.deg_neg` | ✅ **PROVED** | Derived from deg_add |
+| `DivisorV2.deg_single` | ✅ **PROVED** | Via Finsupp.sum_single_index |
+| `DivisorV2.Effective` | ✅ DEFINED | `0 ≤ D` pointwise |
+| `localization_at_prime_is_dvr` | ✅ **PROVED** | Uses mathlib DVR theorem |
+| `RRModuleV2` | ⚠ PLACEHOLDER | Needs real valuation condition |
+| `ellV2` | ✅ DEFINED | Via Module.length (additive in exact seq) |
+| `ellV2_mono` | ❌ SORRY | Blocked on RRModuleV2 |
+| `divisorToFractionalIdeal` | ⚠ PLACEHOLDER | Needs ∏ v^{D(v)} |
+| `riemann_inequality` | ❌ SORRY | Blocked on RRModuleV2 |
+
+#### Reflector Scoring
+- **Score 5 (Ready)**: DivisorV2, deg, deg_add, deg_zero, deg_neg, deg_single, Effective, localization_at_prime_is_dvr
+- **Score 2-3 (Blocked/Placeholder)**: RRModuleV2, ellV2, ellV2_mono, divisorToFractionalIdeal, riemann_inequality
+
+#### Key Design Choices
+1. **Points**: `HeightOneSpectrum R` (height-1 primes) instead of abstract type variable
+2. **Dimension**: `Module.length` (additive in exact sequences) instead of `finrank`
+3. **DVR Bridge**: `localization_at_prime_is_dvr` provides valuations at each prime
+
+#### Blocker Analysis
+**RRModuleV2 is placeholder**: Current definition `{ f | f = 0 ∨ True }` is trivially true.
+Real definition needs: `{ f | f = 0 ∨ (∀ v, ord_v(f) + D(v) ≥ 0) }`
+The DVR localization instance provides the valuations but extraction API not yet used.
+
+**Cycle rating**: 7/10 - Infrastructure created, key blocker identified (RRModuleV2)
+
+#### Next Cycle (Cycle 18)
+1. **Priority 1**: Fix RRModuleV2 with real valuation-based membership
+2. **Priority 2**: Implement divisorToFractionalIdeal as ∏ v^{D(v)}

@@ -1,5 +1,5 @@
 {
-  "active_edge": "Genus 0 special cases and high-degree exactness",
+  "active_edge": "Fix RRModuleV2 with real valuation-based definition",
   "candidates": [
     {
       "name": "Divisor α",
@@ -119,71 +119,96 @@
       "statement": "deg D > 2g - 2 → ℓ(K-D) = 0",
       "approach": "Vanishing via deg_div semantic content",
       "cycle": 12
+    },
+    {
+      "name": "FunctionFieldDataWithMul.clifford_bound'",
+      "status": "PROVED",
+      "statement": "ℓ(D) ≥ 2 → ℓ(K-D) ≥ 2 → 2·ℓ(D) ≤ deg D + 2",
+      "approach": "Clifford's theorem via multiplication axiom",
+      "cycle": 16
     }
   ],
-  "cycle_14_candidates": [
+  "cycle_17_candidates": [
     {
-      "name": "FunctionFieldDataWithRR.deg_K_genus_zero",
-      "status": "PROVED",
-      "statement": "genus = 0 → deg K_div = -2",
-      "approach": "deg_K axiom + h_genus = 0",
-      "cycle": 14
+      "name": "DivisorV2",
+      "status": "DEFINED",
+      "statement": "abbrev DivisorV2 := HeightOneSpectrum R →₀ ℤ",
+      "approach": "Constructive divisor using mathlib's HeightOneSpectrum",
+      "score": 5,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_K_genus_zero",
+      "name": "DivisorV2.deg",
       "status": "PROVED",
-      "statement": "genus = 0 → ℓ(K) = 0",
-      "approach": "ell_K lemma + h_genus = 0",
-      "cycle": 14
+      "statement": "def deg (D : DivisorV2 R) : ℤ := D.sum (fun _ n => n)",
+      "approach": "Sum of coefficients (identical to v1)",
+      "score": 5,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_eq_deg_minus_genus_of_deg_gt",
+      "name": "DivisorV2.deg_add, deg_zero, deg_neg, deg_single",
       "status": "PROVED",
-      "statement": "deg D > 2g - 2 → ℓ(D) = deg D + 1 - g",
-      "approach": "RR + vanishing theorem (high-degree exactness)",
-      "cycle": 14
+      "statement": "Degree additivity lemmas",
+      "approach": "Via Finsupp lemmas",
+      "score": 5,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_eq_deg_succ_of_genus_zero_deg_gt",
+      "name": "localization_at_prime_is_dvr",
       "status": "PROVED",
-      "statement": "genus = 0 → deg D > -2 → ℓ(D) = deg D + 1",
-      "approach": "Special case of ell_eq_deg_minus_genus_of_deg_gt",
-      "cycle": 14
+      "statement": "instance IsDiscreteValuationRing (Localization.AtPrime v.asIdeal)",
+      "approach": "Uses mathlib IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain",
+      "score": 5,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_eq_deg_succ_of_genus_zero_effective",
-      "status": "PROVED",
-      "statement": "genus = 0 → Effective D → ℓ(D) = deg(D).toNat + 1",
-      "approach": "Natural number version for effective divisors",
-      "cycle": 14
+      "name": "RRModuleV2",
+      "status": "PLACEHOLDER",
+      "statement": "def RRModuleV2 (D : DivisorV2 R) : Submodule R K",
+      "approach": "PLACEHOLDER - needs real valuation-based membership condition",
+      "score": 2,
+      "blocker": "Requires ord_v extraction from DVR localization",
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_le_deg_succ_of_deg_gt",
-      "status": "PROVED",
-      "statement": "deg D > 2g - 2 → ℓ(D) ≤ deg D + 1",
-      "approach": "Upper bound from ell_eq_deg_minus_genus_of_deg_gt + genus ≥ 0",
-      "cycle": 14
+      "name": "ellV2",
+      "status": "DEFINED",
+      "statement": "def ellV2 (D : DivisorV2 R) : ℕ := (Module.length R (RRModuleV2 R K D)).toNat",
+      "approach": "Module.length instead of finrank (additive in exact sequences)",
+      "score": 3,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.ell_zero_of_genus_zero_deg_neg_one",
-      "status": "PROVED",
-      "statement": "genus = 0 → deg D = -1 → ℓ(D) = 0",
-      "approach": "Boundary case: deg = -1 > -2 gives exactness with ℓ = 0",
-      "cycle": 14
+      "name": "ellV2_mono",
+      "status": "SORRY",
+      "statement": "D ≤ E → ellV2 R K D ≤ ellV2 R K E",
+      "approach": "Strategy: exact sequence + Module.length_eq_add_of_exact",
+      "blocker": "Blocked on real RRModuleV2 definition",
+      "score": 2,
+      "cycle": 17
     },
     {
-      "name": "FunctionFieldDataWithRR.clifford_bound",
-      "status": "BLOCKED",
-      "statement": "ℓ(D) ≥ 2 → ℓ(K-D) ≥ 2 → 2·ℓ(D) ≤ deg D + 2",
-      "approach": "Requires multiplication axiom for sections (geometric argument)",
-      "blocker": "Clifford's inequality needs additional structure beyond RR axiom",
-      "cycle": 14
+      "name": "divisorToFractionalIdeal",
+      "status": "PLACEHOLDER",
+      "statement": "def divisorToFractionalIdeal (D : DivisorV2 R) : FractionalIdeal (nonZeroDivisors R) K",
+      "approach": "Returns 1 (placeholder) - needs ∏ v^{D(v)} construction",
+      "score": 2,
+      "cycle": 17
+    },
+    {
+      "name": "riemann_inequality",
+      "status": "SORRY",
+      "statement": "(ellV2 R K D : ℤ) ≤ D.deg + 1",
+      "approach": "Strategy: induction on deg(D) using single-point bound",
+      "blocker": "Blocked on ellV2_mono and real RRModuleV2",
+      "score": 1,
+      "cycle": 17
     }
   ],
   "blockers": [
     "mathlib lacks: line bundles, sheaf cohomology H⁰/H¹, genus for schemes",
     "Base RRData.riemannRoch has no proof path without additional structure axioms",
-    "Clifford's theorem requires multiplication map on sections (not provable from RR alone)"
+    "RRModuleV2 placeholder needs real valuation-based membership condition"
   ],
   "resolved_blockers": [
     "CYCLE 4-6: Divisor foundations, FunctionFieldData, RRSpace as k-Submodule",
@@ -193,51 +218,10 @@
     "CYCLE 11: Riemann inequality PROVED via degree induction",
     "CYCLE 12: Full FunctionFieldDataWithRR structure, 7 lemmas PROVED",
     "CYCLE 13: Cleanup - removed 4 superseded sorries",
-    "CYCLE 14: Genus 0 special cases - 7 lemmas PROVED"
+    "CYCLE 14: Genus 0 special cases - 7 lemmas PROVED",
+    "CYCLE 15: Genus 1 / Elliptic curves - 6 lemmas PROVED",
+    "CYCLE 16: Clifford's theorem PROVED via multiplication axiom",
+    "CYCLE 17: RR_v2.lean created - Dedekind domain foundations"
   ],
-  "next_action": "Cycle 16: Consider Clifford axiom, RRData instantiation, or genus 2+ results",
-  "cycle_15_candidates": [
-    {
-      "name": "FunctionFieldDataWithRR.deg_K_genus_one",
-      "status": "PROVED",
-      "statement": "genus = 1 → deg K_div = 0",
-      "approach": "Direct application of deg_K axiom + g = 1",
-      "cycle": 15
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_K_genus_one",
-      "status": "PROVED",
-      "statement": "genus = 1 → ℓ(K) = 1",
-      "approach": "ell_K lemma + g = 1",
-      "cycle": 15
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_eq_deg_of_genus_one_deg_pos",
-      "status": "PROVED",
-      "statement": "genus = 1 → deg D ≥ 1 → ℓ(D) = deg D",
-      "approach": "KEY elliptic curve result - vanishing + RR simplification",
-      "cycle": 15
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_pos_of_effective'",
-      "status": "PROVED",
-      "statement": "Effective D → ℓ(D) ≥ 1",
-      "approach": "Wrapper for unconditional positivity lemma",
-      "cycle": 15
-    },
-    {
-      "name": "FunctionFieldDataWithRR.deg_le_of_ell_K_sub_D_pos",
-      "status": "PROVED",
-      "statement": "ℓ(K-D) > 0 → deg D ≤ 2g - 2",
-      "approach": "KEY special divisor characterization - contrapositive of vanishing",
-      "cycle": 15
-    },
-    {
-      "name": "FunctionFieldDataWithRR.ell_ge_max_one_deg_minus_genus",
-      "status": "PROVED",
-      "statement": "Effective D → ℓ(D) ≥ max(1, deg D + 1 - g)",
-      "approach": "Combines positivity and RR lower bound",
-      "cycle": 15
-    }
-  ]
+  "next_action": "Cycle 18: Fix RRModuleV2 with real ord_v valuation condition"
 }

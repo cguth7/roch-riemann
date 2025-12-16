@@ -190,3 +190,23 @@ abbrev Divisor (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R] :=
 - Keep using `rr_axiom` (circular)
 - Schemes/sheaves/cohomology (blocked in mathlib)
 - Abstract `FunctionFieldData` axioms
+
+## Status - Cycle 17 (SUCCESS: RR_v2.lean Created)
+- **PIVOT EXECUTED**: Created `RR_v2.lean` with Dedekind domain foundations
+- **DEFINED**: `DivisorV2 := HeightOneSpectrum R →₀ ℤ` (real points!)
+- **PROVED**: deg_add, deg_zero, deg_neg, deg_single, Effective lemmas
+- **PROVED**: `localization_at_prime_is_dvr` (DVR at height-1 primes)
+- **DEFINED**: `ellV2` using `Module.length` (additive in exact sequences)
+- **PLACEHOLDER**: `RRModuleV2` (needs real valuation condition)
+- **SORRY**: `ellV2_mono`, `riemann_inequality` (blocked on RRModuleV2)
+
+### Key Insight
+The DVR instance `localization_at_prime_is_dvr` is the **bridge** to valuations.
+Each `v : HeightOneSpectrum R` gives `IsDiscreteValuationRing (Localization.AtPrime v.asIdeal)`.
+This provides `ord_v : K× → ℤ` needed for the membership condition.
+
+### Next Steps (Cycle 18)
+1. **Priority 1**: Fix RRModuleV2 using valuations from DVR localization
+   - Define: `{ f | f = 0 ∨ (∀ v, ord_v(f) + D(v) ≥ 0) }`
+   - Import valuation API from `RingTheory.Valuation.*`
+2. **Priority 2**: Implement `divisorToFractionalIdeal` as `∏ v^{D(v)}`
