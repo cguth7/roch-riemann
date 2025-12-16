@@ -57,19 +57,40 @@ lemma local_gap_bound_of_exists_map
 2. Since range φ ⊆ κ(v) and κ(v) is simple, length(range φ) ≤ 1
 3. Therefore: ℓ(D+v) ≤ ℓ(D) + 1
 
-### Phase 2 Tasks (NEXT CYCLE)
-- [ ] Construct `evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)` using uniformizers
+### Phase 2 Progress (Cycle 24 Session 2)
+- Added `residueFieldAtPrime.linearEquiv` with SORRY
+- **BLOCKER**: Timeout on `IsFractionRing (R ⧸ v.asIdeal) (R ⧸ v.asIdeal)` construction
+
+### CRITICAL INSIGHT: Avoid IsFractionRing Plumbing
+The timeout occurs because we're forcing the elaborator to construct "field is its own fraction ring".
+**This is unnecessary for proving isSimpleModule.**
+
+**Simpler approach**:
+1. `HeightOneSpectrum.isMaximal` → `v.asIdeal` is maximal (already proved)
+2. For maximal I: submodules of R ⧸ I ↔ ideals containing I
+3. Maximal I ⟹ only I and ⊤ contain I ⟹ only ⊥ and ⊤ submodules ⟹ **simple**
+4. Key lemmas:
+   - `Ideal.isMaximal_def : I.IsMaximal ↔ IsCoatom I`
+   - `isSimpleModule_iff_isCoatom : IsSimpleModule R (M ⧸ m) ↔ IsCoatom m`
+
+**Options**:
+- **Option A**: Prove `IsSimpleModule R (R ⧸ v.asIdeal)` directly, transport to κ(v)
+- **Option B**: Redefine `residueFieldAtPrime` as `R ⧸ v.asIdeal` (simpler)
+
+### Phase 2 Tasks (NEXT SESSION)
+- [ ] **FIX isSimpleModule**: Use ideal↔submodule correspondence, NOT IsFractionRing
+- [ ] Remove `linearEquiv` sorry (may be unnecessary with Option B)
+- [ ] Construct `evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)`
 - [ ] Prove kernel condition: ker(evaluationMapAt) = range(inclusion)
-- [ ] Fill `residueFieldAtPrime.isSimpleModule` sorry
 - [ ] Instantiate `LocalGapBound R K`
 
 ### Victory Condition for Phase 2
 - [ ] instance : LocalGapBound R K (making riemann_inequality_affine unconditional)
 
-### Blockers for Phase 2
-- uniformizerAt needs mathlib DVR API exploration
-- May need additional lemmas about HeightOneSpectrum.valuation
-- isSimpleModule proof requires κ(v) ≃ₗ[R] R/v.asIdeal construction
+### Current Sorry Count (RR_v2.lean)
+1. Line 335: `ellV2_mono` (deprecated)
+2. Line 713: `riemann_inequality` (deprecated)
+3. Line 808: `residueFieldAtPrime.linearEquiv` (new - may be removable)
 
 ---
 

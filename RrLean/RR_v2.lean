@@ -795,21 +795,33 @@ lemma divisor_le_add_single (D : DivisorV2 R) (v : HeightOneSpectrum R) :
 lemma HeightOneSpectrum.isMaximal (v : HeightOneSpectrum R) : v.asIdeal.IsMaximal :=
   v.isPrime.isMaximal v.ne_bot
 
+-- Candidate 1 [tag: residue_field_equiv] [status: SORRY] [cycle: 24]
+/-- Linear equivalence between κ(v) and R ⧸ v.asIdeal.
+
+Since v.asIdeal is maximal (via HeightOneSpectrum.isMaximal), R ⧸ v.asIdeal is a field.
+We have `IsFractionRing (R ⧸ v.asIdeal) κ(v)` from mathlib. When the domain is a field,
+the algebraMap to its fraction ring is bijective.
+
+**Status**: SORRY - instance plumbing for IsFractionRing K K when K is a field is complex.
+The mathematical fact is clear (fraction ring of a field is itself), but the
+Lean 4 typeclass instances need careful handling. -/
+noncomputable def residueFieldAtPrime.linearEquiv (v : HeightOneSpectrum R) :
+    (R ⧸ v.asIdeal) ≃ₗ[R] residueFieldAtPrime R v := by
+  -- This requires showing algebraMap (R ⧸ v.asIdeal) → κ(v) is bijective
+  -- when v.asIdeal is maximal. The math is clear but instance plumbing is complex.
+  sorry
+
 -- Helper: The residue field is a simple R-module (length = 1)
 -- This follows because v.asIdeal is maximal, so R/v.asIdeal is simple,
 -- and κ(v) ≅ R/v.asIdeal as R-modules for Dedekind domains.
 instance residueFieldAtPrime.isSimpleModule (v : HeightOneSpectrum R) :
     IsSimpleModule R (residueFieldAtPrime R v) := by
-  -- The residue field κ(v) has the property that v.asIdeal annihilates it
-  -- (by Ideal.ker_algebraMap_residueField), making it an R/v.asIdeal-module.
-  -- Since v.asIdeal is maximal, R/v.asIdeal is a field, and κ(v) is a
-  -- 1-dimensional vector space over this field.
-  -- As an R-module, it's isomorphic to R/v.asIdeal which is simple.
+  -- R ⧸ v.asIdeal is simple as R-module since v.asIdeal is maximal (= coatom in ideal lattice)
+  -- And κ(v) ≃ R ⧸ v.asIdeal as R-modules
   rw [isSimpleModule_iff_quot_maximal]
   refine ⟨v.asIdeal, v.isMaximal, ?_⟩
-  -- Need to show: Nonempty (residueFieldAtPrime R v ≃ₗ[R] R ⧸ v.asIdeal)
-  -- This requires more work - for now we use sorry as the focus is on the bridge
-  sorry
+  -- Use the linear equivalence
+  exact ⟨(residueFieldAtPrime.linearEquiv v).symm⟩
 
 -- Helper: Module.length of residue field is 1
 lemma residueFieldAtPrime.length_eq_one (v : HeightOneSpectrum R) :
