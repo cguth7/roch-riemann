@@ -58,28 +58,31 @@ lemma local_gap_bound_of_exists_map
 2. Since range φ ⊆ κ(v) and κ(v) is simple, length(range φ) ≤ 1
 3. Therefore: ℓ(D+v) ≤ ℓ(D) + 1
 
-### Phase 2 Results (Cycle 24 Session 3) - PARTIAL COMPLETE
+### Phase 2 Results (Cycle 24 Session 3-4) - UNIFORMIZER INFRASTRUCTURE COMPLETE
 - ✅ `residueFieldAtPrime.linearEquiv` PROVED via bijective algebraMap
 - ✅ `residueFieldAtPrime.isSimpleModule` PROVED using the linearEquiv
+- ✅ `uniformizerAt` DEFINED - uniformizer π ∈ R at height-1 prime v
+- ✅ `uniformizerAt_val` PROVED - v.intValuation π = exp(-1)
+- ✅ `uniformizerAt_ne_zero` PROVED - π ≠ 0
+- ✅ `uniformizerAt_pow_val` PROVED - v.intValuation (π^n) = exp(-n)
+- ✅ `uniformizerAt_valuation` PROVED - v.valuation K (algebraMap R K π) = exp(-1)
+- ✅ `uniformizerAt_pow_valuation` PROVED - v.valuation K (algebraMap R K (π^n)) = exp(-n)
+- ✅ `shifted_element_valuation_le_one` PROVED - **KEY**: f ∈ L(D+v) ⟹ v(f·π^{D(v)+1}) ≤ 1
 
-**Key Discovery**: `Ideal.bijective_algebraMap_quotient_residueField` in mathlib
-- When I is maximal, `algebraMap (R ⧸ I) I.ResidueField` is bijective
-- This gives us `R ⧸ v.asIdeal ≃ₗ[R] κ(v)` directly
-- No need for IsFractionRing plumbing
+**Key Discovery**: `WithZero.exp_nsmul` and `WithZero.exp_add` enable clean valuation arithmetic.
 
-**Proof Strategy for linearEquiv**:
-```lean
--- Use bijective algebraMap to construct LinearEquiv
-have hbij := Ideal.bijective_algebraMap_quotient_residueField v.asIdeal
-exact LinearEquiv.ofBijective { toFun := algebraMap ..., map_add', map_smul' } hbij
-```
+**Shifted Evaluation Strategy** (from Gemini):
+1. For f ∈ L(D+v), multiply by π^{D(v)+1} to "shift" the pole
+2. The shifted element f·π^{D(v)+1} has valuation ≤ 1 at v (PROVED)
+3. Map to κ(v) via residue structure
+4. The kernel captures exactly L(D)
 
-### Phase 2 Tasks (REMAINING)
-- [ ] Construct `evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)`
+### Cycle 25 Tasks (REMAINING)
+- [ ] Construct `evaluationMapAt v D : L(D+v) →ₗ[R] κ(v)` using shifted evaluation
 - [ ] Prove kernel condition: ker(evaluationMapAt) = range(inclusion)
 - [ ] Instantiate `LocalGapBound R K`
 
-### Victory Condition for Phase 2
+### Victory Condition for Cycle 25
 - [ ] instance : LocalGapBound R K (making riemann_inequality_affine unconditional)
 
 ### Current Sorry Count (RR_v2.lean)
