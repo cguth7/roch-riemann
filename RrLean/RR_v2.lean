@@ -182,11 +182,13 @@ def RRModuleV2_real (D : DivisorV2 R) : Submodule R K where
         _ = WithZero.exp (D v) := by
             exact one_mul _
 
+set_option linter.unusedSectionVars false in
 -- Candidate 4 [tag: zero_mem_real] [status: PROVED]
 /-- Zero is in L(D) for any divisor D. -/
 lemma RRModuleV2_real_zero_mem (D : DivisorV2 R) :
     (0 : K) ∈ (RRModuleV2_real R K D).carrier := Or.inl rfl
 
+set_option linter.unusedSectionVars false in
 -- Candidate 7 [tag: inclusion_submodule] [status: PROVED]
 /-- When D ≤ E, we have L(D) ⊆ L(E), giving a submodule inclusion. -/
 lemma RRModuleV2_mono_inclusion {D E : DivisorV2 R} (hDE : D ≤ E) :
@@ -205,6 +207,61 @@ lemma RRModuleV2_mono_inclusion {D E : DivisorV2 R} (hDE : D ≤ E) :
        _ ≤ WithZero.exp (E v) := by
            apply WithZero.exp_le_exp.mpr
            exact hDv
+
+/-! ## Cycle 20: ℓ(D) using RRModuleV2_real -/
+
+-- Candidate 1 [tag: rr_bundle_bridge] [status: OK]
+/-- The dimension ℓ(D) of L(D) using module length (REAL VERSION).
+
+Uses RRModuleV2_real which has the correct valuation-based membership condition.
+Module.length is additive in exact sequences, which is key for proving Riemann-Roch.
+
+Returns ℕ∞ because length can be infinite; we extract ℕ when finite. -/
+noncomputable def ellV2_real_extended (D : DivisorV2 R) : ℕ∞ :=
+  Module.length R (RRModuleV2_real R K D)
+
+-- Candidate 2 [tag: rr_bundle_bridge] [status: OK]
+/-- The dimension ℓ(D) as a natural number (REAL VERSION, assuming finiteness). -/
+noncomputable def ellV2_real (D : DivisorV2 R) : ℕ :=
+  (ellV2_real_extended R K D).toNat
+
+-- Candidate 3 [tag: rr_bundle_bridge] [status: PROVED]
+/-- Monotonicity: D ≤ E implies ℓ(D) ≤ ℓ(E) at the ℕ∞ level.
+
+PROOF STRATEGY:
+1. Use RRModuleV2_mono_inclusion (already PROVED) to get L(D) ≤ L(E)
+2. Apply Submodule.inclusion to get an injective linear map L(D) →ₗ[R] L(E)
+3. Use Submodule.inclusion_injective to verify injectivity
+4. Apply Module.length_le_of_injective to get length(L(D)) ≤ length(L(E)) -/
+lemma ellV2_real_mono_extended {D E : DivisorV2 R} (hDE : D ≤ E) :
+    ellV2_real_extended R K D ≤ ellV2_real_extended R K E := by
+  unfold ellV2_real_extended
+  -- Get the submodule inclusion L(D) ≤ L(E)
+  have hle := RRModuleV2_mono_inclusion R K hDE
+  -- Apply Module.length_le_of_injective with the inclusion map
+  exact Module.length_le_of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective hle)
+
+-- Candidate 4 [tag: rr_bundle_bridge] [status: PROVED]
+/-- Monotonicity at the ℕ level: D ≤ E implies ℓ(D) ≤ ℓ(E).
+
+Uses ellV2_real_mono_extended and ENat.toNat_le_toNat.
+Note: This requires finiteness of ellV2_real_extended E. Without that hypothesis,
+we use the fact that toNat maps ⊤ to 0, so the inequality holds trivially. -/
+lemma ellV2_real_mono {D E : DivisorV2 R} (hDE : D ≤ E)
+    (hfin : ellV2_real_extended R K E ≠ ⊤) :
+    ellV2_real R K D ≤ ellV2_real R K E := by
+  unfold ellV2_real
+  exact ENat.toNat_le_toNat (ellV2_real_mono_extended R K hDE) hfin
+
+-- Candidate 5 [tag: rr_bundle_bridge] [status: PROVED]
+/-- Alternative monotonicity: always holds, but may give 0 for infinite length. -/
+lemma ellV2_real_mono' {D E : DivisorV2 R} (hDE : D ≤ E) :
+    ellV2_real R K D ≤ ellV2_real R K E ∨ ellV2_real_extended R K E = ⊤ := by
+  by_cases h : ellV2_real_extended R K E = ⊤
+  · exact Or.inr h
+  · exact Or.inl (ellV2_real_mono R K hDE h)
 
 /-! ## Original placeholder (kept for reference) -/
 

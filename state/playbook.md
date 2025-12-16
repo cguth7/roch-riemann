@@ -242,7 +242,32 @@ With the CORRECT condition `v(f) ≤ exp(D(v))`:
 1. **add_mem'**: `v(a+b) ≤ max(v(a), v(b)) ≤ exp(D)` ✓
 2. **smul_mem'**: `v(r) * v(f) ≤ 1 * exp(D) = exp(D)` ✓
 
-### Next Steps (Cycle 20)
-1. **Priority 1**: Prove `ellV2_mono` using exact sequence additivity of Module.length
-2. **Priority 2**: Add single-point bound axiom or derive from DVR structure
-3. **Priority 3**: Prove `riemann_inequality` by induction on degree
+## Status - Cycle 20 (SUCCESS: ellV2_real Monotonicity PROVED)
+- **DEFINED**: `ellV2_real_extended : ℕ∞` and `ellV2_real : ℕ` using `RRModuleV2_real`
+- **PROVED**: `ellV2_real_mono_extended` via `Module.length_le_of_injective + Submodule.inclusion_injective`
+- **PROVED**: `ellV2_real_mono` at ℕ level (with finiteness hypothesis)
+- **PROVED**: `ellV2_real_mono'` alternative formulation
+
+### Key Insight (Cycle 20)
+The `Module.length_le_of_injective` lemma directly applies when we have:
+1. Submodule inclusion `L(D) ≤ L(E)` (from `RRModuleV2_mono_inclusion`, Cycle 19)
+2. Injective linear map via `Submodule.inclusion` (automatic from mathlib)
+
+**Proof pattern**:
+```lean
+have hle := RRModuleV2_mono_inclusion R K hDE  -- L(D) ≤ L(E)
+exact Module.length_le_of_injective
+  (Submodule.inclusion hle)
+  (Submodule.inclusion_injective hle)
+```
+
+### Architecture: `_real` Suffix
+```
+Placeholder:          Real (proven):
+ellV2_mono (sorry)    ellV2_real_mono ✅ PROVED
+```
+
+### Next Steps (Cycle 21)
+1. **Priority 1**: Add single-point bound axiom to extend architecture for Riemann inequality
+2. **Priority 2**: Prove `riemann_inequality` via induction on `deg(D).toNat`
+3. **Priority 3**: Deprecate placeholder `ellV2_mono`, `ellV2`, etc.

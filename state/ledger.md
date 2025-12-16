@@ -667,7 +667,57 @@ The membership condition was WRONG:
 
 **Cycle rating**: 10/10 - Critical bug fix + 3 lemmas PROVED
 
-#### Next Cycle (Cycle 20)
-1. **Priority 1**: Prove `ellV2_mono` using Module.length exact sequence additivity
-2. **Priority 2**: Add single-point bound for Riemann inequality
-3. **Priority 3**: Prove `riemann_inequality` by induction on degree
+### Cycle 20 - ellV2_real Monotonicity PROVED - COMPLETED
+- **Active edge**: Prove ℓ(D) monotonicity using Module.length_le_of_injective
+- **Decision**: Define `ellV2_real` using `RRModuleV2_real`, prove at both ℕ∞ and ℕ levels
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `ellV2_real_extended` | ✅ DEFINED | `Module.length R (RRModuleV2_real R K D) : ℕ∞` |
+| `ellV2_real` | ✅ DEFINED | `(ellV2_real_extended R K D).toNat : ℕ` |
+| `ellV2_real_mono_extended` | ✅ **PROVED** | D ≤ E → ℓ(D) ≤ ℓ(E) at ℕ∞ level |
+| `ellV2_real_mono` | ✅ **PROVED** | D ≤ E → ℓ(D) ≤ ℓ(E) at ℕ level (with finiteness) |
+| `ellV2_real_mono'` | ✅ **PROVED** | Alternative: result ∨ infinite length |
+
+#### Discovery (mathlib)
+- `Module.length_le_of_injective` (RingTheory/Length.lean:180): injective linear map ⟹ length ≤
+- `Submodule.inclusion` (Algebra/Module/Submodule/LinearMap.lean:336): p ≤ p' gives linear map
+- `Submodule.inclusion_injective` (same file:346): inclusion is injective
+- `ENat.toNat_le_toNat` (Data/ENat/Basic.lean:270): m ≤ n ∧ n ≠ ⊤ ⟹ toNat m ≤ toNat n
+
+#### Key Proof (ellV2_real_mono_extended)
+```lean
+lemma ellV2_real_mono_extended {D E : DivisorV2 R} (hDE : D ≤ E) :
+    ellV2_real_extended R K D ≤ ellV2_real_extended R K E := by
+  unfold ellV2_real_extended
+  have hle := RRModuleV2_mono_inclusion R K hDE  -- L(D) ≤ L(E)
+  exact Module.length_le_of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective hle)
+```
+
+#### Architecture: `_real` Suffix Pattern
+```
+Placeholder:                     Real (Cycle 18-20):
+RRModuleV2 (trivial carrier)    RRModuleV2_real (valuation-based)  ✅
+ellV2_extended                   ellV2_real_extended                 ✅
+ellV2                            ellV2_real                          ✅
+ellV2_mono (sorry)               ellV2_real_mono                     ✅ PROVED
+```
+
+#### Significance
+- **First PROVED monotonicity** using constructive L(D) definition
+- Validates the `RRModuleV2_real + Module.length` architecture
+- Direct path to Riemann inequality now visible
+
+#### Remaining Sorries
+1. `ellV2_mono` (line 306) - DEPRECATED, superseded by `ellV2_real_mono`
+2. `riemann_inequality` (line 347) - Next cycle target
+
+**Cycle rating**: 10/10 - All 5 candidates PROVED/DEFINED, edge crossed 100%
+
+#### Next Cycle (Cycle 21)
+1. **Priority 1**: Add single-point bound axiom or derive from evaluation map
+2. **Priority 2**: Prove `riemann_inequality` using `ellV2_real_mono` + induction on degree
+3. **Priority 3**: Deprecate old placeholder lemmas
