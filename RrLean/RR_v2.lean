@@ -1458,4 +1458,109 @@ noncomputable def residueFieldBridge' (v : HeightOneSpectrum R) :
 
 end Cycle30Candidates
 
+/-! ## Cycle 31 Candidates: Proving residueMapFromR_surjective
+
+Strategy: Direct proof using First Isomorphism Theorem approach.
+
+Key insight:
+1. We have residueMapFromR_ker : ker = v.asIdeal (PROVED in Cycle 30)
+2. R/v.asIdeal is a field (v.asIdeal is maximal)
+3. If surjective, then R/v.asIdeal ≃ valuationRingAt.residueField by First Isomorphism Theorem
+
+The key mathematical content is showing that every element of valuationRingAt.residueField
+has a preimage in R. This follows from R being "dense" in the valuation ring modulo maximalIdeal.
+-/
+
+section Cycle31Candidates
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: dvr_bridge] [status: PROVED] [cycle: 31]
+/-- The localization of a Dedekind domain at a height-1 prime is a DVR. -/
+instance localizationAtPrime_isDVR (v : HeightOneSpectrum R) :
+    IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) :=
+  IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain R v.ne_bot
+    (Localization.AtPrime v.asIdeal)
+
+-- Candidate 2 [tag: core_lemma] [status: SORRY] [cycle: 31]
+/-- For any g ∈ valuationRingAt v (i.e., v(g) ≤ 1), there exists r ∈ R such that
+algebraMap r ≡ g (mod maximalIdeal of valuationRingAt).
+
+Mathematical content: R is "dense" in the valuation ring modulo maximalIdeal.
+
+Proof strategy: Write g = a/b for a, b ∈ R. Since v(g) ≤ 1:
+- Case b ∉ v.asIdeal: v(b) = 1, so v(a) = v(g) ≤ 1. Take r = a. Then
+  algebraMap r - g = a - a/b = a(1 - 1/b) = a(b-1)/b. Need v(a(b-1)/b) < 1.
+- Use CRT or approximation to handle general case. -/
+lemma exists_same_residue_class (v : HeightOneSpectrum R)
+    (g : valuationRingAt (R := R) (K := K) v) :
+    ∃ r : R, (embeddingToValuationRingAt (R := R) (K := K) v r) - g ∈
+      IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := by
+  sorry
+
+-- Candidate 3 [tag: main_proof] [status: SORRY] [cycle: 31]
+/-- Surjectivity of residueMapFromR using exists_same_residue_class. -/
+lemma residueMapFromR_surjective' (v : HeightOneSpectrum R) :
+    Function.Surjective (residueMapFromR (R := R) (K := K) v) := by
+  intro x
+  obtain ⟨g, rfl⟩ := IsLocalRing.residue_surjective x
+  obtain ⟨r, hr⟩ := exists_same_residue_class v g
+  use r
+  -- residueMapFromR r = residue (embedding r) = residue g
+  simp only [residueMapFromR, RingHom.coe_comp, Function.comp_apply]
+  rw [← sub_eq_zero, ← map_sub, IsLocalRing.residue_eq_zero_iff]
+  exact hr
+
+-- Candidate 4 [tag: first_isomorphism] [status: OK] [cycle: 31]
+/-- Once surjectivity is proved, residue field bridge follows from First Isomorphism Theorem.
+R/ker(φ) ≃ target when φ is surjective. Since ker = v.asIdeal, we get R/v.asIdeal ≃ residueField. -/
+noncomputable def residueFieldBridge_v2_of_surj (v : HeightOneSpectrum R)
+    (h : Function.Surjective (residueMapFromR (R := R) (K := K) v)) :
+    (R ⧸ v.asIdeal) ≃+* valuationRingAt.residueField (R := R) (K := K) v := by
+  have hker := residueMapFromR_ker (R := R) (K := K) v
+  have equiv := RingHom.quotientKerEquivOfSurjective h
+  -- Transport along ker = v.asIdeal
+  exact hker ▸ equiv
+
+-- Candidate 5 [tag: bridge_complete] [status: OK] [cycle: 31]
+/-- Full bridge: valuationRingAt.residueField v ≃+* residueFieldAtPrime R v.
+Composes residueFieldBridge_v2 with R/v.asIdeal ≃ v.asIdeal.ResidueField. -/
+noncomputable def residueFieldBridge_v3_of_surj (v : HeightOneSpectrum R)
+    (h : Function.Surjective (residueMapFromR (R := R) (K := K) v)) :
+    valuationRingAt.residueField (R := R) (K := K) v ≃+* residueFieldAtPrime R v := by
+  haveI : v.asIdeal.IsMaximal := v.isMaximal
+  -- residueField ≃ R/v.asIdeal ≃ v.asIdeal.ResidueField
+  have h1 := (residueFieldBridge_v2_of_surj v h).symm
+  have h2 := RingEquiv.ofBijective _ (Ideal.bijective_algebraMap_quotient_residueField v.asIdeal)
+  exact h1.trans h2
+
+-- Candidate 6 [tag: wrap_up] [status: SORRY] [cycle: 31]
+/-- Alternative direct approach: show valuationRingAt is "close" to Localization.AtPrime.
+Every element of valuationRingAt can be written as r/s for r, s ∈ R with s ∉ v.asIdeal. -/
+lemma valuationRingAt_eq_fractions (v : HeightOneSpectrum R)
+    (g : valuationRingAt (R := R) (K := K) v) :
+    ∃ (r : R) (s : v.asIdeal.primeCompl),
+      g.val = algebraMap R K r / algebraMap R K s := by
+  -- g.val is in K, so IsFractionRing.div_surjective gives a/b
+  -- The condition v(g) ≤ 1 constrains the relationship
+  sorry
+
+-- Candidate 7 [tag: helper] [status: OK] [cycle: 31]
+/-- Helper: If s ∉ v.asIdeal, then v(s) = 1 (v-adic unit). -/
+lemma valuation_eq_one_of_not_mem (v : HeightOneSpectrum R) {s : R} (hs : s ∉ v.asIdeal) :
+    v.valuation K (algebraMap R K s) = 1 := by
+  apply le_antisymm (v.valuation_le_one s)
+  rw [← not_lt]
+  intro hlt
+  exact hs (v.valuation_lt_one_iff_mem s |>.mp hlt)
+
+-- Candidate 8 [tag: helper] [status: OK] [cycle: 31]
+/-- Helper: v(r/s) = v(r)/v(s) = v(r) when v(s) = 1. -/
+lemma valuation_div_eq_of_unit (v : HeightOneSpectrum R) {r s : R} (hs : s ∉ v.asIdeal) :
+    v.valuation K (algebraMap R K r / algebraMap R K s) = v.valuation K (algebraMap R K r) := by
+  rw [Valuation.map_div, valuation_eq_one_of_not_mem v hs, div_one]
+
+end Cycle31Candidates
+
 end RiemannRochV2

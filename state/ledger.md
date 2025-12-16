@@ -1430,3 +1430,75 @@ For g ∈ valuationRingAt v (so v(g) ≤ 1), we need r ∈ R such that:
 - **Clear path**: Once surjectivity proved, First Isomorphism Theorem gives the bridge
 
 **Cycle rating**: 7/10 - Good infrastructure progress, one key blocker (surjectivity) identified
+
+### Cycle 31 - Residue Map Surjectivity Infrastructure - PROGRESS
+- **Active edge**: Prove `residueMapFromR_surjective` (the key blocker from Cycle 30)
+- **Status**: ⚠️ PROGRESS - 5 candidates PROVED, 3 candidates SORRY (one core mathematical lemma needed)
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `localizationAtPrime_isDVR` | ✅ **PROVED** | Localization.AtPrime is DVR via mathlib |
+| `exists_same_residue_class` | ⚠️ **SORRY** | **KEY BLOCKER**: density of R in valuationRingAt |
+| `residueMapFromR_surjective'` | ⏳ BLOCKED | Depends on exists_same_residue_class |
+| `residueFieldBridge_v2_of_surj` | ✅ **PROVED** | First Isomorphism Theorem (conditional) |
+| `residueFieldBridge_v3_of_surj` | ✅ **PROVED** | Full bridge composition (conditional) |
+| `valuationRingAt_eq_fractions` | ⚠️ **SORRY** | Alternative approach helper |
+| `valuation_eq_one_of_not_mem` | ✅ **PROVED** | v(s)=1 when s ∉ v.asIdeal |
+| `valuation_div_eq_of_unit` | ✅ **PROVED** | v(r/s)=v(r) when v(s)=1 |
+
+#### Key Mathematical Content
+The **core blocker** is `exists_same_residue_class`:
+```lean
+lemma exists_same_residue_class (v : HeightOneSpectrum R)
+    (g : valuationRingAt v) :
+    ∃ r : R, (embeddingToValuationRingAt v r) - g ∈
+      IsLocalRing.maximalIdeal (valuationRingAt v)
+```
+
+**Mathematical meaning**: R is "dense" in the valuation ring modulo the maximal ideal.
+
+**Why it should be true**:
+- For Dedekind domains, Localization.AtPrime v.asIdeal is a DVR
+- This DVR is essentially equal to valuationRingAt v
+- Elements of the localization are r/s for r,s ∈ R with s ∉ v.asIdeal
+- Taking r gives an approximation: v(r - g·s) depends on relation
+
+#### Conditional Results Ready
+Once `exists_same_residue_class` is proved:
+1. `residueMapFromR_surjective'` becomes trivial
+2. `residueFieldBridge_v2_of_surj` gives R/v.asIdeal ≃ valuationRingAt.residueField
+3. `residueFieldBridge_v3_of_surj` completes the full bridge
+
+#### Helper Lemmas Established
+Two helper lemmas proved for valuation calculations:
+- `valuation_eq_one_of_not_mem`: s ∉ v.asIdeal ⟹ v(s) = 1
+- `valuation_div_eq_of_unit`: v(r/s) = v(r) when v(s) = 1
+
+#### Current Sorry Count (Active Path)
+| Line | Name | Status |
+|------|------|--------|
+| 1029 | evaluationMapAt | BLOCKER (needs bridge) |
+| 1040 | kernel_evaluationMapAt | BLOCKED |
+| 1049 | instLocalGapBound | BLOCKED |
+| 1414 | residueMapFromR_surjective | BLOCKED on exists_same_residue_class |
+| 1436 | residueFieldBridge_v2 | BLOCKED |
+| 1449 | residueFieldBridge_v3 | BLOCKED |
+| 1496 | exists_same_residue_class | **NEW KEY BLOCKER** |
+| 1541 | valuationRingAt_eq_fractions | Alternative approach |
+
+**Total active path sorries**: 8
+
+#### Significance
+- **DVR instance** established for Localization.AtPrime
+- **Conditional bridges** ready and type-correct
+- **Clear target**: prove exists_same_residue_class (density lemma)
+
+#### Cycle 32 Plan
+1. **Priority 1**: Prove `exists_same_residue_class` using:
+   - `IsFractionRing.div_surjective` to write g = a/b
+   - Case analysis on whether b ∈ v.asIdeal
+   - Use CRT-style argument or DVR approximation
+2. **Backup**: Find alternative approach via Localization.AtPrime direct connection
+
+**Cycle rating**: 6/10 - Infrastructure solidified, but core mathematical content still blocked

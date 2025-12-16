@@ -6,7 +6,7 @@
 - Keep lemma statements small: fewer binders, fewer coercions, fewer implicit arguments.
 - When stuck on coercions, introduce explicit `let` bindings for objects (e.g. `L : LineBundle X`).
 
-## Current Status Summary (Cycle 30)
+## Current Status Summary (Cycle 31)
 
 **RR.lean (v1)**: Axiom-based approach with `FunctionFieldDataWithRR`. Complete but circular - ARCHIVED.
 
@@ -22,8 +22,13 @@
 - Valuation ring infrastructure: 5 lemmas (Cycle 26)
 - Partial residue map infrastructure: 8 lemmas (Cycle 27-28)
 - `shifted_element_valuation_le_one_v2`: KEY BLOCKER RESOLVED (Cycle 29)
-- **`maximalIdeal_valuationRingAt_comap`: Kernel proof (Cycle 30)**
-- **`residueMapFromR_ker`: ker = v.asIdeal (Cycle 30)**
+- `maximalIdeal_valuationRingAt_comap`: Kernel proof (Cycle 30)
+- `residueMapFromR_ker`: ker = v.asIdeal (Cycle 30)
+- **`localizationAtPrime_isDVR`: DVR instance (Cycle 31)**
+- **`valuation_eq_one_of_not_mem`: v(s)=1 when s∉v.asIdeal (Cycle 31)**
+- **`valuation_div_eq_of_unit`: v(r/s)=v(r) when v(s)=1 (Cycle 31)**
+- **`residueFieldBridge_v2_of_surj`: First Isom Thm bridge (conditional, Cycle 31)**
+- **`residueFieldBridge_v3_of_surj`: Full bridge (conditional, Cycle 31)**
 
 ### Typeclass Hierarchy
 ```
@@ -36,7 +41,7 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 
 ---
 
-## Current Sorry Count (RR_v2.lean after Cycle 30)
+## Current Sorry Count (RR_v2.lean after Cycle 31)
 
 | Line | Name | Status | Notes |
 |------|------|--------|-------|
@@ -49,11 +54,84 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | 1315 | `residueFieldBridge` | SUPERSEDED | Use residueFieldBridge_v3 instead |
 | 1322 | `residueFieldBridge_algebraMap_comm` | SUPERSEDED | Not needed with bypass strategy |
 | 1331 | `evaluationMapAt_via_bridge` | BLOCKED | Depends on bridge |
-| 1414 | `residueMapFromR_surjective` | **ACTIVE** | Key blocker for bridge |
+| 1414 | `residueMapFromR_surjective` | BLOCKED | On exists_same_residue_class |
 | 1436 | `residueFieldBridge_v2` | BLOCKED | Depends on surjectivity |
 | 1449 | `residueFieldBridge_v3` | BLOCKED | Depends on v2 |
+| 1496 | `exists_same_residue_class` | **ACTIVE** | **KEY BLOCKER** - density lemma |
+| 1541 | `valuationRingAt_eq_fractions` | ACTIVE | Alternative approach |
 
-**Total**: 12 sorries (2 deprecated, 3 superseded, 7 active path)
+**Total**: 14 sorries (2 deprecated, 3 superseded, 9 active path)
+
+---
+
+## Cycle 31 Accomplishments
+
+**Goal**: Prove `residueMapFromR_surjective` (key blocker from Cycle 30)
+
+**Results**: 5/8 candidates PROVED
+- **`localizationAtPrime_isDVR`**: Localization.AtPrime is DVR (PROVED)
+- `exists_same_residue_class`: SORRY - **NEW KEY BLOCKER** (density of R in valuationRingAt)
+- `residueMapFromR_surjective'`: SORRY - depends on density lemma
+- **`residueFieldBridge_v2_of_surj`**: First Isomorphism Theorem (PROVED, conditional)
+- **`residueFieldBridge_v3_of_surj`**: Full bridge composition (PROVED, conditional)
+- `valuationRingAt_eq_fractions`: SORRY - alternative approach
+- **`valuation_eq_one_of_not_mem`**: v(s)=1 for s∉v.asIdeal (PROVED)
+- **`valuation_div_eq_of_unit`**: v(r/s)=v(r) when v(s)=1 (PROVED)
+
+**Key Insight**: The conditional bridges are complete. Once `exists_same_residue_class` is proved:
+1. `residueMapFromR_surjective'` follows immediately
+2. `residueFieldBridge_v2_of_surj` gives R/v.asIdeal ≃ valuationRingAt.residueField
+3. `residueFieldBridge_v3_of_surj` completes to residueFieldAtPrime
+
+**New Blocker**: `exists_same_residue_class` - needs to show that for any g ∈ valuationRingAt v,
+there exists r ∈ R such that embedding(r) - g ∈ maximalIdeal. This is the "density" of R in the
+valuation ring modulo maximalIdeal.
+
+---
+
+## Cycle 32 Tactical Guide
+
+### Task 1: Prove `exists_same_residue_class` (Priority: CRITICAL)
+
+**Location**: Line 1496 in RR_v2.lean
+
+**Goal**: Show R is "dense" in valuationRingAt v modulo maximalIdeal
+
+**Proof Strategy**:
+```lean
+lemma exists_same_residue_class (v : HeightOneSpectrum R)
+    (g : valuationRingAt v) :
+    ∃ r : R, (embeddingToValuationRingAt v r) - g ∈ maximalIdeal (valuationRingAt v)
+```
+
+**Approach A: Use IsFractionRing.div_surjective**
+1. Write g.val = a/b for a, b ∈ R (via `IsFractionRing.div_surjective`)
+2. Since v(g) ≤ 1, we have v(a)/v(b) ≤ 1
+3. **Case b ∉ v.asIdeal**: v(b) = 1, so v(a) ≤ 1 (always true for a ∈ R)
+   - Take r = a
+   - Need: v(a - g·b) < 1, i.e., v(a - a) = 0 ... this doesn't work directly
+4. **Case b ∈ v.asIdeal**: v(b) < 1, so need different approach
+
+**Approach B: Use Localization.AtPrime structure**
+- Localization.AtPrime v.asIdeal consists of r/s for r ∈ R, s ∉ v.asIdeal
+- For such elements, v(r/s) = v(r) (since v(s) = 1)
+- If v(g) ≤ 1, can we express g as r/s with s ∉ v.asIdeal?
+- This is essentially `valuationRingAt_eq_fractions`
+
+**Approach C: Use DVR equivalence**
+- `Localization.AtPrime v.asIdeal ≃+* valuationRingAt v` (via IsDiscreteValuationRing.equivValuationSubring)
+- The residue field of Localization.AtPrime is R/v.asIdeal
+- Bijective_algebraMap_quotient_residueField gives surjectivity for the localization
+- Transport via the equivalence
+
+**Decision Point**: Try Approach C first (uses existing mathlib results).
+
+### Fallback: Alternative formulation
+
+If `exists_same_residue_class` proves too hard, consider:
+1. Prove `valuationRingAt_eq_fractions` first (every element is r/s with s ∉ v.asIdeal)
+2. Then for g = r/s, take r as the approximation
+3. Show algebraMap(r) - g = algebraMap(r) - r/s = r(s-1)/s lies in maximalIdeal
 
 ---
 
