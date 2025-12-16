@@ -1133,4 +1133,62 @@ lemma ell_ge_max_one_deg_minus_genus [∀ D, Module.Finite k (RRSpace data.fd D)
 
 end FunctionFieldDataWithRR
 
+/-! ## Cycle 16 Setup: Multiplication Axiom
+
+To prove Clifford's theorem and related results, we need multiplication of sections:
+  L(D) × L(E) → L(D + E)
+
+This corresponds to tensor product of line bundles: O_X(D) ⊗ O_X(E) ≅ O_X(D+E).
+Geometrically, if f has poles bounded by D and g has poles bounded by E,
+then f·g has poles bounded by D+E.
+-/
+
+/-- Extension of FunctionFieldDataWithRR with multiplication of sections.
+
+This axiomatizes the key geometric fact that sections multiply:
+if f ∈ L(D) and g ∈ L(E), then f·g ∈ L(D+E).
+
+This is needed for Clifford's theorem and related results. -/
+structure FunctionFieldDataWithMul (α : Type*) (k : Type*) [Field k]
+    extends FunctionFieldDataWithRR α k where
+  /-- Multiplication of sections: L(D) × L(E) → L(D+E).
+      Geometrically: poles add under multiplication. -/
+  mul_sections : ∀ (D E : Divisor α),
+    RRSpace toFunctionFieldDataWithRR.fd D →
+    RRSpace toFunctionFieldDataWithRR.fd E →
+    RRSpace toFunctionFieldDataWithRR.fd (D + E)
+  /-- Multiplication is k-bilinear in the first argument -/
+  mul_smul_left : ∀ D E (c : k) (f : RRSpace toFunctionFieldDataWithRR.fd D)
+    (g : RRSpace toFunctionFieldDataWithRR.fd E),
+    mul_sections D E (c • f) g = c • mul_sections D E f g
+  /-- Multiplication is k-bilinear in the second argument -/
+  mul_smul_right : ∀ D E (c : k) (f : RRSpace toFunctionFieldDataWithRR.fd D)
+    (g : RRSpace toFunctionFieldDataWithRR.fd E),
+    mul_sections D E f (c • g) = c • mul_sections D E f g
+  /-- Multiplication by 1 ∈ L(0) is the identity (up to inclusion L(D) → L(D+0) = L(D)) -/
+  mul_one_left : ∀ D (f : RRSpace toFunctionFieldDataWithRR.fd D),
+    ∃ (one_in_L0 : RRSpace toFunctionFieldDataWithRR.fd 0),
+    mul_sections 0 D one_in_L0 f = ⟨f.val, by
+      have h := f.property
+      simp only [zero_add]
+      exact h⟩
+  /-- Non-degeneracy: multiplication by nonzero element of L(K-D) gives injection L(D) → L(K).
+      This is the key property for Clifford's theorem. -/
+  mul_injective_of_ne_zero : ∀ D (g : RRSpace toFunctionFieldDataWithRR.fd (K_div - D)),
+    g.val ≠ 0 →
+    Function.Injective (fun f : RRSpace toFunctionFieldDataWithRR.fd D =>
+      mul_sections D (K_div - D) f g)
+
+namespace FunctionFieldDataWithMul
+
+variable {α : Type*} {k : Type*} [Field k] (data : FunctionFieldDataWithMul α k)
+
+-- Abbreviation for underlying structures
+abbrev rr : FunctionFieldDataWithRR α k := data.toFunctionFieldDataWithRR
+abbrev fd : FunctionFieldData α k := data.rr.fd
+
+-- Cycle 16 will add Clifford's theorem and related lemmas here
+
+end FunctionFieldDataWithMul
+
 end RiemannRoch

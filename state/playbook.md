@@ -103,15 +103,35 @@
 
 **6/6 lemmas PROVED**
 
+## Status - Cycle 16 Setup (READY)
+- **ADDED**: `FunctionFieldDataWithMul` structure extending `FunctionFieldDataWithRR`
+- **AXIOMS**: `mul_sections`, `mul_smul_left`, `mul_smul_right`, `mul_one_left`, `mul_injective_of_ne_zero`
+- **KEY AXIOM**: `mul_injective_of_ne_zero` - multiplication by nonzero g ∈ L(K-D) gives injection L(D) → L(K)
+
 ## Next Steps (Cycle 16)
 
-**WARNING**: Do NOT touch Schemes or Sheaf Cohomology. Complexity cliff.
+**PRIORITY**: Prove Clifford's theorem using the new multiplication axiom.
 
-### Options for Cycle 16
-1. **Add Clifford axiom** - extend structure with multiplication map
-2. **Add instantiation lemma** - FunctionFieldDataWithRR → RRData (needs scheme morphism)
-3. **Genus 2+ special cases** - hyperelliptic curves
-4. **Gap sequence lemmas** - Weierstrass points on curves
+### Cycle 16 Target: Clifford's Theorem
+```
+If ℓ(D) ≥ 2 and ℓ(K-D) ≥ 2 (D is "special"), then:
+  2·ℓ(D) - 2 ≤ deg(D)
+Equivalently:
+  ℓ(D) ≤ deg(D)/2 + 1
+```
+
+### Proof Strategy for Clifford
+1. Take nonzero g ∈ L(K-D) (exists since ℓ(K-D) ≥ 2 > 1)
+2. Multiplication by g gives injection: L(D) ↪ L(K) via `mul_injective_of_ne_zero`
+3. Therefore ℓ(D) ≤ ℓ(K) = g
+4. Apply RR to get the bound
+
+### Other Cycle 16 Candidates
+- `mul_sections_image_le`: dim(image of multiplication) ≤ ℓ(K)
+- `clifford_inequality`: The main theorem
+- `clifford_equality_iff`: When equality holds (hyperelliptic)
+- `ell_special_le_half_deg`: Restatement of Clifford
 
 ### Do NOT do
 - Schemes, sheaves, cohomology
+- Weierstrass points (save for Cycle 17 if time)
