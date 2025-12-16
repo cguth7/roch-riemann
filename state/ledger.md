@@ -1356,3 +1356,77 @@ noncomputable def residueFieldBridge (v : HeightOneSpectrum R) :
 5. Prove `kernel_evaluationMapAt` and instantiate `LocalGapBound`
 
 **Cycle rating**: 9/10 - Major blocker resolved, clear path to victory visible
+
+### Cycle 30 - Residue Field Bridge Infrastructure via Bypass Strategy - PROGRESS
+- **Active edge**: Construct `residueFieldBridge` via bypass strategy (R → valuationRingAt.residueField → R/v.asIdeal)
+- **Status**: ⚠️ PROGRESS - 3 candidates PROVED, 3 candidates SORRY (one key blocker identified)
+
+#### Results
+| Definition/Lemma | Status | Notes |
+|-----------------|--------|-------|
+| `embeddingToValuationRingAt` | ✅ DEFINED | Ring hom R →+* valuationRingAt v |
+| `maximalIdeal_valuationRingAt_comap` | ✅ **PROVED** | maximalIdeal ∩ R = v.asIdeal via Valuation.mem_maximalIdeal_iff |
+| `residueMapFromR` | ✅ DEFINED | Composition: R → valuationRingAt v → residue field |
+| `residueMapFromR_ker` | ✅ **PROVED** | ker(residueMapFromR) = v.asIdeal |
+| `residueMapFromR_surjective` | ⚠️ **SORRY** | **BLOCKER**: Needs density argument for Dedekind domains |
+| `residueFieldBridge_v2` | ⚠️ SORRY | Depends on surjectivity |
+| `residueFieldBridge_v3` | ⚠️ SORRY | Depends on v2 |
+
+#### Bypass Strategy Architecture
+```
+R →+* valuationRingAt v (embeddingToValuationRingAt)
+    ↓ IsLocalRing.residue
+valuationRingAt.residueField v
+    ↓ (compose)
+residueMapFromR : R →+* valuationRingAt.residueField v
+
+ker(residueMapFromR) = v.asIdeal (PROVED)
+surjective ⟹ valuationRingAt.residueField v ≃+* R/v.asIdeal (First Isomorphism Thm)
+R/v.asIdeal ≃+* residueFieldAtPrime R v (mathlib)
+```
+
+#### Key Insight: Maximal Ideal Correspondence
+```lean
+lemma maximalIdeal_valuationRingAt_comap (v : HeightOneSpectrum R) :
+    (maximalIdeal (valuationRingAt v)).comap (embeddingToValuationRingAt v) = v.asIdeal
+```
+**Proof**: Uses `Valuation.mem_maximalIdeal_iff` and `HeightOneSpectrum.valuation_lt_one_iff_mem`
+
+The key is that for r ∈ R:
+- r maps to maximalIdeal(valuationRingAt v) ⟺ v(r) < 1
+- v(r) < 1 ⟺ r ∈ v.asIdeal
+
+This enables the kernel calculation via First Isomorphism Theorem approach.
+
+#### Blocker Analysis: residueMapFromR_surjective
+**Why it's hard**: Need to show every element of the residue field has a representative in R.
+
+For g ∈ valuationRingAt v (so v(g) ≤ 1), we need r ∈ R such that:
+- residueMapFromR(r) = residue(g)
+- Equivalently: g - algebraMap R K r ∈ maximalIdeal(valuationRingAt v)
+- Equivalently: v(g - algebraMap R K r) < 1
+
+**Possible approaches**:
+1. Use that R is "dense" in valuationRingAt v for Dedekind domains
+2. Use localization: Localization.AtPrime v.asIdeal ≃ valuationRingAt v
+3. Use DVR structure and explicit uniformizer construction
+
+#### Current Sorry Count (Active Path)
+| Line | Name | Status |
+|------|------|--------|
+| 1029 | evaluationMapAt | BLOCKER (needs bridge) |
+| 1040 | kernel_evaluationMapAt | BLOCKED |
+| 1049 | instLocalGapBound | BLOCKED |
+| 1315 | residueFieldBridge (original) | SUPERSEDED by v3 |
+| 1414 | residueMapFromR_surjective | **NEW BLOCKER** |
+| 1436 | residueFieldBridge_v2 | BLOCKED |
+| 1449 | residueFieldBridge_v3 | BLOCKED |
+
+**Total active path sorries**: 7 (1 new blocker, 6 blocked on it)
+
+#### Significance
+- **First kernel proof** for the bridge approach: ker(residueMapFromR) = v.asIdeal
+- **Architecture validated**: bypass strategy is correct, just needs surjectivity
+- **Clear path**: Once surjectivity proved, First Isomorphism Theorem gives the bridge
+
+**Cycle rating**: 7/10 - Good infrastructure progress, one key blocker (surjectivity) identified

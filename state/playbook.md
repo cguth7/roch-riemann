@@ -6,7 +6,7 @@
 - Keep lemma statements small: fewer binders, fewer coercions, fewer implicit arguments.
 - When stuck on coercions, introduce explicit `let` bindings for objects (e.g. `L : LineBundle X`).
 
-## Current Status Summary (Cycle 29)
+## Current Status Summary (Cycle 30)
 
 **RR.lean (v1)**: Axiom-based approach with `FunctionFieldDataWithRR`. Complete but circular - ARCHIVED.
 
@@ -21,7 +21,9 @@
 - Uniformizer infrastructure: 7 lemmas (Cycle 24.2)
 - Valuation ring infrastructure: 5 lemmas (Cycle 26)
 - Partial residue map infrastructure: 8 lemmas (Cycle 27-28)
-- **`shifted_element_valuation_le_one_v2`: KEY BLOCKER RESOLVED (Cycle 29)**
+- `shifted_element_valuation_le_one_v2`: KEY BLOCKER RESOLVED (Cycle 29)
+- **`maximalIdeal_valuationRingAt_comap`: Kernel proof (Cycle 30)**
+- **`residueMapFromR_ker`: ker = v.asIdeal (Cycle 30)**
 
 ### Typeclass Hierarchy
 ```
@@ -34,7 +36,7 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 
 ---
 
-## Current Sorry Count (RR_v2.lean after Cycle 29)
+## Current Sorry Count (RR_v2.lean after Cycle 30)
 
 | Line | Name | Status | Notes |
 |------|------|--------|-------|
@@ -44,11 +46,37 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | 1029 | `evaluationMapAt` | BLOCKER | Can use `evaluationMapAt_via_bridge` once bridge ready |
 | 1040 | `kernel_evaluationMapAt` | BLOCKED | Depends on evaluationMapAt |
 | 1049 | `instLocalGapBound` | BLOCKED | Depends on kernel proof |
-| 1315 | `residueFieldBridge` | **ACTIVE** | Next cycle focus |
-| 1322 | `residueFieldBridge_algebraMap_comm` | BLOCKED | Depends on bridge |
+| 1315 | `residueFieldBridge` | SUPERSEDED | Use residueFieldBridge_v3 instead |
+| 1322 | `residueFieldBridge_algebraMap_comm` | SUPERSEDED | Not needed with bypass strategy |
 | 1331 | `evaluationMapAt_via_bridge` | BLOCKED | Depends on bridge |
+| 1414 | `residueMapFromR_surjective` | **ACTIVE** | Key blocker for bridge |
+| 1436 | `residueFieldBridge_v2` | BLOCKED | Depends on surjectivity |
+| 1449 | `residueFieldBridge_v3` | BLOCKED | Depends on v2 |
 
-**Total**: 9 sorries (2 deprecated, 1 superseded, 6 active path)
+**Total**: 12 sorries (2 deprecated, 3 superseded, 7 active path)
+
+---
+
+## Cycle 30 Accomplishments
+
+**Goal**: Construct residueFieldBridge via bypass strategy
+
+**Results**: 3/7 candidates PROVED
+- `embeddingToValuationRingAt`: Ring hom R →+* valuationRingAt v (DEF)
+- **`maximalIdeal_valuationRingAt_comap`**: maximalIdeal ∩ R = v.asIdeal (PROVED 4/5)
+- `residueMapFromR`: Composition R → valuationRingAt → residue field (DEF)
+- **`residueMapFromR_ker`**: ker = v.asIdeal (PROVED 4/5)
+- `residueMapFromR_surjective`: SORRY - **NEW KEY BLOCKER** (5/5)
+- `residueFieldBridge_v2`: SORRY - depends on surjectivity (5/5)
+- `residueFieldBridge_v3`: SORRY - depends on v2 (5/5)
+
+**Key Insight**: The bypass strategy is architecturally correct:
+1. ker(residueMapFromR) = v.asIdeal (PROVED)
+2. IF residueMapFromR is surjective, THEN by First Isomorphism Theorem:
+   - valuationRingAt.residueField v ≃ R/v.asIdeal ≃ residueFieldAtPrime R v
+
+**New Blocker**: `residueMapFromR_surjective` - needs to show R is "dense" in valuationRingAt v
+modulo the maximal ideal. This is a real mathematical property of Dedekind domains.
 
 ---
 
