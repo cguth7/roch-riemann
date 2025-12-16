@@ -355,7 +355,7 @@
                     <div class="stat-label">Approaches</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-num">80+</div>
+                    <div class="stat-num">90+</div>
                     <div class="stat-label">Lemmas Proved</div>
                 </div>
                 <div class="stat">
@@ -461,6 +461,16 @@
                         <td><span class="status done">Proved</span></td>
                     </tr>
                     <tr>
+                        <td><code>uniformizerAt</code></td>
+                        <td>Uniformizer pi at height-1 prime v</td>
+                        <td><span class="status done">Proved</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>shifted_element_valuation_le_one</code></td>
+                        <td>f in L(D+v) => v(f*pi^n) &le; 1</td>
+                        <td><span class="status done">Proved</span></td>
+                    </tr>
+                    <tr>
                         <td><code>riemann_inequality_real</code></td>
                         <td>l(D) &le; deg(D) + 1</td>
                         <td><span class="status done">Proved</span></td>
@@ -495,20 +505,20 @@
                     <tr>
                         <td><code>evaluationMapAt</code></td>
                         <td>Construct phi : L(D+v) -> kappa(v)</td>
-                        <td><span class="difficulty medium">Medium</span></td>
-                        <td>Needs uniformizer from DVR structure</td>
+                        <td><span class="difficulty easy">Easy</span></td>
+                        <td>Uniformizer + shifted valuation now PROVED</td>
                     </tr>
                     <tr>
                         <td>Kernel condition</td>
                         <td>Prove ker(phi) = L(D)</td>
                         <td><span class="difficulty medium">Medium</span></td>
-                        <td>Should follow from valuation properties</td>
+                        <td>Valuation arithmetic now available</td>
                     </tr>
                     <tr>
                         <td><code>LocalGapBound</code> instance</td>
                         <td>Make riemann_inequality unconditional</td>
                         <td><span class="difficulty easy">Easy</span></td>
-                        <td>Once phi is constructed</td>
+                        <td>Apply local_gap_bound_of_exists_map</td>
                     </tr>
                     <tr>
                         <td>Compactification</td>
@@ -531,8 +541,8 @@
                 </tbody>
             </table>
 
-            <div class="note info">
-                <strong>Current Blocker:</strong> The evaluation map construction needs the uniformizer API from mathlib's DVR infrastructure. The mathematical path is clear; it's primarily API exploration.
+            <div class="note success">
+                <strong>Progress (Cycle 24):</strong> Uniformizer infrastructure now COMPLETE. <code>uniformizerAt</code>, <code>uniformizerAt_pow_valuation</code>, and <code>shifted_element_valuation_le_one</code> are all proved. The evaluation map is now straightforward to construct.
             </div>
         </section>
 
@@ -685,9 +695,9 @@
                     </tr>
                     <tr>
                         <td>24</td>
-                        <td>Linear algebra bridge</td>
-                        <td><code>local_gap_bound_of_exists_map</code>, <code>isSimpleModule</code></td>
-                        <td><span class="status done">6 proved</span></td>
+                        <td>Linear algebra bridge + uniformizer</td>
+                        <td><code>local_gap_bound_of_exists_map</code>, <code>isSimpleModule</code>, <code>uniformizerAt</code>, <code>shifted_element_valuation_le_one</code></td>
+                        <td><span class="status done">13 proved</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -695,12 +705,12 @@
 
         <!-- What's Next -->
         <section>
-            <h2>What's Next</h2>
+            <h2>What's Next (Cycle 25)</h2>
             <h3>Immediate Goals</h3>
             <ul style="margin: 1rem 0; padding-left: 1.5rem;">
-                <li><strong>Construct evaluation map</strong> &mdash; Use DVR uniformizer to build phi : L(D+v) -> kappa(v)</li>
-                <li><strong>Prove kernel condition</strong> &mdash; Show ker(phi) = L(D) via valuation analysis</li>
-                <li><strong>Instantiate LocalGapBound</strong> &mdash; Makes riemann_inequality_affine unconditional</li>
+                <li><strong>Construct evaluation map</strong> &mdash; Use proved <code>uniformizerAt</code> + <code>shifted_element_valuation_le_one</code> to build phi : L(D+v) -> kappa(v)</li>
+                <li><strong>Prove kernel condition</strong> &mdash; Show ker(phi) = L(D) via the valuation arithmetic infrastructure</li>
+                <li><strong>Instantiate LocalGapBound</strong> &mdash; Apply <code>local_gap_bound_of_exists_map</code> to make riemann_inequality_affine unconditional</li>
             </ul>
 
             <h3 style="margin-top: 1.5rem;">Stretch Goals</h3>
@@ -781,8 +791,29 @@
                         <td>IsFractionRing timeout blocking isSimpleModule</td>
                         <td>Found bijective_algebraMap lemma, avoided IsFractionRing entirely</td>
                     </tr>
+                    <tr>
+                        <td>24.2</td>
+                        <td>Needed uniformizer for evaluation map</td>
+                        <td>Found <code>intValuation_exists_uniformizer</code>, proved full valuation arithmetic chain</td>
+                    </tr>
                 </tbody>
             </table>
+
+            <h3 style="margin-top: 1.5rem;">Cycle 24 Key Discovery: Shifted Evaluation</h3>
+            <p style="margin-bottom: 1rem;">
+                The "shifted evaluation map" strategy (suggested by Gemini) turned out to be the right approach:
+            </p>
+            <ol style="margin: 1rem 0; padding-left: 1.5rem;">
+                <li><strong>Uniformizer:</strong> For height-1 prime v, mathlib provides π ∈ R with v.intValuation(π) = exp(-1)</li>
+                <li><strong>Shift:</strong> For f ∈ L(D+v), multiply by π^{D(v)+1} to "shift" the pole at v</li>
+                <li><strong>Key lemma:</strong> The shifted element f·π^{D(v)+1} has valuation ≤ 1 at v (PROVED)</li>
+                <li><strong>Evaluate:</strong> Elements with valuation ≤ 1 can be mapped to the residue field κ(v)</li>
+            </ol>
+            <p style="font-size: 0.9rem; color: var(--muted);">
+                The mathlib API for <code>WithZero (Multiplicative ℤ)</code> valuation arithmetic was key:
+                <code>exp_nsmul</code>, <code>exp_add</code>, <code>exp_lt_exp</code>, and <code>valuation_of_algebraMap</code>
+                form a complete toolkit for valuation computations.
+            </p>
 
             <h3 style="margin-top: 1.5rem;">Honest Assessment</h3>
             <p style="margin-bottom: 1rem;">
@@ -807,8 +838,8 @@
             <p>
                 Lean 4 + mathlib &bull;
                 <a href="https://github.com/cguth7/roch-riemann">GitHub</a> &bull;
-                Cycle 24 &bull;
-                Last updated: Dec 2024
+                Cycle 24 Phase 2 &bull;
+                Last updated: Dec 16, 2024
             </p>
         </footer>
     </div>
