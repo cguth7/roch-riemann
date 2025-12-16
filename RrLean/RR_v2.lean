@@ -1771,4 +1771,118 @@ lemma residueMapFromR_surjective_via_localization_v2 (v : HeightOneSpectrum R)
 
 end Cycle33Candidates
 
+/-! ## Cycle 34 Candidates: Valuation Equality and Converse Direction
+
+Per Frontier Freeze Rule: Focus exclusively on the key blocker without adding new scaffolding.
+
+KEY BLOCKER: `valuationRingAt_exists_fraction` (line 1733)
+
+Strategy: Use arithmetic manipulation of valuations to prove the converse direction.
+- If v(g) ≤ 1 and g = a/b, then v.intValuation a ≤ v.intValuation b
+- If b ∈ v.asIdeal, need to factor and adjust to get coprime denominator
+
+Key mathlib lemmas:
+- `valuation_of_mk'` : v(r/s) = v.intValuation r / v.intValuation s
+- `valuation_lt_one_iff_mem` : v(r) < 1 ↔ r ∈ v.asIdeal
+- `intValuation_eq_one_iff` : v.intValuation x = 1 ↔ x ∉ v.asIdeal
+-/
+
+section Cycle34Candidates
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 34]
+/-- The valuation of a fraction a/b is the quotient of intValuations.
+Direct wrapper for HeightOneSpectrum.valuation_of_mk'. -/
+lemma valuation_of_fraction (v : HeightOneSpectrum R) (a : R) {b : R} (hb : b ≠ 0) :
+    v.valuation K (algebraMap R K a / algebraMap R K b) =
+      v.intValuation a / v.intValuation b := by
+  -- Use IsFractionRing.mk'_eq_div to rewrite as mk' form
+  have heq : algebraMap R K a / algebraMap R K b =
+      IsLocalization.mk' K a ⟨b, mem_nonZeroDivisors_of_ne_zero hb⟩ := by
+    rw [IsFractionRing.mk'_eq_div]
+  rw [heq, v.valuation_of_mk']
+
+-- Candidate 2 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 34]
+/-- If v(a/b) ≤ 1 for a fraction, then v.intValuation a ≤ v.intValuation b.
+Key arithmetic fact for proving the converse direction. -/
+lemma intValuation_le_of_div_le_one (v : HeightOneSpectrum R) (a : R) {b : R}
+    (hb : b ≠ 0) (h : v.valuation K (algebraMap R K a / algebraMap R K b) ≤ 1) :
+    v.intValuation a ≤ v.intValuation b := by
+  rw [valuation_of_fraction v a hb] at h
+  -- v.intValuation a / v.intValuation b ≤ 1 means v.intValuation a ≤ v.intValuation b
+  have hvb : v.intValuation b ≠ 0 := v.intValuation_ne_zero' ⟨b, mem_nonZeroDivisors_of_ne_zero hb⟩
+  have hvb_pos : 0 < v.intValuation b := zero_lt_iff.mpr hvb
+  rwa [div_le_one₀ hvb_pos] at h
+
+-- Candidate 3 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 34]
+/-- If b ∉ v.asIdeal, then v.intValuation b = 1.
+Restatement of intValuation_eq_one_iff. -/
+lemma intValuation_eq_one_of_not_mem' (v : HeightOneSpectrum R) {b : R} (hb : b ∉ v.asIdeal) :
+    v.intValuation b = 1 :=
+  v.intValuation_eq_one_iff.mpr hb
+
+-- Candidate 4 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 34]
+/-- If b ∈ v.asIdeal (and b ≠ 0), then v.intValuation b < 1.
+Key for detecting when the denominator needs adjustment. -/
+lemma intValuation_lt_one_of_mem (v : HeightOneSpectrum R) {b : R} (hb : b ∈ v.asIdeal) (hb' : b ≠ 0) :
+    v.intValuation b < 1 :=
+  (v.intValuation_lt_one_iff_mem b).mpr hb
+
+-- Candidate 5 [tag: converse] [relevance: 5/5] [status: SORRY] [cycle: 34]
+/-- KEY LEMMA: If g ∈ valuationRingAt v and g = a/b with b ∈ v.asIdeal,
+then we can find a "better" representation g = a'/b' with b' ∉ v.asIdeal.
+
+The idea: In a Dedekind domain, b ∈ v.asIdeal means π | b for some uniformizer π.
+If v(a/b) ≤ 1, then v(a) ≥ v(b), so π | a as well.
+We can cancel the π to get a smaller representation.
+
+This is an induction on the v-adic valuation of b. -/
+lemma exists_coprime_rep (v : HeightOneSpectrum R) (g : K)
+    (hg : g ∈ valuationRingAt (R := R) (K := K) v) :
+    ∃ (r s : R), s ∉ v.asIdeal ∧ algebraMap R K s ≠ 0 ∧ g = algebraMap R K r / algebraMap R K s := by
+  -- Get initial representation g = a/b
+  obtain ⟨a, b, hb', hab⟩ := IsFractionRing.div_surjective (A := R) g
+  -- hb' : b ∈ nonZeroDivisors R, so b ≠ 0
+  have hb_ne : (b : R) ≠ 0 := nonZeroDivisors.ne_zero hb'
+  -- By cases: either b ∉ v.asIdeal (done) or b ∈ v.asIdeal (need to adjust)
+  by_cases hbv : (b : R) ∉ v.asIdeal
+  · -- Easy case: b ∉ v.asIdeal, we're done
+    refine ⟨a, b, hbv, ?_, hab.symm⟩
+    rw [ne_eq, map_eq_zero_iff (algebraMap R K) (IsFractionRing.injective R K)]
+    exact hb_ne
+  · -- Hard case: b ∈ v.asIdeal
+    push_neg at hbv
+    -- v(g) ≤ 1 gives v.intValuation a ≤ v.intValuation b
+    rw [mem_valuationRingAt_iff] at hg
+    rw [← hab] at hg
+    have hle := intValuation_le_of_div_le_one v a hb_ne hg
+    -- Since b ∈ v.asIdeal, v.intValuation b < 1, so v.intValuation a < 1, so a ∈ v.asIdeal
+    have ha_mem : a ∈ v.asIdeal := by
+      by_contra ha_nmem
+      have ha_val : v.intValuation a = 1 := v.intValuation_eq_one_iff.mpr ha_nmem
+      have hb_val : v.intValuation b < 1 := intValuation_lt_one_of_mem v hbv hb_ne
+      rw [ha_val] at hle
+      exact not_lt.mpr hle hb_val
+    -- Now both a, b ∈ v.asIdeal. Factor out a uniformizer...
+    -- This requires DVR/uniformizer machinery - TODO prove via uniformizer cancellation
+    sorry
+
+-- Candidate 6 [tag: converse] [relevance: 5/5] [status: SORRY] [cycle: 34]
+/-- Alternate approach: Use that for Dedekind domains, elements of K with v(g) ≤ 1
+for a specific v can always be written in coprime form.
+
+This is equivalent to Candidate 5 but stated more directly. -/
+lemma valuationRingAt_exists_fraction_v2 (v : HeightOneSpectrum R) (g : K)
+    (hg : g ∈ valuationRingAt (R := R) (K := K) v) :
+    ∃ (r s : R), s ∉ v.asIdeal ∧ algebraMap R K s ≠ 0 ∧ g = algebraMap R K r / algebraMap R K s :=
+  exists_coprime_rep v g hg
+
+-- Candidates 7-8 REMOVED: localizationToFractionRing infrastructure
+-- These require careful type class setup and are not essential for the main blocker.
+-- The key candidates (1-6) provide arithmetic tools for proving exists_coprime_rep.
+
+end Cycle34Candidates
+
 end RiemannRochV2
