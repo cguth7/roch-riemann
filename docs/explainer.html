@@ -369,7 +369,7 @@
         <section>
             <div class="stats-row">
                 <div class="stat">
-                    <div class="stat-num">12</div>
+                    <div class="stat-num">14</div>
                     <div class="stat-label">Cycles</div>
                 </div>
                 <div class="stat">
@@ -377,12 +377,12 @@
                     <div class="stat-label">Definitions</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-num">46</div>
+                    <div class="stat-num">53</div>
                     <div class="stat-label">Lemmas Proved</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-num">6</div>
-                    <div class="stat-label">Lemmas Pending</div>
+                    <div class="stat-num">3</div>
+                    <div class="stat-label">Sorries</div>
                 </div>
             </div>
         </section>
@@ -558,6 +558,18 @@
                         <td><code>FunctionFieldDataWithRR</code>, <code>ell_K = g</code>, vanishing thm</td>
                         <td><span class="status done">7 proved</span></td>
                     </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>Cleanup</td>
+                        <td>Removed 4 superseded sorries, fixed warnings</td>
+                        <td><span class="status done">cleanup</span></td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>Genus 0 &amp; high-degree</td>
+                        <td><code>ell_eq_deg_minus_genus_of_deg_gt</code>, genus 0 formula</td>
+                        <td><span class="status done">7 proved</span></td>
+                    </tr>
                 </tbody>
             </table>
         </section>
@@ -566,36 +578,38 @@
         <section>
             <h2>Current State</h2>
             <p style="margin-bottom: 1rem;">
-                <strong>Riemann inequality PROVED</strong> (Cycle 11) and <strong>full RR structure complete</strong> (Cycle 12):
+                <strong>Full RR structure complete</strong> (Cycle 12) with <strong>genus 0 and high-degree exactness</strong> (Cycle 14):
             </p>
             <div class="theorem-box">
-                <div class="label">Proved: Riemann Inequality</div>
+                <div class="label">Proved: High-Degree Exactness (Cycle 14)</div>
                 <div class="equation" style="font-size: 1.2rem;">
-                    l(D) &le; deg(D) + 1 &nbsp;&nbsp; (for effective D)
+                    deg(D) > 2g - 2 &nbsp;&rArr;&nbsp; l(D) = deg(D) + 1 - g
                 </div>
                 <div class="gloss">
-                    Proved by degree-based induction using single-point bound axiom
+                    When degree exceeds 2g-2, vanishing gives l(K-D) = 0, making RR exact
                 </div>
             </div>
             <div class="theorem-box">
-                <div class="label">Structure: FunctionFieldDataWithRR</div>
+                <div class="label">Proved: Genus 0 Formula (Cycle 14)</div>
                 <div class="equation" style="font-size: 1.2rem;">
-                    l(D) - l(K - D) = deg(D) + 1 - g
+                    g = 0, deg(D) > -2 &nbsp;&rArr;&nbsp; l(D) = deg(D) + 1
                 </div>
                 <div class="gloss">
-                    Full RR theorem axiomatized with genus g and canonical divisor K
+                    For rational curves (genus 0), dimension equals degree plus one
                 </div>
             </div>
-            <h3 style="margin-top: 1.5rem;">Key Results from Cycle 12</h3>
+            <h3 style="margin-top: 1.5rem;">Key Results from Cycles 12-14</h3>
             <ul style="margin: 1rem 0; padding-left: 1.5rem;">
                 <li><code>ell_K = g</code> &mdash; Canonical space dimension equals genus</li>
-                <li><code>ell_ge_deg_minus_genus</code> &mdash; Lower bound: l(D) &ge; deg(D) + 1 - g</li>
-                <li><code>ell_K_sub_D_eq_zero_of_deg_gt</code> &mdash; Vanishing: deg(D) > 2g-2 implies l(K-D) = 0</li>
+                <li><code>ell_K_sub_D_eq_zero_of_deg_gt</code> &mdash; Vanishing theorem</li>
+                <li><code>ell_eq_deg_minus_genus_of_deg_gt</code> &mdash; High-degree exactness</li>
+                <li><code>ell_eq_deg_succ_of_genus_zero_deg_gt</code> &mdash; Genus 0 formula</li>
+                <li><code>ell_K_genus_zero</code> &mdash; l(K) = 0 for genus 0</li>
             </ul>
             <p style="color: var(--muted);">
                 <strong>Architecture:</strong> FunctionFieldData → FunctionFieldDataWithBound → FunctionFieldDataWithRR.
-                The RR equation is axiomatized (not derived from cohomology), but derived lemmas like l(K) = g
-                use semantic properties (deg_div = 0 for principal divisors).
+                The RR equation is axiomatized, but derived lemmas use semantic properties.
+                <strong>Blocked:</strong> Clifford's theorem requires multiplication axiom (geometric argument).
             </p>
         </section>
 
@@ -603,7 +617,7 @@
             <p>
                 Lean 4 + mathlib &bull;
                 <a href="https://github.com/cguth7/roch-riemann">GitHub</a> &bull;
-                Cycle 12 &bull;
+                Cycle 14 &bull;
                 Last updated: Dec 2024
             </p>
         </footer>
