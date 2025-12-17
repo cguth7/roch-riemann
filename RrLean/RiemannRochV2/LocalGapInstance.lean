@@ -2124,12 +2124,15 @@ section Cycle51Candidates
 variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
 variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
 
--- Candidate 1 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 1 [tag: rr_bundle_bridge] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- A RingEquiv between local rings maps units to units.
 This shows valuationRingAt_equiv_localization' preserves the maximal ideal structure. -/
 lemma valuationRingAt_equiv_map_unit_iff (v : HeightOneSpectrum R)
     (x : valuationRingAt (R := R) (K := K) v) :
-    IsUnit x ↔ IsUnit ((valuationRingAt_equiv_localization' (R := R) (K := K) v) x) := sorry
+    IsUnit x ↔ IsUnit ((valuationRingAt_equiv_localization' (R := R) (K := K) v) x) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  exact (MulEquiv.isUnit_map (valuationRingAt_equiv_localization' (R := R) (K := K) v)).symm
 
 -- Candidate 2 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
 /-- The maximal ideal of valuationRingAt v equals the preimage of the maximal ideal
@@ -2140,39 +2143,53 @@ lemma valuationRingAt_maximalIdeal_correspondence (v : HeightOneSpectrum R) :
       Ideal.comap (valuationRingAt_equiv_localization' (R := R) (K := K) v).toRingHom
         (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) := sorry
 
--- Candidate 3 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 3 [tag: rr_bundle_bridge] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- Direct construction: Transport residue field from valuationRingAt to Localization.AtPrime
-using valuationRingAt_equiv_localization'. Uses Ideal.quotientEquiv with the comap equality. -/
+using valuationRingAt_equiv_localization'. Uses IsLocalRing.ResidueField.mapEquiv. -/
 noncomputable def residueField_transport_direct (v : HeightOneSpectrum R) :
     IsLocalRing.ResidueField (valuationRingAt (R := R) (K := K) v) ≃+*
-      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal) := sorry
+      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  exact IsLocalRing.ResidueField.mapEquiv (valuationRingAt_equiv_localization' (R := R) (K := K) v)
 
--- Candidate 4 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 4 [tag: rr_bundle_bridge] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- The full residueFieldBridge constructed by composing:
 (1) Transport residue field from valuationRingAt to Localization via residueField_transport_direct
 (2) Apply localization_residueField_equiv to get to residueFieldAtPrime.
 This is the main target for Cycle 51. -/
 noncomputable def residueFieldBridge_via_composition (v : HeightOneSpectrum R) :
-    valuationRingAt.residueField (R := R) (K := K) v ≃+* residueFieldAtPrime R v := sorry
+    valuationRingAt.residueField (R := R) (K := K) v ≃+* residueFieldAtPrime R v := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  exact (residueField_transport_direct (R := R) (K := K) v).trans (localization_residueField_equiv v)
 
--- Candidate 5 [tag: coercion_simplify] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 5 [tag: coercion_simplify] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- Alternative: Use that isomorphic local rings have isomorphic residue fields directly.
 Both valuationRingAt and Localization.AtPrime are local rings with equiv between them. -/
 lemma residueField_iso_of_ringEquiv_localRings (v : HeightOneSpectrum R)
     (e : valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal) :
     Nonempty (IsLocalRing.ResidueField (valuationRingAt (R := R) (K := K) v) ≃+*
-      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal)) := sorry
+      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal)) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  exact ⟨IsLocalRing.ResidueField.mapEquiv e⟩
 
--- Candidate 6 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 6 [tag: rr_bundle_bridge] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- Key helper: Show valuationRingAt_equiv_localization' maps maximalIdeal to maximalIdeal.
 An element is in maximalIdeal iff its valuation < 1. The equiv preserves valuation. -/
 lemma valuationRingAt_equiv_mem_maximalIdeal_iff (v : HeightOneSpectrum R)
     (x : valuationRingAt (R := R) (K := K) v) :
     x ∈ IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) ↔
       (valuationRingAt_equiv_localization' (R := R) (K := K) v) x ∈
-        IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) := sorry
+        IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- Use that x ∈ maximalIdeal ↔ x ∈ nonunits ↔ ¬IsUnit x, and RingEquiv preserves units
+  simp only [IsLocalRing.mem_maximalIdeal, mem_nonunits_iff]
+  rw [valuationRingAt_equiv_map_unit_iff v x]
 
--- Candidate 7 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 7 [tag: rr_bundle_bridge] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- Explicit map construction: The residue field bridge as an explicit quotient isomorphism.
 Uses that both residue fields are quotients by maximal ideals, and the ring equiv
 induces a bijection on these quotients. -/
@@ -2189,17 +2206,20 @@ noncomputable def residueFieldBridge_explicit (v : HeightOneSpectrum R) :
       residueFieldAtPrime R v := localization_residueField_equiv v
   exact h1.trans h2
 
--- Candidate 8 [tag: coercion_simplify] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 8 [tag: coercion_simplify] [relevance: 5/5] [status: PROVED Cycle52] [cycle: 51]
 /-- Verification: The residue map commutes with the ring equivalence.
 For a ∈ valuationRingAt v, applying residue then the transported equiv
-equals applying the equiv then residue. -/
+equals applying the equiv then residue. Uses the specific mapEquiv. -/
 lemma residueField_equiv_commutes_with_residue (v : HeightOneSpectrum R)
-    (e : IsLocalRing.ResidueField (valuationRingAt (R := R) (K := K) v) ≃+*
-      IsLocalRing.ResidueField (Localization.AtPrime v.asIdeal))
     (a : valuationRingAt (R := R) (K := K) v) :
-    e (IsLocalRing.residue (valuationRingAt (R := R) (K := K) v) a) =
+    (residueField_transport_direct (R := R) (K := K) v)
+      (IsLocalRing.residue (valuationRingAt (R := R) (K := K) v) a) =
       IsLocalRing.residue (Localization.AtPrime v.asIdeal)
-        ((valuationRingAt_equiv_localization' (R := R) (K := K) v) a) := sorry
+        ((valuationRingAt_equiv_localization' (R := R) (K := K) v) a) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- residueField_transport_direct is mapEquiv, and map_residue gives the commutation
+  rfl
 
 end Cycle51Candidates
 

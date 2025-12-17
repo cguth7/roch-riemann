@@ -26,7 +26,7 @@
 
 ---
 
-## Current Status (Cycle 51)
+## Current Status (Cycle 52)
 
 **Codebase Structure**:
 ```
@@ -37,7 +37,7 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-51 WIP ✅ BUILDS
+└── LocalGapInstance.lean   # Cycles 25-52 WIP ✅ BUILDS
 ```
 
 **Active Development**: `LocalGapInstance.lean`
@@ -61,14 +61,15 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | `dvr_valuation_eq_height_one'` | ✅ **DEPLOYED** | Cycle 49: key valuation bridge |
 | `dvr_valuationSubring_eq_valuationRingAt'` | ✅ **PROVED** | Cycle 50: ValuationSubring equality |
 | `valuationRingAt_equiv_localization'` | ✅ **PROVED** | Cycle 50: Ring equivalence |
-| `residueField_transport_direct` | ⚠️ **NEXT** | Cycle 51: 8 candidates added, proof chain identified |
+| `residueField_transport_direct` | ✅ **PROVED** | Cycle 52: via IsLocalRing.ResidueField.mapEquiv |
+| `residueFieldBridge_explicit` | ✅ **PROVED** | Cycle 52: composition with localization_residueField_equiv |
+| `residueMapFromR_surjective` | ⚠️ **NEXT** | Cycle 53 target |
 
-### Next Cycle (52) Priorities
-1. **Prove Candidate 1** - `valuationRingAt_equiv_map_unit_iff` (unit preservation)
-2. **Prove Candidate 6** - `valuationRingAt_equiv_mem_maximalIdeal_iff` (membership iff)
-3. **Prove Candidate 2** - `valuationRingAt_maximalIdeal_correspondence` (comap equality)
-4. **Prove Candidate 3** - `residueField_transport_direct` (KEY target)
-5. **Candidate 7** - `residueFieldBridge_explicit` gives residueFieldBridge via composition
+### Next Cycle (53) Priorities
+1. **Prove `residueMapFromR_surjective`** - Uses residueFieldBridge to establish surjectivity
+2. **Build `evaluationMapAt`** - Evaluation map at a prime
+3. **Prove kernel characterization** - Key for gap bound
+4. **Instance `LocalGapBound R K`** - Final target
 
 ---
 
@@ -85,9 +86,11 @@ dvr_valuationSubring_eq_valuationRingAt' (Cycle 50 - PROVED ✅)
     ↓
 valuationRingAt_equiv_localization' (Cycle 50 - PROVED ✅)
     ↓
-residueFieldBridge  ← NEXT TARGET
+residueField_transport_direct (Cycle 52 - PROVED ✅)
     ↓
-residueMapFromR_surjective
+residueFieldBridge_explicit (Cycle 52 - PROVED ✅)
+    ↓
+residueMapFromR_surjective  ← NEXT TARGET
     ↓
 evaluationMapAt → kernel → LocalGapBound → VICTORY
 ```
@@ -150,6 +153,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 49 | **dvr_valuation_eq_height_one' DEPLOYED** (Cycle49Prerequisites section, cascade unblocked) |
 | 50 | **valuationRingAt_equiv_localization' PROVED** (Ring equiv via ValuationSubring equality) |
 | 51 | **residueFieldBridge candidates** (8 stubs, proof chain identified: 1→6→2→3→7) |
+| 52 | **residueFieldBridge PROVED** (7/8 candidates via IsLocalRing.ResidueField.mapEquiv) |
 
 ---
 
