@@ -26,7 +26,7 @@
 
 ---
 
-## Current Status (Cycle 43)
+## Current Status (Cycle 44)
 
 **Codebase Structure**:
 ```
@@ -37,7 +37,7 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-43 WIP ✅ BUILDS (~43 sorries)
+└── LocalGapInstance.lean   # Cycles 25-44 WIP ✅ BUILDS
 ```
 
 **Active Development**: `LocalGapInstance.lean`
@@ -55,12 +55,14 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 
 | Name | Status | Notes |
 |------|--------|-------|
-| `dvr_intValuation_of_algebraMap'` (hard) | **SORRY** | r ∈ v.asIdeal case |
+| `mem_pow_of_mul_mem_pow_of_not_mem` | **ROOT BLOCKER** | Coprimality: m∉p, m*r∈p^n → r∈p^n |
+| `dvr_intValuation_of_algebraMap'` (hard) | **SORRY** | r ∈ v.asIdeal case (depends on above) |
 | `dvr_valuation_eq_height_one'` | **KEY BLOCKER** | DVR valuation = HeightOneSpectrum valuation |
 
-### Next Cycle (44) Priorities
-1. **dvr_intValuation_of_algebraMap' hard case** - Attack r ∈ v.asIdeal via uniformizer powers
-2. **mem_asIdeal_pow_iff_mem_maxIdeal_pow** - May provide induction path
+### Next Cycle (45) Priorities
+1. **mem_pow_of_mul_mem_pow_of_not_mem** - ROOT BLOCKER: prove via Associates.count_mul
+2. **mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow** - Becomes trivial after #1
+3. **dvr_intValuation_eq_via_pow_membership** - Complete the active edge
 
 ---
 
@@ -126,6 +128,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 41 | Foundation lemmas COMPLETE (8/8 PROVED) |
 | 42 | Section ordering blocker identified |
 | 43 | Section reordering, 3 lemmas PROVED |
+| 44 | Ideal power membership bridge (3 PROVED, identified ROOT BLOCKER) |
 
 ---
 

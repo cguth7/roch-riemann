@@ -1,68 +1,93 @@
 {
-  "active_edge": "Cycle 43: Section reordering COMPLETE, 3 lemmas PROVED",
-  "cycle_43_results": {
-    "goal": "Reorder sections and complete Cycle 39 blockers",
-    "status": "SUCCESS",
+  "active_edge": "Cycle 44: Ideal power membership bridge, ROOT BLOCKER identified",
+  "cycle_44_results": {
+    "goal": "Complete dvr_intValuation_of_algebraMap' hard case",
+    "status": "PARTIAL SUCCESS",
     "proved_count": 3,
-    "sorry_count": 43,
+    "sorry_count_new": 5,
     "candidates": [
       {
-        "name": "mem_asIdeal_iff_mem_maxIdeal",
+        "name": "ideal_map_pow_eq_pow_map'",
         "type": "PROVE",
         "status": "PROVED",
         "score": "10/10",
-        "notes": "r ∈ v.asIdeal ↔ algebraMap r ∈ maxIdeal. Uses Cycle 41 foundation."
+        "notes": "Trivial application of Ideal.map_pow"
       },
       {
-        "name": "dvr_intValuation_unit",
+        "name": "maxIdeal_pow_eq_map_asIdeal_pow",
         "type": "PROVE",
         "status": "PROVED",
         "score": "10/10",
-        "notes": "r ∉ v.asIdeal ⟹ DVR.intVal = 1. Uses algebraMap_isUnit_iff_not_mem + dvr_intValuation_of_isUnit."
+        "notes": "maxIdeal^n = map(v.asIdeal^n)"
       },
       {
-        "name": "dvr_intValuation_of_algebraMap' (easy case)",
+        "name": "algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow",
         "type": "PROVE",
         "status": "PROVED",
+        "score": "10/10",
+        "notes": "Forward direction using mem_map_of_mem"
+      },
+      {
+        "name": "mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow",
+        "type": "PROVE",
+        "status": "SORRY",
         "score": "9/10",
-        "notes": "r ∉ v.asIdeal case proved. Hard case (r ∈ v.asIdeal) still SORRY."
+        "notes": "Backward direction, blocked on coprimality lemma"
+      },
+      {
+        "name": "mem_pow_of_mul_mem_pow_of_not_mem",
+        "type": "PROVE",
+        "status": "SORRY",
+        "score": "10/10",
+        "notes": "ROOT BLOCKER: coprimality argument m∉p, m*r∈p^n → r∈p^n"
+      },
+      {
+        "name": "mem_asIdeal_pow_iff_mem_maxIdeal_pow'",
+        "type": "PROVE",
+        "status": "SORRY",
+        "score": "8/10",
+        "notes": "Iff combination of #3 and #4"
+      },
+      {
+        "name": "dvr_intValuation_eq_via_pow_membership",
+        "type": "PROVE",
+        "status": "SORRY",
+        "score": "7/10",
+        "notes": "Alternative proof via antisymm"
+      },
+      {
+        "name": "intValuation_exists_exp_eq",
+        "type": "PROVE",
+        "status": "SORRY",
+        "score": "5/10",
+        "notes": "Helper, likely not needed"
       }
-    ],
-    "key_changes": [
-      "Moved Cycle 41 section before Cycle 39 section in LocalGapInstance.lean",
-      "Sorry count reduced from ~47 to 43"
     ]
   },
-  "cycle_39_blockers_status": {
-    "mem_asIdeal_iff_mem_maxIdeal": {
-      "status": "PROVED",
-      "proof": "rw [localization_maximalIdeal_eq_map v]; exact ⟨algebraMap_mem_map_of_mem v r, mem_of_algebraMap_mem_map v r⟩"
-    },
-    "dvr_intValuation_unit": {
-      "status": "PROVED",
-      "proof": "have hunit := (algebraMap_isUnit_iff_not_mem v r).mpr hr; exact dvr_intValuation_of_isUnit v _ hunit"
-    },
-    "dvr_intValuation_of_algebraMap'": {
-      "easy_case": "PROVED",
-      "hard_case": "SORRY - r ∈ v.asIdeal case needs intValuation comparison"
-    }
-  },
   "next_cycle_priority": [
-    "Attack dvr_intValuation_of_algebraMap' hard case (r ∈ v.asIdeal)",
-    "Alternative: mem_asIdeal_pow_iff_mem_maxIdeal_pow for induction",
-    "Target: dvr_valuation_eq_height_one' (KEY BLOCKER)"
+    "mem_pow_of_mul_mem_pow_of_not_mem - ROOT BLOCKER: prove via Associates.count_mul",
+    "mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow - trivial after ROOT BLOCKER",
+    "mem_asIdeal_pow_iff_mem_maxIdeal_pow' - trivial after #2",
+    "dvr_intValuation_eq_via_pow_membership - complete the active edge"
   ],
   "architecture": {
     "cascade_structure": [
-      "mem_of_algebraMap_mem_map (Cycle 41 - PROVED) ✅",
-      "algebraMap_isUnit_iff_not_mem (Cycle 41 - PROVED) ✅",
-      "dvr_intValuation_of_isUnit (Cycle 41 - PROVED) ✅",
-      "  └─→ mem_asIdeal_iff_mem_maxIdeal (Cycle 43 - PROVED) ✅",
-      "  └─→ dvr_intValuation_unit (Cycle 43 - PROVED) ✅",
-      "        └─→ dvr_intValuation_of_algebraMap' easy case (Cycle 43 - PROVED) ✅",
-      "        └─→ dvr_intValuation_of_algebraMap' hard case (SORRY)",
-      "              └─→ dvr_valuation_eq_height_one' (KEY BLOCKER)",
-      "                    └─→ valuationRingAt_subset_range_algebraMap' (TARGET)"
+      "ideal_map_pow_eq_pow_map' (Cycle 44 - PROVED) ✅",
+      "  └─→ maxIdeal_pow_eq_map_asIdeal_pow (Cycle 44 - PROVED) ✅",
+      "      └─→ algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow (Cycle 44 - PROVED) ✅",
+      "mem_pow_of_mul_mem_pow_of_not_mem (ROOT BLOCKER - SORRY)",
+      "  └─→ mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow (SORRY)",
+      "      └─→ mem_asIdeal_pow_iff_mem_maxIdeal_pow' (SORRY)",
+      "          └─→ dvr_intValuation_eq_via_pow_membership (SORRY)",
+      "              └─→ dvr_intValuation_of_algebraMap' hard case",
+      "                  └─→ dvr_valuation_eq_height_one' (KEY BLOCKER)",
+      "                      └─→ valuationRingAt_subset_range_algebraMap' (TARGET)"
     ]
-  }
+  },
+  "mathlib_lemmas_for_root_blocker": [
+    "Associates.count_mul: count p (factors (a * b)) = count p a.factors + count p b.factors",
+    "Associates.prime_pow_dvd_iff_le: p^k ≤ m ↔ k ≤ count p m.factors",
+    "Ideal.span_singleton_mul_span_singleton: span{m} * span{r} = span{m*r}",
+    "intValuation_le_pow_iff_mem: v.intVal r ≤ exp(-n) ↔ r ∈ v.asIdeal^n"
+  ]
 }

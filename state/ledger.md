@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 43)
+## Summary: Where We Are (End of Cycle 44)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -24,6 +24,32 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 ---
 
 ## 2025-12-17
+
+### Cycle 44 - Ideal Power Membership Bridge - 3 PROVED + ROOT BLOCKER IDENTIFIED
+
+**Goal**: Complete dvr_intValuation_of_algebraMap' hard case (r ∈ v.asIdeal)
+
+#### Results
+
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `ideal_map_pow_eq_pow_map'` | ✅ **PROVED** | Trivial: Ideal.map_pow application |
+| `maxIdeal_pow_eq_map_asIdeal_pow` | ✅ **PROVED** | maxIdeal^n = map(v.asIdeal^n) |
+| `algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow` | ✅ **PROVED** | Forward direction |
+| `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` | ⚠️ SORRY | Backward, needs coprimality |
+| `mem_pow_of_mul_mem_pow_of_not_mem` | ⚠️ **ROOT BLOCKER** | m∉p, m*r∈p^n → r∈p^n |
+
+**Key Discovery**: The coprimality lemma `mem_pow_of_mul_mem_pow_of_not_mem` is the ROOT BLOCKER.
+
+**Proof Strategy for Cycle 45**:
+- Use `Associates.count_mul`: count(p, a*b) = count(p, a) + count(p, b)
+- Since m ∉ v.asIdeal: count(v.asIdeal, span{m}) = 0
+- Therefore: count(v.asIdeal, span{m*r}) = count(v.asIdeal, span{r})
+- Conclude: if v.asIdeal^n | span{m*r}, then v.asIdeal^n | span{r}
+
+**Cycle rating**: 7/10 (good progress, identified clear path forward)
+
+---
 
 ### Cycle 43 - Section Reordering COMPLETE - 3 LEMMAS PROVED
 
