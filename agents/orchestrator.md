@@ -2,7 +2,12 @@ You are the Orchestrator. Your job is to drive an iterative Lean formalization l
 
 Files:
 - problem/problem.md (READ-ONLY: mathematical target from Gemini)
-- RrLean/RR.lean (Lean source)
+- RrLean/RiemannRochV2/ (Modular Lean source - Cycle 40+)
+  - Basic.lean, Divisor.lean, RRSpace.lean, Typeclasses.lean
+  - RiemannInequality.lean, Infrastructure.lean, LocalGapInstance.lean
+- RrLean/archive/ (Historical versions - READ-ONLY reference)
+  - RR_v1_axiom_based.lean (Cycles 1-16)
+  - RR_v2_monolithic.lean (Cycles 17-39)
 - state/playbook.md
 - state/candidates.json
 - state/ledger.md
@@ -112,12 +117,14 @@ an Orchestrator that inlined Generator will be "senile" - context full of old gr
 ## Loop (single cycle)
 
 1) **Build/test**:
-   - Run `lake env lean RrLean/RR.lean 2>&1` for fast single-file check (~5-20s).
-   - Only use `lake build` for full sanity checks after Curator step or dependency changes.
+   - For modular builds: `lake build RrLean.RiemannRochV2.<Module>` (e.g., `RrLean.RiemannRochV2.LocalGapInstance`)
+   - For full build: `lake build RrLean.RiemannRochV2` (builds all modules)
+   - Active development is in `LocalGapInstance.lean` (Cycles 25-39 work)
 
 2) **Define active edge** A ⟶ B:
    - If main theorem stub doesn't elaborate, set A = current context, B = "make theorem statement elaborate".
-   - Else pick the hardest missing lemma in RrLean/RR.lean.
+   - Else pick the hardest missing lemma in `RrLean/RiemannRochV2/LocalGapInstance.lean` (active WIP).
+   - Core theorems in other modules are stable - only edit if specifically needed.
    - (Optional) Run `.claude/tools/lean4/sorry_analyzer.py RrLean/` to identify gaps.
 
 3) **Discovery hook** (10–30 sec max):
