@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 48)
+## Summary: Where We Are (End of Cycle 49)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -14,11 +14,13 @@ dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
     ↓
 dvr_intValuation_of_algebraMap' (Cycle 47 - PROVED ✅)
     ↓
-dvr_valuation_eq_height_one' (Cycle 48 - PROOF VERIFIED ✅, needs section reorder)
+dvr_valuation_eq_height_one' (Cycle 49 - DEPLOYED ✅)
     ↓
-valuationRingAt_subset_range_algebraMap' (auto-unblocks after reorder)
+valuationRingAt_subset_range_algebraMap' (Cycle 49 - UNBLOCKED ✅)
     ↓
-valuationRingAt_equiv_localization → residueMapFromR_surjective
+valuationRingAt_equiv_localization  ← NEXT TARGET
+    ↓
+residueMapFromR_surjective
     ↓
 evaluationMapAt → kernel → LocalGapBound → VICTORY
 ```
@@ -26,6 +28,54 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 ---
 
 ## 2025-12-17
+
+### Cycle 49 - dvr_valuation_eq_height_one' DEPLOYED - KEY BLOCKER RESOLVED
+
+**Goal**: Deploy dvr_valuation_eq_height_one' proof via section reordering
+
+#### Key Achievement
+
+**Section Reordering Complete**: Created `Cycle49Prerequisites` section (lines 1192-1339) containing 11 lemmas with `_c49` suffix. This enables the `dvr_valuation_eq_height_one'` proof to access its dependencies despite Lean's linear file ordering.
+
+**Proof Deployed**: The `dvr_valuation_eq_height_one'` lemma (Cycle37, line 1373) now has a complete proof instead of `sorry`. This resolves the KEY BLOCKER identified in Cycle 48.
+
+#### Solution Strategy
+
+The dependency ordering problem:
+- `dvr_valuation_eq_height_one'` (Cycle37) needs `dvr_intValuation_of_algebraMap'` (Cycle39)
+- But Cycle39 is defined AFTER Cycle37 in the file
+
+Solution: Create `Cycle49Prerequisites` before Cycle37 with copies of needed lemmas:
+1. Foundation lemmas from Cycle41 (3 lemmas)
+2. Ideal power membership bridge from Cycle44 (7 lemmas)
+3. intValuation bridge from Cycle46-47 (1 lemma)
+
+#### Results
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `Cycle49Prerequisites` section | ✅ **ADDED** | 11 lemmas with `_c49` suffix |
+| `dvr_valuation_eq_height_one'` | ✅ **DEPLOYED** | Former KEY BLOCKER - now proved |
+| `valuationRingAt_subset_range_algebraMap'` | ✅ **UNBLOCKED** | Uses dvr_valuation_eq_height_one' |
+| Build | ✅ **SUCCESS** | All modules compile |
+
+#### Technical Debt
+
+**Duplication**: 11 lemmas duplicated with `_c49` suffix. This is acceptable technical debt - cleanup planned after LocalGapBound completion.
+
+#### Reflector Score: 9/10
+
+**Assessment**: Excellent technical solution to dependency ordering problem. Mathematically sound, well-documented, unlocks critical path.
+
+**Next Steps (Cycle 50)**:
+1. Attack `valuationRingAt_equiv_localization` (set equality from two subset inclusions)
+2. `residueMapFromR_surjective`
+3. `evaluationMapAt` construction
+4. `LocalGapBound` instance
+
+**Cycle rating**: 9/10 (KEY BLOCKER resolved, cascade unblocked, clear path forward)
+
+---
 
 ### Cycle 48 - dvr_valuation_eq_height_one' PROOF VERIFIED
 

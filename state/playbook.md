@@ -26,7 +26,7 @@
 
 ---
 
-## Current Status (Cycle 48)
+## Current Status (Cycle 49)
 
 **Codebase Structure**:
 ```
@@ -37,7 +37,7 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-48 WIP ✅ BUILDS
+└── LocalGapInstance.lean   # Cycles 25-49 WIP ✅ BUILDS
 ```
 
 **Active Development**: `LocalGapInstance.lean`
@@ -59,14 +59,14 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` | ✅ **PROVED** | Cycle 45: backward direction |
 | `dvr_intValuation_eq_via_pow_membership` | ✅ **PROVED** | Cycle 46: via intValuation_le_pow_iff_mem bridge |
 | `dvr_intValuation_of_algebraMap'` | ✅ **PROVED** | Cycle 47: section reordering + apply moved lemma |
-| `dvr_valuation_eq_height_one'` | ✅ **PROOF VERIFIED** | Cycle 48: proof in Cycle48Candidates, needs section reorder |
+| `dvr_valuation_eq_height_one'` | ✅ **DEPLOYED** | Cycle 49: section reordering enabled proof deployment |
+| `valuationRingAt_subset_range_algebraMap'` | ✅ **UNBLOCKED** | Uses dvr_valuation_eq_height_one' |
 
-### Next Cycle (49) Priorities
-1. **Section Reordering** - Move Cycle41/44_Moved/39 before Cycle37
-   - Move `dvr_intValuation_of_algebraMap'` and dependencies before line 1230
-   - Replace placeholder `dvr_valuation_eq_height_one'` with `_proof` version
-2. **valuationRingAt_subset_range_algebraMap'** - Will unblock after reordering
-3. **valuationRingAt_equiv_localization** - Final localization equivalence
+### Next Cycle (50) Priorities
+1. **valuationRingAt_equiv_localization** - Set equality from two subset inclusions
+2. **residueMapFromR_surjective** - Surjectivity via localization equivalence
+3. **evaluationMapAt** - Construction using residue field bridge
+4. **LocalGapBound instance** - Final goal
 
 ---
 
@@ -77,11 +77,11 @@ dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
     ↓
 dvr_intValuation_of_algebraMap' (Cycle 47 - PROVED ✅)
     ↓
-dvr_valuation_eq_height_one' (Cycle 48 - PROOF VERIFIED ✅, needs section reorder)
+dvr_valuation_eq_height_one' (Cycle 49 - DEPLOYED ✅)
     ↓
-valuationRingAt_subset_range_algebraMap' (PROVED*, depends on above)
+valuationRingAt_subset_range_algebraMap' (Cycle 49 - UNBLOCKED ✅)
     ↓
-valuationRingAt_equiv_localization
+valuationRingAt_equiv_localization  ← NEXT TARGET
     ↓
 residueMapFromR_surjective
     ↓
@@ -143,6 +143,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 46 | **dvr_intValuation_eq_via_pow_membership PROVED** (intVal bridge, unblocks hard case) |
 | 47 | **dvr_intValuation_of_algebraMap' PROVED** (section reordering, unblocks valuation bridge) |
 | 48 | **dvr_valuation_eq_height_one' PROOF VERIFIED** (section ordering blocks deployment) |
+| 49 | **dvr_valuation_eq_height_one' DEPLOYED** (Cycle49Prerequisites section, cascade unblocked) |
 
 ---
 
