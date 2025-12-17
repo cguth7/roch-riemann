@@ -1,6 +1,46 @@
 import RrLean.RiemannRochV2.Infrastructure
 import RrLean.RiemannRochV2.Typeclasses
 
+/-!
+# LocalGapInstance - Evaluation Map and LocalGapBound
+
+This file constructs the evaluation map infrastructure needed to prove `LocalGapBound R K`
+for Dedekind domains. Once complete, this makes `riemann_inequality_affine` unconditional.
+
+## Table of Contents
+
+| Line | Section | Content |
+|------|---------|---------|
+| ~30 | EvaluationMapConstruction | **TARGET**: evaluationMapAt, instLocalGapBound |
+| ~90 | Cycle26Candidates | valuationRingAt infrastructure |
+| ~155 | Cycle27Candidates | partialResidueMap |
+| ~245 | Cycle29Candidates | shifted_element_valuation_le_one_v2 ✅ |
+| ~370 | Cycle30Candidates | residueMapFromR_ker ✅ |
+| ~490 | Cycle31Candidates | localizationAtPrime_isDVR ✅ |
+| ~595 | Cycle32Candidates | localization_residue_equiv ✅ |
+| ~710 | Cycle33Candidates | localization_maximalIdeal_eq_map ✅ |
+| ~805 | Cycle34Candidates | Arithmetic lemmas |
+| ~920 | Cycle35Candidates | IsFractionRing instance chain ✅ |
+| ~1030 | Cycle36Candidates | range_algebraMap_subset_valuationRingAt ✅ |
+| ~1180 | Cycle37Candidates | Complete proof structure (conditional) |
+| ~1290 | Cycle38Candidates | intValuation bridge candidates |
+| ~1415 | Cycle41Candidates | Foundation lemmas (8/8 PROVED) ✅ |
+| ~1530 | Cycle39Candidates | intValuation foundation (3 PROVED) ✅ |
+| ~1650 | Cycle42Candidates | Hard case candidates |
+
+## Victory Path
+
+```
+dvr_intValuation_of_algebraMap' hard case (SORRY)
+    ↓
+dvr_valuation_eq_height_one' (KEY BLOCKER)
+    ↓
+valuationRingAt_subset_range_algebraMap' → valuationRingAt_equiv_localization
+    ↓
+residueMapFromR_surjective → evaluationMapAt → instLocalGapBound
+```
+-/
+
 namespace RiemannRochV2
 
 open IsDedekindDomain
