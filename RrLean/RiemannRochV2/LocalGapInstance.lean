@@ -2817,15 +2817,31 @@ lemma cast_valuationSubring_preserves_val_v2 (v : HeightOneSpectrum R)
     (x : valuationRingAt (R := R) (K := K) v) :
     (h ▸ x).val = x.val := sorry
 
--- Candidate 4 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 61]
+-- Candidate 4 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 62]
 /-- BLOCKER 1: valuationRingAt_equiv_algebraMap using equivValuationSubring helpers.
-Compose: cast_valuationSubring_preserves_val + equivValuationSubring_symm_val_eq
-+ IsScalarTower.algebraMap_apply + IsFractionRing.injective.
-NOTE: Dependent elimination issues with ▸ cast prevent direct proof. Helpers 1&2 are proved. -/
+Key insight (Gemini): Use IsFractionRing.injective immediately to escape the Subtype
+dependent-type trap. Once in K, the ▸ cast metadata is "erased". -/
 lemma valuationRingAt_equiv_algebraMap_v3 (v : HeightOneSpectrum R) (r : R) :
     (valuationRingAt_equiv_localization' (R := R) (K := K) v)
       ⟨algebraMap R K r, algebraMap_mem_valuationRingAt v r⟩ =
-    algebraMap R (Localization.AtPrime v.asIdeal) r := sorry
+    algebraMap R (Localization.AtPrime v.asIdeal) r := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- 1. Reduce to equality in K to escape the Subtype dependent-type trap
+  apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+  -- 2. Handle the RHS via Scalar Tower (note .symm for direction)
+  have h_rhs : (algebraMap (Localization.AtPrime v.asIdeal) K)
+      (algebraMap R (Localization.AtPrime v.asIdeal) r) = algebraMap R K r :=
+    (IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K r).symm
+  rw [h_rhs]
+  -- 3. Unfold the equiv and clear the '▸' cast metadata
+  unfold valuationRingAt_equiv_localization'
+  simp only [RingEquiv.coe_mk, Equiv.coe_fn_mk]
+  -- 4. Goal: algebraMap Loc K ((h ▸ equiv.symm) ⟨algebraMap R K r, _⟩) = algebraMap R K r
+  -- Use convert since rw can't match the cast pattern
+  convert equivValuationSubring_symm_val_eq v _
+  -- Discharge all ValuationSubring equality goals from convert
+  all_goals exact (dvr_valuationSubring_eq_valuationRingAt' v).symm
 
 -- Candidate 5 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 61]
 /-- BLOCKER 2: Direct transplant from TestBlockerProofs.localization_residueField_equiv_algebraMap_v4.

@@ -100,12 +100,14 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 2. **Complete `bridge_residue_algebraMap`** - Only needs BLOCKER 1
 3. **Kernel characterization**: ker(evaluationMapAt) = L(D)
 
-### Cycle 62 Technical Hints (from Cycle 61 analysis)
+### Cycle 62 Technical Hints (from Cycle 61-62 analysis)
 - **BLOCKER 2 is DONE!** Used `unfold localization_residueField_equiv` + `congrArg` pattern
-- **BLOCKER 1**: Two helpers proved, but main lemma blocked by:
-  - `valuationRingAt_equiv_localization'` defined as `h ▸ equivValuationSubring.symm`
-  - The `▸` cast creates dependent elimination issues when trying to use `equivValuationSubring_symm_val_eq`
-  - Alternative: Try proving without unfolding the definition, using ring equiv properties directly
+- **BLOCKER 1 ALMOST SOLVED** (Cycle 62 progress):
+  - Use `IsFractionRing.injective` first to escape Subtype dependent-type trap
+  - Use `convert equivValuationSubring_symm_val_eq v _` (not `rw` - cast blocks pattern match)
+  - `convert` creates multiple ValuationSubring equality goals
+  - Discharge with `all_goals exact (dvr_valuationSubring_eq_valuationRingAt' v).symm`
+  - **BUILD WAS INTERRUPTED** - this approach needs verification in Cycle 63
 
 ---
 
