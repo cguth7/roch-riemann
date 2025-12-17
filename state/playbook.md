@@ -26,7 +26,7 @@
 
 ---
 
-## Current Status (Cycle 45)
+## Current Status (Cycle 46)
 
 **Codebase Structure**:
 ```
@@ -37,7 +37,7 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-45 WIP ✅ BUILDS
+└── LocalGapInstance.lean   # Cycles 25-46 WIP ✅ BUILDS
 ```
 
 **Active Development**: `LocalGapInstance.lean`
@@ -57,13 +57,13 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 |------|--------|-------|
 | `mem_pow_of_mul_mem_pow_of_not_mem` | ✅ **PROVED** | Cycle 45: via Ideal.IsPrime.mul_mem_pow |
 | `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` | ✅ **PROVED** | Cycle 45: backward direction |
-| `dvr_intValuation_eq_via_pow_membership` | **SORRY** | Next target (unblocked) |
-| `dvr_intValuation_of_algebraMap'` (hard) | **SORRY** | r ∈ v.asIdeal case |
+| `dvr_intValuation_eq_via_pow_membership` | ✅ **PROVED** | Cycle 46: via intValuation_le_pow_iff_mem bridge |
+| `dvr_intValuation_of_algebraMap'` (hard) | **UNBLOCKED** | r ∈ v.asIdeal case - needs section reordering |
 | `dvr_valuation_eq_height_one'` | **KEY BLOCKER** | DVR valuation = HeightOneSpectrum valuation |
 
-### Next Cycle (46) Priorities
-1. **dvr_intValuation_eq_via_pow_membership** - Now unblocked, use mem_asIdeal_pow_iff_mem_maxIdeal_pow'
-2. **dvr_intValuation_of_algebraMap'** (hard case) - r ∈ v.asIdeal
+### Next Cycle (47) Priorities
+1. **Section reordering**: Move Cycle44/45 lemmas before Cycle39 to unblock cascade
+2. **dvr_intValuation_of_algebraMap'** (hard case) - Apply dvr_intValuation_eq_via_pow_membership
 3. **dvr_valuation_eq_height_one'** - Final KEY BLOCKER
 
 ---
@@ -71,7 +71,9 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 ## Victory Path
 
 ```
-dvr_intValuation_of_algebraMap' hard case (SORRY)
+dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
+    ↓
+dvr_intValuation_of_algebraMap' hard case (UNBLOCKED - needs section reorder)
     ↓
 dvr_valuation_eq_height_one' (KEY BLOCKER)
     ↓
@@ -99,7 +101,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 - `localization_isFractionRing`: IsFractionRing (Loc.AtPrime) K (Cycle 35)
 - `range_algebraMap_subset_valuationRingAt`: Forward set inclusion (Cycle 36)
 
-**Recent Achievements (Cycles 41-45)**:
+**Recent Achievements (Cycles 41-46)**:
 - `mem_of_algebraMap_mem_map`: Reverse direction via comap_map_of_isPrime_disjoint
 - `algebraMap_isUnit_iff_not_mem`: IsUnit ↔ not in ideal
 - `dvr_intValuation_of_isUnit`: Units have intVal = 1
@@ -109,6 +111,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 - **Cycle 45**: ROOT BLOCKER `mem_pow_of_mul_mem_pow_of_not_mem` via Ideal.IsPrime.mul_mem_pow
 - **Cycle 45**: `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` (backward direction)
 - **Cycle 45**: `mem_asIdeal_pow_iff_mem_maxIdeal_pow'` (complete iff characterization)
+- **Cycle 46**: `dvr_intValuation_eq_via_pow_membership` PROVED via intValuation_le_pow_iff_mem bridge
 
 ---
 
@@ -135,6 +138,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 43 | Section reordering, 3 lemmas PROVED |
 | 44 | Ideal power membership bridge (3 PROVED, identified ROOT BLOCKER) |
 | 45 | ROOT BLOCKER PROVED (3 lemmas via Ideal.IsPrime.mul_mem_pow) |
+| 46 | **dvr_intValuation_eq_via_pow_membership PROVED** (intVal bridge, unblocks hard case) |
 
 ---
 

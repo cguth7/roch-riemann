@@ -1614,7 +1614,9 @@ lemma dvr_intValuation_of_algebraMap' (v : HeightOneSpectrum R) (r : R) :
   by_cases hr0 : r = 0
   · simp only [hr0, map_zero]
   by_cases hr : r ∈ v.asIdeal
-  · -- Hard case: r ∈ v.asIdeal, need intValuation comparison
+  · -- Hard case: r ∈ v.asIdeal
+    -- NOW UNBLOCKED (Cycle 46): use dvr_intValuation_eq_via_pow_membership from Cycle44
+    -- After section reordering: exact dvr_intValuation_eq_via_pow_membership v r hr0
     sorry
   · -- Easy case: r ∉ v.asIdeal, both = 1
     -- DVR side: use Cycle 41 lemmas directly (algebraMap_isUnit_iff_not_mem + dvr_intValuation_of_isUnit)
@@ -1797,21 +1799,61 @@ lemma mem_asIdeal_pow_iff_mem_maxIdeal_pow' (v : HeightOneSpectrum R) (r : R) (n
   ⟨algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow v r n,
    mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow v r n⟩
 
--- Candidate 7 [tag: arithmetic] [relevance: 4/5] [status: TBD] [cycle: 44]
+-- Candidate 7 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 46]
 /-- DVR intValuation characterization via ideal powers.
-Both valuations measure the same ideal power membership. -/
+Both valuations measure the same ideal power membership.
+Key lemma that bridges HeightOneSpectrum.intValuation with the DVR intValuation. -/
 lemma dvr_intValuation_eq_via_pow_membership (v : HeightOneSpectrum R) (r : R) (hr_ne : r ≠ 0) :
     (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).intValuation
       (algebraMap R (Localization.AtPrime v.asIdeal) r) = v.intValuation r := by
   haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
-  -- Both intValuations are characterized by ideal power membership
-  -- Use intValuation_le_pow_iff_mem for both sides
-  -- Show they have the same value by showing ideal power membership is equivalent
+  -- Strategy: Both intValuations are characterized by ideal power membership via intValuation_le_pow_iff_mem.
+  -- Key insight: (DVR.maximalIdeal).asIdeal = IsLocalRing.maximalIdeal (definitional)
+  -- Use mem_asIdeal_pow_iff_mem_maxIdeal_pow' to transfer between ideal powers.
+  let dvrMax := IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)
+  -- Both intValuations satisfy: intVal x ≤ exp(-n) ↔ x ∈ asIdeal^n
+  -- For the DVR: dvrMax.intVal (algebraMap r) ≤ exp(-n) ↔ algebraMap r ∈ dvrMax.asIdeal^n
+  --            = algebraMap r ∈ (IsLocalRing.maximalIdeal)^n (by dvr_maximalIdeal_asIdeal_eq_localRing_maximalIdeal)
+  -- For v: v.intVal r ≤ exp(-n) ↔ r ∈ v.asIdeal^n (by intValuation_le_pow_iff_mem)
+  -- Bridge: r ∈ v.asIdeal^n ↔ algebraMap r ∈ maxIdeal^n (by mem_asIdeal_pow_iff_mem_maxIdeal_pow')
+  -- Use le_antisymm with the WithZero.exp characterization
+  have hbridge : ∀ n : ℕ, dvrMax.intValuation (algebraMap R _ r) ≤ WithZero.exp (-(n : ℤ)) ↔
+      v.intValuation r ≤ WithZero.exp (-(n : ℤ)) := fun n => by
+    rw [HeightOneSpectrum.intValuation_le_pow_iff_mem]
+    rw [HeightOneSpectrum.intValuation_le_pow_iff_mem]
+    rw [dvr_maximalIdeal_asIdeal_eq_localRing_maximalIdeal v]
+    exact (mem_asIdeal_pow_iff_mem_maxIdeal_pow' v r n).symm
+  -- Now use that values in WithZero (ℤᵐ⁰) are equal iff they satisfy the same inequalities
+  -- Both values are of form exp(-k) for some k, so use the fact that the valuations agree on all exp(-n)
+  -- Key: Both valuations take values exp(-n) for some n ∈ ℕ (since they're nonzero and ≤ 1).
+  -- hbridge shows they're in the same "threshold class" for all exp(-n).
+  -- For any two elements a, b of form exp(-k), a = b iff ∀n, (a ≤ exp(-n) ↔ b ≤ exp(-n)).
+  -- Actually, we just need: a ≤ b iff ∀n, b ≤ exp(-n) → a ≤ exp(-n)
+  -- and vice versa, then le_antisymm gives equality.
+  have hr' : algebraMap R (Localization.AtPrime v.asIdeal) r ≠ 0 := by
+    intro h
+    apply hr_ne
+    have hpc : v.asIdeal.primeCompl ≤ nonZeroDivisors R := v.asIdeal.primeCompl_le_nonZeroDivisors
+    exact (IsLocalization.to_map_eq_zero_iff (Localization.AtPrime v.asIdeal) hpc).mp h
+  classical  -- needed for DecidableEq instances in Associates.count
   apply le_antisymm
   · -- Show DVR.intVal ≤ v.intVal
-    sorry
+    -- Strategy: v.intVal = exp(-k) for some k, and hbridge gives DVR.intVal ≤ exp(-k)
+    have hk : v.intValuation r = WithZero.exp
+        (-(((Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {r})).factors) : ℤ)) :=
+      v.intValuation_if_neg hr_ne
+    let k := (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {r})).factors
+    calc dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r)
+        ≤ WithZero.exp (-(k : ℤ)) := (hbridge k).mpr (le_of_eq hk)
+      _ = v.intValuation r := hk.symm
   · -- Show v.intVal ≤ DVR.intVal
-    sorry
+    have hm : dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r) = WithZero.exp
+        (-(((Associates.mk dvrMax.asIdeal).count (Associates.mk (Ideal.span {algebraMap R _ r})).factors) : ℤ)) :=
+      dvrMax.intValuation_if_neg hr'
+    let m := (Associates.mk dvrMax.asIdeal).count (Associates.mk (Ideal.span {algebraMap R _ r})).factors
+    calc v.intValuation r
+        ≤ WithZero.exp (-(m : ℤ)) := (hbridge m).mp (le_of_eq hm)
+      _ = dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r) := hm.symm
 
 -- Candidate 8 [tag: arithmetic] [relevance: 4/5] [status: TBD] [cycle: 44]
 /-- Alternative: Use that intValuation values are exp(-n) for some n, and show n is the same. -/

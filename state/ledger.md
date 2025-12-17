@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 45)
+## Summary: Where We Are (End of Cycle 46)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -10,9 +10,9 @@
 
 **Blocking Chain**:
 ```
-dvr_intValuation_eq_via_pow_membership (SORRY - NOW UNBLOCKED)
+dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
     ↓
-dvr_intValuation_of_algebraMap' hard case (SORRY - r ∈ v.asIdeal)
+dvr_intValuation_of_algebraMap' hard case (UNBLOCKED - needs section reorder)
     ↓
 dvr_valuation_eq_height_one' (KEY BLOCKER)
     ↓
@@ -26,6 +26,43 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 ---
 
 ## 2025-12-17
+
+### Cycle 46 - dvr_intValuation_eq_via_pow_membership PROVED
+
+**Goal**: Prove dvr_intValuation_eq_via_pow_membership (key bridge lemma)
+
+#### Key Discovery
+
+Used **`HeightOneSpectrum.intValuation_le_pow_iff_mem`** from `Mathlib/RingTheory/DedekindDomain/AdicValuation.lean:249`:
+```lean
+theorem intValuation_le_pow_iff_mem (r : R) (n : ℕ) :
+    v.intValuation r ≤ exp (-(n : ℤ)) ↔ r ∈ v.asIdeal ^ n
+```
+
+Combined with `mem_asIdeal_pow_iff_mem_maxIdeal_pow'` (proved in Cycle 45), this bridges both intValuations.
+
+#### Proof Strategy
+
+1. Both intValuations are characterized by `intValuation_le_pow_iff_mem`
+2. Use `mem_asIdeal_pow_iff_mem_maxIdeal_pow'` to connect: `r ∈ v.asIdeal^n ↔ algebraMap r ∈ maxIdeal^n`
+3. Apply `le_antisymm` with calc blocks showing each direction
+
+#### Results
+
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `dvr_intValuation_eq_via_pow_membership` | ✅ **PROVED** | Key bridge via threshold characterization |
+
+**Cascade Unblocked**: `dvr_intValuation_of_algebraMap'` hard case is now unblocked (needs section reordering to access the lemma)
+
+**Next Steps (Cycle 47)**:
+1. Reorder sections: Move Cycle44/45 lemmas before Cycle39Candidates
+2. Complete `dvr_intValuation_of_algebraMap'` hard case
+3. Attack `dvr_valuation_eq_height_one'` (final KEY BLOCKER)
+
+**Cycle rating**: 9/10 (key lemma proved, cascade unblocked)
+
+---
 
 ### Cycle 45 - ROOT BLOCKER PROVED - 3 LEMMAS COMPLETE
 
