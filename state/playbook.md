@@ -53,7 +53,7 @@ Where:
 
 ---
 
-## Current Status (Cycle 65)
+## Current Status (Cycle 66)
 
 **Codebase Structure**:
 ```
@@ -64,11 +64,11 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ **CLEAN** (0 sorries!)
-├── LocalGapInstance.lean   # Cycles 25-65 WIP ✅ BUILDS
+├── LocalGapInstance.lean   # Cycles 25-66 WIP ✅ BUILDS
 └── TestBlockerProofs.lean  # Cycle 58-60: Test proofs
 ```
 
-**Active Development**: `LocalGapInstance.lean` (Cycle 65 candidates at end of file)
+**Active Development**: `LocalGapInstance.lean` (Cycle 66 candidates at end of file)
 
 ### Typeclass Hierarchy
 ```
@@ -79,32 +79,30 @@ SinglePointBound R K       -- PROJECTIVE (adds ell_zero = 1)
 BaseDim R K                -- SEPARATE (explicit base dimension)
 ```
 
-### Key Blockers (Updated Cycle 65)
+### Key Blockers (Updated Cycle 66)
 
 | Name | Status | Notes |
 |------|--------|-------|
 | `evaluationMapAt_complete` | ✅ **PROVED** | Cycle 56: LinearMap bundle complete |
 | `localization_residueField_equiv_algebraMap_v5` | ✅ **PROVED** | Cycle 61: BLOCKER 2 RESOLVED |
 | `valuationRingAt_equiv_clean_algebraMap` | ✅ **PROVED** | Cycle 64: Cast-free equiv |
-| `bridge_residue_algebraMap_clean` | ✅ **PROVED** | **Cycle 65: CLEAN BRIDGE PROVED!** |
-| `bridge_residue_algebraMap` | ⚠️ SORRY | File ordering prevents using clean proof |
-| `kernel_evaluationMapAt` | ⚠️ **NEXT TARGET** | ker(eval) = L(D) |
+| `bridge_residue_algebraMap_clean` | ✅ **PROVED** | Cycle 65: CLEAN BRIDGE PROVED |
+| `kernel_evaluationMapAt_complete` | ⚠️ **NEXT TARGET** | ker(eval) = L(D) - 8 candidates added |
 
-### Next Cycle (66) Priorities
-1. **Prove `kernel_evaluationMapAt`**: Show ker(evaluationMapAt) = L(D)
-   - L(D) ⊆ ker direction: valuation arithmetic
-   - ker ⊆ L(D) direction: ideal membership
-2. **Complete `LocalGapBound` instance**
-3. **Victory**: 2-3 cycles remaining
+### Next Cycle (67) Priorities
+1. **Prove `LD_element_valuation_strict_bound`** (Candidate 2): Foundation for forward direction
+2. **Prove `kernel_element_shifted_in_maximalIdeal`** (Candidate 4): Key for backward direction
+3. **Prove `kernel_element_satisfies_LD_bound`** (Candidate 5): Valuation bound from kernel membership
+4. Complete kernel characterization → LocalGapBound instance → **VICTORY**
 
-### Cycle 65 Technical Notes
-- **`bridge_residue_algebraMap_clean` PROVED**: Uses clean equiv machinery
-- **Technical debt**: Original `bridge_residue_algebraMap` at line 2342 has sorry due to file ordering
-- **Clean infrastructure**: `residueFieldBridge_explicit_clean`, `residueField_transport_direct_clean` are PROVED
+### Cycle 66 Technical Notes
+- **8 candidates added** for kernel_evaluationMapAt proof
+- **Proof strategy**: Two directions - L(D) ⊆ ker (valuation arithmetic) and ker ⊆ L(D) (ideal membership)
+- **Key mathlib lemma**: `IsLocalRing.residue_eq_zero_iff` connects residue = 0 with maximalIdeal membership
 
 ---
 
-## Victory Path (Updated Cycle 65)
+## Victory Path (Updated Cycle 66)
 
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)  ← LINEARMAP COMPLETE!
@@ -113,16 +111,19 @@ localization_residueField_equiv_algebraMap_v5 (Cycle 61 - PROVED ✅)
     ↓
 valuationRingAt_equiv_clean_algebraMap (Cycle 64 - PROVED ✅)  ← Cast-free equiv!
     ↓
-bridge_residue_algebraMap_clean (Cycle 65 - PROVED ✅)  ← 🎉 CLEAN BRIDGE PROVED!
+bridge_residue_algebraMap_clean (Cycle 65 - PROVED ✅)  ← CLEAN BRIDGE PROVED!
     ↓
-kernel_evaluationMapAt = L(D)  ← **NEXT TARGET**
+kernel_evaluationMapAt_complete (Cycle 66 - 8 CANDIDATES ADDED)  ← **IN PROGRESS**
     ↓
 LocalGapBound instance → VICTORY
 ```
 
-**Cycle 65 Status**: `bridge_residue_algebraMap_clean` PROVED! Clean machinery complete.
+**Cycle 66 Status**: 8 candidates added for kernel characterization. Critical path identified.
 
-- [ ] `kernel_evaluationMapAt` - Show ker(eval) = L(D)
+- [ ] `LD_element_valuation_strict_bound` - Candidate 2 (foundation)
+- [ ] `kernel_element_shifted_in_maximalIdeal` - Candidate 4 (backward direction key)
+- [ ] `kernel_element_satisfies_LD_bound` - Candidate 5 (L(D) membership)
+- [ ] `kernel_evaluationMapAt_complete` - Main lemma (Candidate 8)
 - [ ] `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
 ---

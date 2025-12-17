@@ -3335,4 +3335,98 @@ lemma bridge_residue_algebraMap_direct (v : HeightOneSpectrum R) (r : R) :
 
 end Cycle65Candidates
 
+/-! ## Cycle 66 Candidates: Proving kernel_evaluationMapAt
+
+Goal: Prove ker(evaluationMapAt) = range(Submodule.inclusion : L(D) → L(D+v))
+
+Strategy:
+- L(D) ⊆ ker: If f ∈ L(D), then v(f) ≤ exp(D(v)), so v(f·π^{D(v)+1}) ≤ exp(-1) < 1,
+  meaning shifted element is in maximalIdeal, so residue is 0.
+- ker ⊆ L(D): If f maps to 0, then shifted element is in maximalIdeal,
+  so v(f·π^{D(v)+1}) < 1, hence v(f) ≤ exp(D(v)), meaning f ∈ L(D).
+
+Key mathlib lemma: `IsLocalRing.residue_eq_zero_iff`: residue x = 0 ↔ x ∈ maximalIdeal
+-/
+
+section Cycle66Candidates
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- Helper for L(D) ⊆ ker direction: elements of L(D) have shifted valuation < 1.
+If f ∈ L(D) ⊆ L(D+v), then v(f) ≤ exp(D(v)), so v(f·π^{D(v)+1}) ≤ exp(-1) < 1.
+This means the shifted element lies in the maximal ideal, so residue is zero. -/
+lemma LD_element_shifted_in_maximalIdeal (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : RRModuleV2_real R K D) :
+    (⟨shiftedElement v D (Submodule.inclusion
+      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v)) f).val,
+      shiftedElement_mem_valuationRingAt v D
+        (Submodule.inclusion (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v)) f)⟩ :
+      valuationRingAt (R := R) (K := K) v) ∈
+    IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := sorry
+
+-- Candidate 2 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- The valuation bound for elements of L(D): if f ∈ L(D), then v(f·π^{D(v)+1}) < 1.
+This uses that f ∈ L(D) means v(f) ≤ exp(D(v)), so
+v(f·π^{D(v)+1}) = v(f) · exp(-(D(v)+1)) ≤ exp(D(v)) · exp(-(D(v)+1)) = exp(-1) < 1. -/
+lemma LD_element_valuation_strict_bound (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : K) (hf : f ∈ RRModuleV2_real R K D) (hf_ne : f ≠ 0) :
+    v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) <
+      WithZero.exp (0 : ℤ) := sorry
+
+-- Candidate 3 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- L(D) ⊆ ker direction: elements of L(D) map to zero under evaluationMapAt.
+Uses that shifted element is in maximal ideal, hence residue_eq_zero_iff. -/
+lemma LD_inclusion_in_kernel (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    LinearMap.range (Submodule.inclusion
+      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) ≤
+    LinearMap.ker (evaluationMapAt_complete v D) := sorry
+
+-- Candidate 4 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- Helper for ker ⊆ L(D) direction: if evaluationFun maps f to 0, then shifted element
+is in the maximal ideal of the valuation ring.
+Uses that the bridge is an isomorphism and residue_eq_zero_iff. -/
+lemma kernel_element_shifted_in_maximalIdeal (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : RRModuleV2_real R K (D + DivisorV2.single v 1))
+    (hf : evaluationFun_via_bridge v D f = 0) :
+    (⟨shiftedElement v D f.val, shiftedElement_mem_valuationRingAt v D f⟩ :
+      valuationRingAt (R := R) (K := K) v) ∈
+    IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := sorry
+
+-- Candidate 5 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- ker ⊆ L(D) direction: if f maps to 0, then v(f) ≤ exp(D(v)).
+If evaluationFun f = 0, then f·π^{D(v)+1} ∈ maximalIdeal, so v(f·π^{D(v)+1}) < 1.
+This means v(f) · exp(-(D(v)+1)) < 1, hence v(f) < exp(D(v)+1), so v(f) ≤ exp(D(v)). -/
+lemma kernel_element_satisfies_LD_bound (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : K) (hf_mem : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1)) (hf_ne : f ≠ 0)
+    (hf_zero : evaluationFun_via_bridge v D ⟨f, hf_mem⟩ = 0) :
+    v.valuation K f ≤ WithZero.exp (D v) := sorry
+
+-- Candidate 6 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- ker ⊆ L(D) direction: kernel elements belong to L(D).
+If f ∈ ker(evaluationMapAt), then f satisfies the L(D) valuation condition. -/
+lemma kernel_element_in_LD (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f : RRModuleV2_real R K (D + DivisorV2.single v 1))
+    (hf : evaluationFun_via_bridge v D f = 0) :
+    f.val ∈ RRModuleV2_real R K D := sorry
+
+-- Candidate 7 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- ker ⊆ L(D) direction: the kernel is contained in the range of the inclusion.
+This is the set-theoretic containment needed for the equality. -/
+lemma kernel_subset_LD_range (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    LinearMap.ker (evaluationMapAt_complete v D) ≤
+    LinearMap.range (Submodule.inclusion
+      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) := sorry
+
+-- Candidate 8 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
+/-- Main lemma: kernel equals range of inclusion from L(D).
+Combines both directions to establish the kernel characterization.
+Uses evaluationMapAt_complete as the definition of evaluationMapAt. -/
+lemma kernel_evaluationMapAt_complete (v : HeightOneSpectrum R) (D : DivisorV2 R) :
+    LinearMap.ker (evaluationMapAt_complete v D) = LinearMap.range (Submodule.inclusion
+      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) := sorry
+
+end Cycle66Candidates
+
 end RiemannRochV2

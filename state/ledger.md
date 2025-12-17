@@ -2,13 +2,13 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 65)
+## Summary: Where We Are (End of Cycle 66)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
-**Current Target**: `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
+**Current Target**: `kernel_evaluationMapAt_complete` (8 candidates added, critical path identified)
 
-**Blocking Chain** (Updated Cycle 65 - CLEAN BRIDGE PROVED!):
+**Blocking Chain** (Updated Cycle 66 - KERNEL CANDIDATES ADDED):
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)  ← LINEARMAP COMPLETE!
     ↓
@@ -16,18 +16,62 @@ localization_residueField_equiv_algebraMap_v5 (Cycle 61 - PROVED ✅)
     ↓
 valuationRingAt_equiv_clean_algebraMap (Cycle 64 - PROVED ✅)
     ↓
-bridge_residue_algebraMap_clean (Cycle 65 - PROVED ✅)  ← 🎉 CLEAN VERSION PROVED!
+bridge_residue_algebraMap_clean (Cycle 65 - PROVED ✅)  ← CLEAN BRIDGE PROVED!
     ↓
-kernel_evaluationMapAt = L(D)  ← **NEXT TARGET**
+kernel_evaluationMapAt_complete (Cycle 66 - 8 CANDIDATES)  ← **IN PROGRESS**
     ↓
 LocalGapBound instance → VICTORY
 ```
 
-**Note**: Cycle 65 - `bridge_residue_algebraMap_clean` PROVED using clean equiv machinery!
+**Note**: Cycle 66 - 8 candidates added for kernel characterization. Victory is 2-3 cycles away!
 
 ---
 
 ## 2025-12-17
+
+### Cycle 66 - kernel_evaluationMapAt Candidates Added - 8/8 TYPECHECK
+
+**Goal**: Prove `kernel_evaluationMapAt_complete` - show ker(evaluationMapAt) = L(D)
+
+#### Key Achievement
+
+**8 candidate lemmas added** for the kernel characterization. All typecheck successfully.
+
+**Proof Strategy**:
+- **Forward direction (L(D) ⊆ ker)**: f ∈ L(D) → v(f) ≤ exp(D(v)) → v(f·π^{D(v)+1}) < 1 → residue = 0
+- **Backward direction (ker ⊆ L(D))**: evaluationMapAt f = 0 → shifted element in maxIdeal → v(f) ≤ exp(D(v))
+
+#### Results
+
+| Candidate | Status | Notes |
+|-----------|--------|-------|
+| `LD_element_shifted_in_maximalIdeal` | ⚠️ SORRY | Helper for L(D) ⊆ ker |
+| `LD_element_valuation_strict_bound` | ⚠️ SORRY | **PRIORITY 1**: Foundation |
+| `LD_inclusion_in_kernel` | ⚠️ SORRY | Forward direction main |
+| `kernel_element_shifted_in_maximalIdeal` | ⚠️ SORRY | **PRIORITY 2**: Backward key |
+| `kernel_element_satisfies_LD_bound` | ⚠️ SORRY | **PRIORITY 3**: L(D) membership |
+| `kernel_element_in_LD` | ⚠️ SORRY | Backward helper |
+| `kernel_subset_LD_range` | ⚠️ SORRY | Backward direction main |
+| `kernel_evaluationMapAt_complete` | ⚠️ SORRY | **MAIN GOAL** |
+
+**8/8 candidates TYPECHECK**
+
+#### Reflector Score: 7/10
+
+**Assessment**: Good progress - comprehensive candidate set with clear proof chain. Critical path identified: Candidates 2 → 4 → 5 form the spine. Once those 3 are proved, the rest follow.
+
+**Priority Order**:
+1. `LD_element_valuation_strict_bound` (Candidate 2) - Pure valuation arithmetic
+2. `kernel_element_shifted_in_maximalIdeal` (Candidate 4) - Bridge inversion
+3. `kernel_element_satisfies_LD_bound` (Candidate 5) - L(D) membership from kernel
+
+**Potential Blockers**:
+- WithZero.exp arithmetic lemmas (need exp_add, exp_neg)
+- Bridge injectivity (should be standard via RingEquiv)
+
+**Cycle rating**: 7/10 (Strong candidate set, clear path, 2-3 cycles to victory)
+
+---
 
 ### Cycle 65 - bridge_residue_algebraMap_clean PROVED - 4/8 CANDIDATES
 
