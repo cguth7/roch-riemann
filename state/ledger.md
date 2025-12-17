@@ -8,7 +8,7 @@
 
 **Current Target**: `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
-**Blocking Chain** (Updated Cycle 60):
+**Blocking Chain** (Updated Cycle 61):
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)  ← LINEARMAP COMPLETE!
     ↓
@@ -16,9 +16,13 @@ localization_residue_equiv_symm_algebraMap (Cycle 59 - PROVED ✅)
     ↓
 ofBijective_quotient_mk_eq_algebraMap (Cycle 59 - PROVED ✅)
     ↓
-valuationRingAt_equiv_algebraMap (SORRY)  ← KEY BLOCKER 1
+localization_residueField_equiv_algebraMap_v5 (Cycle 61 - PROVED ✅)  ← BLOCKER 2 IN MAIN FILE!
     ↓
-localization_residueField_equiv_algebraMap (PROVED in TestBlockerProofs.lean!)  ← BLOCKER 2 (transplant blocked)
+equivValuationSubring_val_eq (Cycle 61 - PROVED ✅)  ← Helper for BLOCKER 1
+    ↓
+equivValuationSubring_symm_val_eq (Cycle 61 - PROVED ✅)  ← Helper for BLOCKER 1
+    ↓
+valuationRingAt_equiv_algebraMap (SORRY)  ← KEY BLOCKER 1 (▸ cast issue)
     ↓
 bridge_residue_algebraMap (pending)  ← depends on BLOCKER 1
     ↓
@@ -27,11 +31,65 @@ kernel_evaluationMapAt = L(D)  ← NEXT TARGET after bridge
 LocalGapBound instance → VICTORY
 ```
 
-**Note**: Cycle 60 discovered that BLOCKER 2 (`localization_residueField_equiv_algebraMap`) is PROVED in TestBlockerProofs.lean but type unification issues prevent direct transplant to main file.
+**Note**: Cycle 61 transplanted BLOCKER 2 to main file and proved 2 helpers for BLOCKER 1. Only the main BLOCKER 1 lemma remains.
 
 ---
 
 ## 2025-12-17
+
+### Cycle 61 - BLOCKER 2 TRANSPLANTED - 3/8 PROVED
+
+**Goal**: Transplant BLOCKER 2 from TestBlockerProofs.lean and prove BLOCKER 1 helpers
+
+#### Key Achievements
+
+**BLOCKER 2 RESOLVED IN MAIN FILE!**
+
+Successfully transplanted `localization_residueField_equiv_algebraMap_v5` to LocalGapInstance.lean using:
+1. `unfold localization_residueField_equiv`
+2. `simp only [RingEquiv.trans_apply]`
+3. `rw [IsLocalRing.residue_def, Ideal.Quotient.mk_algebraMap]`
+4. `have key : ... := by unfold localization_residue_equiv; rw [symm_apply_eq]; unfold equivQuotMaximalIdeal; simp; rfl`
+5. `convert congrArg (RingEquiv.ofBijective ...) key`
+
+**2 Helpers for BLOCKER 1 PROVED:**
+- `equivValuationSubring_val_eq`: `(equivValuationSubring a).val = algebraMap a` (unfold + rfl)
+- `equivValuationSubring_symm_val_eq`: `algebraMap (equiv.symm y) = y.val` (apply_symm_apply)
+
+#### Results
+
+| Candidate | Status | Notes |
+|-----------|--------|-------|
+| `equivValuationSubring_val_eq` | ✅ **PROVED** | Forward direction helper |
+| `equivValuationSubring_symm_val_eq` | ✅ **PROVED** | Inverse direction helper |
+| `cast_valuationSubring_preserves_val_v2` | ⚠️ SORRY | Dependent elimination blocked |
+| `valuationRingAt_equiv_algebraMap_v3` | ⚠️ SORRY | BLOCKER 1 - ▸ cast issue |
+| `localization_residueField_equiv_algebraMap_v5` | ✅ **PROVED** | **BLOCKER 2 RESOLVED!** |
+| `localization_residueField_equiv_algebraMap_show` | ⚠️ SORRY | Duplicate |
+| `bridge_residue_algebraMap_v3` | ⚠️ SORRY | Depends on BLOCKER 1 |
+| `bridge_residue_algebraMap_unfold` | ⚠️ SORRY | Depends on BLOCKER 1 |
+
+**3/8 candidates PROVED**
+
+#### BLOCKER 1 Analysis
+
+The main `valuationRingAt_equiv_algebraMap` lemma is blocked by dependent elimination issues:
+- `valuationRingAt_equiv_localization'` is defined as `h ▸ equivValuationSubring.symm`
+- The `▸` cast from `dvr_valuationSubring_eq_valuationRingAt'` creates type mismatches
+- Helpers `equivValuationSubring_val_eq` and `equivValuationSubring_symm_val_eq` are proved but can't be directly applied due to the cast
+
+#### Reflector Score: 7/10
+
+**Assessment**: Major progress with BLOCKER 2 fully resolved and transplanted to main file. BLOCKER 1 is 80% done (helpers proved) but the main lemma needs a different approach to handle the ▸ cast.
+
+**Next Steps (Cycle 62)**:
+1. Try alternative proof for `valuationRingAt_equiv_algebraMap` without unfolding definition
+2. Use ring equiv properties directly instead of going through the cast
+3. Complete `bridge_residue_algebraMap` once BLOCKER 1 is resolved
+
+**Cycle rating**: 7/10 (BLOCKER 2 resolved, 3/8 proved, clear path to final blocker)
+
+---
 
 ### Cycle 60 - Type Unification Analysis - 1/8 PROVED
 

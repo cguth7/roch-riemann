@@ -53,7 +53,7 @@ Where:
 
 ---
 
-## Current Status (Cycle 60)
+## Current Status (Cycle 61)
 
 **Codebase Structure**:
 ```
@@ -64,11 +64,11 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ **CLEAN** (0 sorries!)
-├── LocalGapInstance.lean   # Cycles 25-60 WIP ✅ BUILDS
-└── TestBlockerProofs.lean  # Cycle 58-60: BLOCKER 2 PROVED HERE!
+├── LocalGapInstance.lean   # Cycles 25-61 WIP ✅ BUILDS
+└── TestBlockerProofs.lean  # Cycle 58-60: Test proofs
 ```
 
-**Active Development**: `LocalGapInstance.lean` (key blockers) + `TestBlockerProofs.lean` (proof that works!)
+**Active Development**: `LocalGapInstance.lean` (Cycle 61 candidates at end of file)
 
 ### Typeclass Hierarchy
 ```
@@ -86,29 +86,30 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | `evaluationMapAt_complete` | ✅ **PROVED** | Cycle 56: LinearMap bundle complete |
 | `localization_residue_equiv_symm_algebraMap` | ✅ **PROVED** | Cycle 59: Helper for BLOCKER 2 |
 | `ofBijective_quotient_mk_eq_algebraMap` | ✅ **PROVED** | Cycle 59: Helper for BLOCKER 2 |
-| `localization_residueField_equiv_algebraMap` | ✅ **PROVED in TestBlockerProofs** | Cycle 60: Transplant blocked by type mismatch |
-| `valuationRingAt_equiv_algebraMap` | ⚠️ **SORRY** | KEY BLOCKER 1: Needs `equivValuationSubring.symm` property |
-| `bridge_residue_algebraMap` | ⚠️ **SORRY** | Depends on BLOCKER 1 (BLOCKER 2 resolved!) |
+| `localization_residueField_equiv_algebraMap_v5` | ✅ **PROVED** | **Cycle 61: BLOCKER 2 RESOLVED IN MAIN FILE!** |
+| `equivValuationSubring_val_eq` | ✅ **PROVED** | Cycle 61: Forward direction helper for BLOCKER 1 |
+| `equivValuationSubring_symm_val_eq` | ✅ **PROVED** | Cycle 61: Inverse direction helper for BLOCKER 1 |
+| `valuationRingAt_equiv_algebraMap` | ⚠️ **SORRY** | KEY BLOCKER 1: Needs cast handling for ▸ |
+| `bridge_residue_algebraMap` | ⚠️ **SORRY** | Depends on BLOCKER 1 only |
 
-### Next Cycle (61) Priorities
-1. **TRANSPLANT BLOCKER 2**: Get `localization_residueField_equiv_algebraMap_v4` from TestBlockerProofs into main file
-   - Option A: Use `unfold residueFieldAtPrime` before rewrites
-   - Option B: Import from TestBlockerProofs.lean directly
-   - Option C: Investigate variable context differences
-2. **BLOCKER 1**: Prove `equivValuationSubring_symm_coe` using `apply_symm_apply` property
-3. **Complete `bridge_residue_algebraMap`** - Now only needs BLOCKER 1
-4. **Kernel characterization**: ker(evaluationMapAt) = L(D)
+### Next Cycle (62) Priorities
+1. **BLOCKER 1**: Complete `valuationRingAt_equiv_algebraMap_v3`
+   - Helpers `equivValuationSubring_val_eq` and `equivValuationSubring_symm_val_eq` are PROVED
+   - Issue: Dependent elimination with `▸` cast from `dvr_valuationSubring_eq_valuationRingAt'`
+   - Try: Direct rewriting without going through cast
+2. **Complete `bridge_residue_algebraMap`** - Only needs BLOCKER 1
+3. **Kernel characterization**: ker(evaluationMapAt) = L(D)
 
-### Cycle 61 Technical Hints (from Cycle 60 analysis)
-- **BLOCKER 2**: Proof works in TestBlockerProofs.lean but type unification blocks transplant
-  - Root cause: `residueFieldAtPrime R v` vs `v.asIdeal.ResidueField` syntactic mismatch
-  - Try: `unfold residueFieldAtPrime` at start of proof
-- **BLOCKER 1**: Use `Subring.coe_equivMapOfInjective_apply` to prove `(equivValuationSubring a).val = algebraMap a`
-  - Then use `apply_symm_apply` for symm direction
+### Cycle 62 Technical Hints (from Cycle 61 analysis)
+- **BLOCKER 2 is DONE!** Used `unfold localization_residueField_equiv` + `congrArg` pattern
+- **BLOCKER 1**: Two helpers proved, but main lemma blocked by:
+  - `valuationRingAt_equiv_localization'` defined as `h ▸ equivValuationSubring.symm`
+  - The `▸` cast creates dependent elimination issues when trying to use `equivValuationSubring_symm_val_eq`
+  - Alternative: Try proving without unfolding the definition, using ring equiv properties directly
 
 ---
 
-## Victory Path (Updated Cycle 60)
+## Victory Path (Updated Cycle 61)
 
 ```
 shifted_element_valuation_le_one (Cycle 54 - PROVED ✅)
@@ -129,9 +130,13 @@ localization_residue_equiv_symm_algebraMap (Cycle 59 - PROVED ✅)
     ↓
 ofBijective_quotient_mk_eq_algebraMap (Cycle 59 - PROVED ✅)
     ↓
-localization_residueField_equiv_algebraMap (Cycle 60 - PROVED in TestBlockerProofs ✅)  ← BLOCKER 2 DONE!
+localization_residueField_equiv_algebraMap_v5 (Cycle 61 - PROVED ✅)  ← BLOCKER 2 IN MAIN FILE!
     ↓
-valuationRingAt_equiv_algebraMap (SORRY)  ← KEY BLOCKER 1 (only remaining!)
+equivValuationSubring_val_eq (Cycle 61 - PROVED ✅)  ← Helper for BLOCKER 1
+    ↓
+equivValuationSubring_symm_val_eq (Cycle 61 - PROVED ✅)  ← Helper for BLOCKER 1
+    ↓
+valuationRingAt_equiv_algebraMap (SORRY)  ← KEY BLOCKER 1 (dependent elimination issue)
     ↓
 bridge_residue_algebraMap (pending)  ← depends only on BLOCKER 1 now
     ↓
@@ -140,7 +145,7 @@ kernel_evaluationMapAt = L(D)  ← NEXT TARGET after bridge
 LocalGapBound instance → VICTORY
 ```
 
-**NOTE**: Cycle 60 discovered BLOCKER 2 is PROVED in TestBlockerProofs.lean! Only BLOCKER 1 remains.
+**NOTE**: Cycle 61 transplanted BLOCKER 2 to main file and proved 2 helpers for BLOCKER 1. Only the main BLOCKER 1 lemma remains.
 
 - [ ] `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
