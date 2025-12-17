@@ -53,7 +53,7 @@ Where:
 
 ---
 
-## Current Status (Cycle 57)
+## Current Status (Cycle 58)
 
 **Codebase Structure**:
 ```
@@ -64,10 +64,11 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ **CLEAN** (0 sorries!)
-└── LocalGapInstance.lean   # Cycles 25-57 WIP ✅ BUILDS
+├── LocalGapInstance.lean   # Cycles 25-58 WIP ✅ BUILDS
+└── TestBlockerProofs.lean  # Cycle 58: Proof experiments (NOT in build)
 ```
 
-**Active Development**: `LocalGapInstance.lean` (bridge_residue_algebraMap decomposition)
+**Active Development**: `LocalGapInstance.lean` (key blockers) + `TestBlockerProofs.lean` (experiments)
 
 ### Typeclass Hierarchy
 ```
@@ -83,17 +84,23 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | Name | Status | Notes |
 |------|--------|-------|
 | `evaluationMapAt_complete` | ✅ **PROVED** | Cycle 56: LinearMap bundle complete |
-| `bridge_residue_algebraMap` | ⚠️ **SORRY** | **KEY BLOCKER** - diagram commutativity |
-| `valuationRingAt_equiv_algebraMap` | ⚠️ **SORRY** | Cycle 57: Ring equiv scalar tower (NEW) |
-| `localization_residueField_equiv_algebraMap` | ⚠️ **SORRY** | Cycle 57: h2 step (NEW) |
+| `localization_residueField_equiv_algebraMap` | ⚠️ **NEAR** | Cycle 58: Proof structure works, type coercion issue |
+| `valuationRingAt_equiv_algebraMap` | ⚠️ **SORRY** | Cycle 58: Needs `equivValuationSubring.symm` property |
+| `bridge_residue_algebraMap` | ⚠️ **SORRY** | Depends on above two blockers |
 | `algebraMap_residueField_factorization` | ✅ **PROVED** | Cycle 57: Scalar tower factorization |
 | `localization_residue_algebraMap` | ✅ **PROVED** | Cycle 57: Definitional (rfl) |
 
-### Next Cycle (58) Priorities
-1. **Prove `valuationRingAt_equiv_algebraMap`** - Ring equiv preserves algebraMap
-2. **Prove `localization_residueField_equiv_algebraMap`** - h2 step through localization
+### Next Cycle (59) Priorities
+1. **BLOCKER 2 FIRST**: Use `convert` to handle `residueFieldAtPrime`/`ResidueField` type mismatch
+2. **BLOCKER 1**: Prove helper `algebraMap A K (equivValuationSubring.symm x) = x.val`
 3. **Complete `bridge_residue_algebraMap`** - Via composition proof
 4. **Kernel characterization**: ker(evaluationMapAt) = L(D)
+
+### Cycle 59 Technical Hints (from Cycle 58 analysis)
+- For Blocker 2: The key step `equivQuotMaximalIdeal.symm (algebraMap R _ r) = Quotient.mk v.asIdeal r`
+  works via `RingEquiv.symm_apply_eq` + unfold + `rfl`
+- For Blocker 1: Try `subst` on the equality to eliminate `▸` cast, or prove the embedding property directly
+- Use `.symm` on `IsScalarTower.algebraMap_apply` - direction matters!
 
 ---
 

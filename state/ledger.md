@@ -2,19 +2,19 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 57)
+## Summary: Where We Are (End of Cycle 58)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
 **Current Target**: `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
-**Blocking Chain** (Updated Cycle 57):
+**Blocking Chain** (Updated Cycle 58):
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)  ← LINEARMAP COMPLETE!
     ↓
-valuationRingAt_equiv_algebraMap (Cycle 57 - SORRY)  ← KEY BLOCKER 1
+valuationRingAt_equiv_algebraMap (Cycle 58 - IN PROGRESS)  ← KEY BLOCKER 1
     ↓
-localization_residueField_equiv_algebraMap (Cycle 57 - SORRY)  ← KEY BLOCKER 2
+localization_residueField_equiv_algebraMap (Cycle 58 - IN PROGRESS)  ← KEY BLOCKER 2
     ↓
 bridge_residue_algebraMap (pending)  ← depends on blockers 1 & 2
     ↓
@@ -23,11 +23,79 @@ kernel_evaluationMapAt = L(D)  ← NEXT TARGET after bridge
 LocalGapBound instance → VICTORY
 ```
 
-**Note**: Cycle 57 decomposed bridge_residue_algebraMap into two key blockers. 2/8 helper lemmas proved.
+**Note**: Cycle 58 deep-dived into blocker structure. Test file created with proof strategies.
 
 ---
 
 ## 2025-12-17
+
+### Cycle 58 - Deep Analysis of Key Blockers - PROOF STRATEGIES IDENTIFIED
+
+**Goal**: Prove the two key blockers for bridge_residue_algebraMap
+
+#### Key Findings
+
+**Test File Created**: `RrLean/RiemannRochV2/TestBlockerProofs.lean` with multiple proof attempts.
+
+**BLOCKER 2 (`localization_residueField_equiv_algebraMap`) - NEARLY SOLVED**:
+
+The proof structure works:
+1. `unfold localization_residueField_equiv` + `simp only [RingEquiv.trans_apply]`
+2. `rw [IsLocalRing.residue_def, Ideal.Quotient.mk_algebraMap]`
+3. Key step: `equivQuotMaximalIdeal.symm (algebraMap R _ r) = Quotient.mk v.asIdeal r`
+   - Proved via: `rw [RingEquiv.symm_apply_eq]` then unfold + `rfl`
+4. Final: `RingEquiv.ofBijective_apply` + `Ideal.Quotient.algebraMap_eq` + `rfl`
+
+**Issue**: Type mismatch between `residueFieldAtPrime R v` and `v.asIdeal.ResidueField` prevents `rw`.
+**Solution for Cycle 59**: Use `show` to cast or use `convert` instead of `rw`.
+
+**BLOCKER 1 (`valuationRingAt_equiv_algebraMap`) - HARDER**:
+
+The challenge is the `▸` cast from `dvr_valuationSubring_eq_valuationRingAt'`.
+
+**Strategy that should work**:
+1. `apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K`
+2. RHS: `rw [IsScalarTower.algebraMap_apply ...]` (note: use `.symm` - direction matters!)
+3. LHS: Show `algebraMap (Loc) K (equiv x) = x.val`
+   - Key property: `equivValuationSubring.symm` preserves embedding to K
+   - `equivValuationSubring a = ⟨algebraMap (Loc) K a, _⟩`
+   - So `equivValuationSubring.symm ⟨x, _⟩` is unique `a` with `algebraMap a = x`
+
+**Gemini's suggestions to try**:
+1. Use `subst` on the equality to eliminate `▸` cast
+2. Use `erw` for metadata differences
+3. Check for `IsDiscreteValuationRing.equivValuationSubring_symm_apply` (not found yet)
+
+#### Technical Details
+
+**For Blocker 2** (Cycle 59 priority):
+```lean
+-- After setup, goal becomes:
+-- (RingEquiv.ofBijective ... ⋯) ((localization_residue_equiv v).symm (algebraMap R _ r))
+--   = algebraMap R (residueFieldAtPrime R v) r
+-- Use `convert` or explicit type annotation to handle residueFieldAtPrime = ResidueField
+```
+
+**For Blocker 1** (needs more exploration):
+```lean
+-- The definition: valuationRingAt_equiv_localization' = h ▸ equivValuationSubring.symm
+-- After IsFractionRing.injective, need:
+--   algebraMap (Loc) K (h ▸ equivValuationSubring.symm) ⟨algebraMap R K r, _⟩ = algebraMap R K r
+-- Key lemma needed: algebraMap A K (equivValuationSubring.symm x) = x.val
+```
+
+#### Reflector Score: 5/10
+
+**Assessment**: Good exploratory cycle. Proof structures understood but type coercion issues remain. Blocker 2 is very close; Blocker 1 needs the right lemma about `equivValuationSubring.symm`.
+
+**Next Steps (Cycle 59)**:
+1. **BLOCKER 2**: Use `convert` or explicit casts to handle `residueFieldAtPrime`/`ResidueField` mismatch
+2. **BLOCKER 1**: Prove helper lemma `algebraMap A K (equivValuationSubring.symm x) = x.val`
+3. If stuck on Blocker 1, try `subst` approach or search harder for mathlib lemmas
+
+**Cycle rating**: 5/10 (Exploratory, proof strategies identified, no new lemmas proved)
+
+---
 
 ### Cycle 57 - bridge_residue_algebraMap decomposition - 2/8 PROVED
 
