@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 47)
+## Summary: Where We Are (End of Cycle 48)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -14,9 +14,9 @@ dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
     ↓
 dvr_intValuation_of_algebraMap' (Cycle 47 - PROVED ✅)
     ↓
-dvr_valuation_eq_height_one' (KEY BLOCKER)
+dvr_valuation_eq_height_one' (Cycle 48 - PROOF VERIFIED ✅, needs section reorder)
     ↓
-valuationRingAt_subset_range_algebraMap' (PROVED*, depends on above)
+valuationRingAt_subset_range_algebraMap' (auto-unblocks after reorder)
     ↓
 valuationRingAt_equiv_localization → residueMapFromR_surjective
     ↓
@@ -26,6 +26,62 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 ---
 
 ## 2025-12-17
+
+### Cycle 48 - dvr_valuation_eq_height_one' PROOF VERIFIED
+
+**Goal**: Prove dvr_valuation_eq_height_one' (KEY BLOCKER)
+
+#### Key Achievement
+
+**Proof Strategy Verified**: Added `dvr_valuation_eq_height_one'_proof` in new Cycle48Candidates section at end of file. The proof compiles successfully, demonstrating the mathematical strategy is correct.
+
+**Blocker Identified**: Section ordering prevents direct deployment. The placeholder at line ~1230 (Cycle37) cannot use `dvr_intValuation_of_algebraMap'` which is defined at line ~1765 (Cycle39).
+
+#### Proof Strategy
+
+```lean
+lemma dvr_valuation_eq_height_one'_proof (v : HeightOneSpectrum R) (g : K) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+      v.valuation K g := by
+  -- 1. Write g = r/s using IsFractionRing.div_surjective
+  obtain ⟨r, s, hs, hg⟩ := IsFractionRing.div_surjective (A := R) g
+  rw [← hg]
+  -- 2. RHS: valuation_of_fraction gives v.intValuation r / v.intValuation s
+  rw [valuation_of_fraction v r (nonZeroDivisors.ne_zero hs)]
+  -- 3. LHS: Valuation.map_div to split the division
+  rw [Valuation.map_div (dvr_spec.valuation K)]
+  -- 4. Use scalar tower: algebraMap R K = algebraMap Loc K ∘ algebraMap R Loc
+  rw [hr_eq, hs_eq]
+  -- 5. Apply dvr_spec.valuation_of_algebraMap twice to reduce to intValuation
+  rw [dvr_spec.valuation_of_algebraMap, dvr_spec.valuation_of_algebraMap]
+  -- 6. Apply dvr_intValuation_of_algebraMap' twice (the key!)
+  rw [dvr_intValuation_of_algebraMap' v r, dvr_intValuation_of_algebraMap' v (s : R)]
+```
+
+#### Results
+
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `dvr_valuation_eq_height_one'_proof` | ✅ **PROVED** | In Cycle48Candidates, compiles |
+| `dvr_valuation_eq_height_one'` | ⚠️ PLACEHOLDER | Needs section reordering |
+
+#### Section Ordering Analysis
+
+**Current File Structure**:
+- Line ~1230: `dvr_valuation_eq_height_one'` (Cycle37) - placeholder with sorry
+- Line ~1765: `dvr_intValuation_of_algebraMap'` (Cycle39) - the key dependency
+- Line ~1890: `dvr_valuation_eq_height_one'_proof` (Cycle48) - working proof
+
+**Resolution Required**: Move Cycle41, Cycle44_Moved, and key parts of Cycle39 before Cycle37.
+
+**Next Steps (Cycle 49)**:
+1. Section reordering to move dependencies before Cycle37
+2. Replace placeholder with working proof
+3. Verify cascade: valuationRingAt_subset_range_algebraMap' should auto-unblock
+
+**Cycle rating**: 8/10 (proof verified, deployment blocked by technical debt)
+
+---
 
 ### Cycle 47 - dvr_intValuation_of_algebraMap' PROVED
 

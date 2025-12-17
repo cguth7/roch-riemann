@@ -1218,13 +1218,18 @@ lemma dvr_maximalIdeal_asIdeal_eq (v : HeightOneSpectrum R) :
 
 -- Candidate 2 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
 /-- The DVR maximal ideal valuation equals the HeightOneSpectrum valuation.
-This is the critical bridge lemma. Both valuations are defined from the same prime ideal. -/
+This is the critical bridge lemma. Both valuations are defined from the same prime ideal.
+Cycle 48 BLOCKED: Proof requires dvr_intValuation_of_algebraMap' (Cycle39), but Cycle37 < Cycle39.
+Need section reordering to complete. Strategy confirmed:
+1. Use IsFractionRing.div_surjective to write g = r/s
+2. Apply valuation_of_fraction on RHS: v.intVal r / v.intVal s
+3. Apply Valuation.map_div on LHS
+4. Use scalar tower to factor algebraMap R K through Loc.AtPrime
+5. Apply dvr_spec.valuation_of_algebraMap twice
+6. Apply dvr_intValuation_of_algebraMap' twice (NEEDS SECTION REORDER) -/
 lemma dvr_valuation_eq_height_one' (v : HeightOneSpectrum R) (g : K) :
     (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
       v.valuation K g := by
-  -- Both are defined via extension to localization from the same prime ideal
-  -- The maximalIdeal of the localization equals Ideal.map algebraMap v.asIdeal
-  -- So their valuations should agree
   sorry
 
 -- Candidate 3 [tag: dvr_bridge] [relevance: 5/5] [status: SORRY] [cycle: 37]
@@ -1860,5 +1865,54 @@ end Cycle42Candidates
 
 -- NOTE: Cycle44Candidates section was moved before Cycle39 in Cycle 47.
 -- The original section is now at Cycle44Candidates_Moved above.
+
+/-! ## Cycle 48 Candidates: Prove dvr_valuation_eq_height_one' (KEY BLOCKER)
+
+Goal: Prove dvr_valuation_eq_height_one' using dvr_intValuation_of_algebraMap'.
+
+This section is placed at the end of the file because it has access to all the
+previously defined lemmas (unlike the placeholder in Cycle37).
+
+After verification, section reordering should move this proof to replace the
+placeholder in Cycle37.
+-/
+
+section Cycle48Candidates
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Candidate 1 [tag: dvr_bridge] [relevance: 5/5] [status: PROVED] [cycle: 48]
+/-- PROOF VERIFICATION: DVR valuation equals HeightOneSpectrum valuation.
+This lemma proves the same statement as dvr_valuation_eq_height_one' (Cycle37)
+but has access to dvr_intValuation_of_algebraMap' (Cycle39).
+After verification, use section reordering to replace the Cycle37 placeholder. -/
+lemma dvr_valuation_eq_height_one'_proof (v : HeightOneSpectrum R) (g : K) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+      v.valuation K g := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  -- Write g as r/s for r, s ∈ R with s ∈ nonZeroDivisors
+  obtain ⟨r, s, hs, hg⟩ := IsFractionRing.div_surjective (A := R) g
+  rw [← hg]
+  -- RHS: Use valuation_of_fraction
+  rw [valuation_of_fraction v r (nonZeroDivisors.ne_zero hs)]
+  -- LHS: Use Valuation.map_div and the scalar tower
+  let dvr_spec := IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)
+  rw [Valuation.map_div (dvr_spec.valuation K)]
+  -- Rewrite algebraMap R K = algebraMap (Loc.AtPrime) K ∘ algebraMap R (Loc.AtPrime)
+  have hr_eq : algebraMap R K r = algebraMap (Localization.AtPrime v.asIdeal) K
+      (algebraMap R (Localization.AtPrime v.asIdeal) r) :=
+    IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K r
+  have hs_eq : algebraMap R K (s : R) = algebraMap (Localization.AtPrime v.asIdeal) K
+      (algebraMap R (Localization.AtPrime v.asIdeal) (s : R)) :=
+    IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K (s : R)
+  rw [hr_eq, hs_eq]
+  -- Apply dvr_spec.valuation_of_algebraMap to reduce to intValuation
+  rw [dvr_spec.valuation_of_algebraMap, dvr_spec.valuation_of_algebraMap]
+  -- Apply dvr_intValuation_of_algebraMap' twice
+  rw [dvr_intValuation_of_algebraMap' v r, dvr_intValuation_of_algebraMap' v (s : R)]
+
+end Cycle48Candidates
 
 end RiemannRochV2

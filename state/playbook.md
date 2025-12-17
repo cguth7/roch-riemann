@@ -26,7 +26,7 @@
 
 ---
 
-## Current Status (Cycle 47)
+## Current Status (Cycle 48)
 
 **Codebase Structure**:
 ```
@@ -37,7 +37,7 @@ RrLean/RiemannRochV2/
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
 ├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-47 WIP ✅ BUILDS
+└── LocalGapInstance.lean   # Cycles 25-48 WIP ✅ BUILDS
 ```
 
 **Active Development**: `LocalGapInstance.lean`
@@ -59,13 +59,13 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` | ✅ **PROVED** | Cycle 45: backward direction |
 | `dvr_intValuation_eq_via_pow_membership` | ✅ **PROVED** | Cycle 46: via intValuation_le_pow_iff_mem bridge |
 | `dvr_intValuation_of_algebraMap'` | ✅ **PROVED** | Cycle 47: section reordering + apply moved lemma |
-| `dvr_valuation_eq_height_one'` | **KEY BLOCKER** | DVR valuation = HeightOneSpectrum valuation |
+| `dvr_valuation_eq_height_one'` | ✅ **PROOF VERIFIED** | Cycle 48: proof in Cycle48Candidates, needs section reorder |
 
-### Next Cycle (48) Priorities
-1. **dvr_valuation_eq_height_one'** - Final KEY BLOCKER
-   - Use `dvr_intValuation_of_algebraMap'` + valuation extension properties
-   - Discovery: `Valuation.extendToLocalization_apply_map_apply` may help
-2. **valuationRingAt_subset_range_algebraMap'** - Depends on above
+### Next Cycle (49) Priorities
+1. **Section Reordering** - Move Cycle41/44_Moved/39 before Cycle37
+   - Move `dvr_intValuation_of_algebraMap'` and dependencies before line 1230
+   - Replace placeholder `dvr_valuation_eq_height_one'` with `_proof` version
+2. **valuationRingAt_subset_range_algebraMap'** - Will unblock after reordering
 3. **valuationRingAt_equiv_localization** - Final localization equivalence
 
 ---
@@ -77,7 +77,7 @@ dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
     ↓
 dvr_intValuation_of_algebraMap' (Cycle 47 - PROVED ✅)
     ↓
-dvr_valuation_eq_height_one' (KEY BLOCKER)
+dvr_valuation_eq_height_one' (Cycle 48 - PROOF VERIFIED ✅, needs section reorder)
     ↓
 valuationRingAt_subset_range_algebraMap' (PROVED*, depends on above)
     ↓
@@ -142,6 +142,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 45 | ROOT BLOCKER PROVED (3 lemmas via Ideal.IsPrime.mul_mem_pow) |
 | 46 | **dvr_intValuation_eq_via_pow_membership PROVED** (intVal bridge, unblocks hard case) |
 | 47 | **dvr_intValuation_of_algebraMap' PROVED** (section reordering, unblocks valuation bridge) |
+| 48 | **dvr_valuation_eq_height_one' PROOF VERIFIED** (section ordering blocks deployment) |
 
 ---
 

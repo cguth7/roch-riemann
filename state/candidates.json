@@ -1,27 +1,33 @@
 {
-  "active_edge": "Cycle 47: dvr_intValuation_of_algebraMap' PROVED",
-  "cycle_47_results": {
-    "goal": "Complete dvr_intValuation_of_algebraMap' via section reordering",
-    "status": "SUCCESS",
+  "active_edge": "Cycle 48: dvr_valuation_eq_height_one'_proof VERIFIED (needs section reorder)",
+  "cycle_48_results": {
+    "goal": "Prove dvr_valuation_eq_height_one' (KEY BLOCKER)",
+    "status": "PROOF VERIFIED - blocked by section ordering",
     "proved_count": 1,
     "sorry_count_new": 0,
-    "key_change": "Section reordering - moved Cycle44Candidates before Cycle39",
+    "key_change": "Added Cycle48Candidates section with verified proof",
     "candidates": [
       {
-        "name": "dvr_intValuation_of_algebraMap'",
-        "type": "PROVE",
-        "status": "PROVED",
+        "name": "dvr_valuation_eq_height_one'_proof",
+        "type": "PROOF",
+        "status": "PROVED (compiles)",
         "score": "10/10",
-        "notes": "Hard case fixed via dvr_intValuation_eq_via_pow_membership_moved"
+        "location": "Cycle48Candidates (end of file)",
+        "notes": "Cannot replace placeholder due to section ordering"
       }
     ],
-    "cascade_unblocked": [
-      "dvr_valuation_eq_height_one' (KEY BLOCKER - next target)"
-    ]
+    "blocker_identified": {
+      "type": "Section Ordering",
+      "placeholder_location": "Cycle37 (line ~1230)",
+      "proof_location": "Cycle48 (line ~1890)",
+      "dependency_location": "Cycle39 (line ~1765) - dvr_intValuation_of_algebraMap'",
+      "resolution": "Move Cycle41/44_Moved/39 before Cycle37"
+    }
   },
   "next_cycle_priority": [
-    "dvr_valuation_eq_height_one' - use dvr_intValuation_of_algebraMap' + extendToLocalization",
-    "valuationRingAt_subset_range_algebraMap' - depends on above",
+    "Section reordering: Move dvr_intValuation_of_algebraMap' and deps before Cycle37",
+    "Replace dvr_valuation_eq_height_one' placeholder with _proof",
+    "valuationRingAt_subset_range_algebraMap' - will auto-unblock",
     "valuationRingAt_equiv_localization"
   ],
   "architecture": {
@@ -34,13 +40,20 @@
       "      └─→ mem_asIdeal_pow_iff_mem_maxIdeal_pow' (Cycle 45 - PROVED) ✅",
       "          └─→ dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED) ✅",
       "              └─→ dvr_intValuation_of_algebraMap' (Cycle 47 - PROVED) ✅",
-      "                  └─→ dvr_valuation_eq_height_one' (KEY BLOCKER)",
-      "                      └─→ valuationRingAt_subset_range_algebraMap' (TARGET)"
+      "                  └─→ dvr_valuation_eq_height_one' (Cycle 48 - PROOF VERIFIED) ✅",
+      "                      └─→ valuationRingAt_subset_range_algebraMap' (needs reorder)"
     ]
   },
-  "proof_strategy_used": {
-    "lemma": "dvr_intValuation_of_algebraMap'",
-    "approach": "Section reordering to make dvr_intValuation_eq_via_pow_membership_moved available",
-    "key_insight": "Dependency ordering issue - lemma needed to exist before usage site"
+  "proof_strategy_verified": {
+    "lemma": "dvr_valuation_eq_height_one'_proof",
+    "approach": "decompose g = r/s, use valuation_of_fraction + scalar tower + dvr_intValuation_of_algebraMap'",
+    "key_steps": [
+      "1. IsFractionRing.div_surjective to get g = r/s",
+      "2. valuation_of_fraction on RHS",
+      "3. Valuation.map_div on LHS",
+      "4. IsScalarTower.algebraMap_apply to factor",
+      "5. dvr_spec.valuation_of_algebraMap twice",
+      "6. dvr_intValuation_of_algebraMap' twice"
+    ]
   }
 }
