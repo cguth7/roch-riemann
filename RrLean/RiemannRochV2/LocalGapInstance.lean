@@ -3073,4 +3073,115 @@ lemma valuationRingAt_equiv_algebraMap_from_symm (v : HeightOneSpectrum R) (r : 
 
 end Cycle64Candidates
 
+/-! ## Cycle 64 BREAKTHROUGH: Cast-Free Equiv PROVED!
+
+The breakthrough: Define the equiv using Set.range membership and IsFractionRing.injective,
+completely bypassing the ▸ cast that blocked all previous approaches.
+
+**Key insight**: For x : valuationRingAt v, x.val ∈ range(algebraMap Loc K) by the
+set equality valuationSubring_eq_localization_image_complete. Use .choose to get the preimage.
+-/
+
+section Cycle64Breakthrough
+
+variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
+
+-- Helper: membership in range
+lemma valuationRingAt_val_mem_range (v : HeightOneSpectrum R)
+    (x : valuationRingAt (R := R) (K := K) v) :
+    x.val ∈ Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  rw [← valuationSubring_eq_localization_image_complete (K := K) v]
+  exact x.property
+
+-- The clean map: use Set.range membership .choose
+noncomputable def valuationRingAt_to_localization (v : HeightOneSpectrum R)
+    (x : valuationRingAt (R := R) (K := K) v) : Localization.AtPrime v.asIdeal :=
+  (valuationRingAt_val_mem_range v x).choose
+
+-- Key property: the preimage maps back to the original value
+lemma valuationRingAt_to_localization_spec (v : HeightOneSpectrum R)
+    (x : valuationRingAt (R := R) (K := K) v) :
+    algebraMap (Localization.AtPrime v.asIdeal) K (valuationRingAt_to_localization v x) = x.val :=
+  (valuationRingAt_val_mem_range v x).choose_spec
+
+-- Ring homomorphism structure (all proofs via IsFractionRing.injective)
+noncomputable def valuationRingAt_to_localization_hom (v : HeightOneSpectrum R) :
+    valuationRingAt (R := R) (K := K) v →+* Localization.AtPrime v.asIdeal where
+  toFun := valuationRingAt_to_localization v
+  map_one' := by
+    haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+    haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+    apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+    simp only [map_one, valuationRingAt_to_localization_spec, OneMemClass.coe_one]
+  map_mul' x y := by
+    haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+    haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+    apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+    simp only [map_mul, valuationRingAt_to_localization_spec, MulMemClass.coe_mul]
+  map_zero' := by
+    haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+    haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+    apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+    simp only [map_zero, valuationRingAt_to_localization_spec, ZeroMemClass.coe_zero]
+  map_add' x y := by
+    haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+    haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+    apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+    simp only [map_add, valuationRingAt_to_localization_spec, AddMemClass.coe_add]
+
+-- Simp lemma for hom application
+@[simp] lemma valuationRingAt_to_localization_hom_apply (v : HeightOneSpectrum R)
+    (x : valuationRingAt (R := R) (K := K) v) :
+    valuationRingAt_to_localization_hom v x = valuationRingAt_to_localization v x := rfl
+
+-- Injectivity (via IsFractionRing.injective)
+lemma valuationRingAt_to_localization_injective (v : HeightOneSpectrum R) :
+    Function.Injective (valuationRingAt_to_localization_hom (R := R) (K := K) v) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  intro x y hxy
+  apply Subtype.ext
+  rw [← valuationRingAt_to_localization_spec v x, ← valuationRingAt_to_localization_spec v y]
+  simp only [valuationRingAt_to_localization_hom_apply] at hxy
+  rw [hxy]
+
+-- Surjectivity (via range_algebraMap_subset_valuationRingAt)
+lemma valuationRingAt_to_localization_surjective (v : HeightOneSpectrum R) :
+    Function.Surjective (valuationRingAt_to_localization_hom (R := R) (K := K) v) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  intro y
+  have hmem : algebraMap (Localization.AtPrime v.asIdeal) K y ∈ valuationRingAt (R := R) (K := K) v := by
+    apply range_algebraMap_subset_valuationRingAt
+    exact ⟨y, rfl⟩
+  use ⟨algebraMap (Localization.AtPrime v.asIdeal) K y, hmem⟩
+  apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+  simp only [valuationRingAt_to_localization_hom_apply, valuationRingAt_to_localization_spec]
+
+-- THE CLEAN RING EQUIV (cast-free!)
+noncomputable def valuationRingAt_equiv_localization_clean (v : HeightOneSpectrum R) :
+    valuationRingAt (R := R) (K := K) v ≃+* Localization.AtPrime v.asIdeal :=
+  RingEquiv.ofBijective (valuationRingAt_to_localization_hom v)
+    ⟨valuationRingAt_to_localization_injective v, valuationRingAt_to_localization_surjective v⟩
+
+-- ============================================================================
+-- BLOCKER 1 RESOLVED: algebraMap property for the clean equiv
+-- ============================================================================
+lemma valuationRingAt_equiv_clean_algebraMap (v : HeightOneSpectrum R) (r : R) :
+    (valuationRingAt_equiv_localization_clean (R := R) (K := K) v)
+      ⟨algebraMap R K r, algebraMap_mem_valuationRingAt v r⟩ =
+    algebraMap R (Localization.AtPrime v.asIdeal) r := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  simp only [valuationRingAt_equiv_localization_clean, RingEquiv.ofBijective_apply,
+             valuationRingAt_to_localization_hom_apply]
+  apply IsFractionRing.injective (Localization.AtPrime v.asIdeal) K
+  rw [valuationRingAt_to_localization_spec]
+  exact IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K r
+
+end Cycle64Breakthrough
+
 end RiemannRochV2
