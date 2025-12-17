@@ -1764,7 +1764,17 @@ lemma algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow (v : HeightOneSpectrum R) (
   rw [maxIdeal_pow_eq_map_asIdeal_pow v n]
   exact Ideal.mem_map_of_mem _ hr
 
--- Candidate 4 [tag: arithmetic] [relevance: 5/5] [status: TBD] [cycle: 44]
+-- Candidate 4 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 45]
+/-- In a Dedekind domain, if m ∉ p and m * r ∈ p^n, then r ∈ p^n.
+This is the coprimality argument needed for the backward direction.
+Uses Ideal.IsPrime.mul_mem_pow from mathlib. ROOT BLOCKER PROVED in Cycle 45. -/
+lemma mem_pow_of_mul_mem_pow_of_not_mem (v : HeightOneSpectrum R) (m r : R)
+    (hm : m ∉ v.asIdeal) (n : ℕ) (hmr : m * r ∈ v.asIdeal ^ n) :
+    r ∈ v.asIdeal ^ n := by
+  haveI : v.asIdeal.IsPrime := v.isPrime
+  exact (Ideal.IsPrime.mul_mem_pow v.asIdeal hmr).resolve_left hm
+
+-- Candidate 5 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 45]
 /-- Backward direction: algebraMap r ∈ maxIdeal^n → r ∈ v.asIdeal^n.
 Uses algebraMap_mem_map_algebraMap_iff and coprimality in Dedekind domain. -/
 lemma mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow (v : HeightOneSpectrum R) (r : R) (n : ℕ)
@@ -1772,15 +1782,12 @@ lemma mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow (v : HeightOneSpectrum R) (
       (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n) :
     r ∈ v.asIdeal ^ n := by
   rw [maxIdeal_pow_eq_map_asIdeal_pow v n] at hr
-  -- Now hr : algebraMap r ∈ map(v.asIdeal^n)
-  -- By algebraMap_mem_map_algebraMap_iff: ∃ m ∈ primeCompl, m * r ∈ v.asIdeal^n
   rw [IsLocalization.algebraMap_mem_map_algebraMap_iff v.asIdeal.primeCompl] at hr
   obtain ⟨m, hm, hmr⟩ := hr
-  -- m ∉ v.asIdeal (since m ∈ primeCompl) and m * r ∈ v.asIdeal^n
-  -- In a Dedekind domain, since v.asIdeal is maximal and m ∉ v.asIdeal, we get r ∈ v.asIdeal^n
-  sorry
+  have hm' : m ∉ v.asIdeal := hm  -- primeCompl membership is definitionally ∉
+  exact mem_pow_of_mul_mem_pow_of_not_mem v m r hm' n hmr
 
--- Candidate 5 [tag: arithmetic] [relevance: 5/5] [status: TBD] [cycle: 44]
+-- Candidate 6 [tag: arithmetic] [relevance: 5/5] [status: PROVED] [cycle: 45]
 /-- Complete characterization: r ∈ v.asIdeal^n ↔ algebraMap r ∈ maxIdeal^n.
 Combines the forward and backward directions. -/
 lemma mem_asIdeal_pow_iff_mem_maxIdeal_pow' (v : HeightOneSpectrum R) (r : R) (n : ℕ) :
@@ -1789,17 +1796,6 @@ lemma mem_asIdeal_pow_iff_mem_maxIdeal_pow' (v : HeightOneSpectrum R) (r : R) (n
         (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n :=
   ⟨algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow v r n,
    mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow v r n⟩
-
--- Candidate 6 [tag: arithmetic] [relevance: 5/5] [status: TBD] [cycle: 44]
-/-- In a Dedekind domain, if m ∉ p and m * r ∈ p^n, then r ∈ p^n.
-This is the coprimality argument needed for the backward direction. -/
-lemma mem_pow_of_mul_mem_pow_of_not_mem (v : HeightOneSpectrum R) (m r : R)
-    (hm : m ∉ v.asIdeal) (n : ℕ) (hmr : m * r ∈ v.asIdeal ^ n) :
-    r ∈ v.asIdeal ^ n := by
-  -- In a Dedekind domain, unique factorization of ideals applies.
-  -- v.asIdeal is maximal, so v.asIdeal^n is coprime to Ideal.span {m}
-  -- This means if m * r ∈ v.asIdeal^n, then r ∈ v.asIdeal^n
-  sorry
 
 -- Candidate 7 [tag: arithmetic] [relevance: 4/5] [status: TBD] [cycle: 44]
 /-- DVR intValuation characterization via ideal powers.

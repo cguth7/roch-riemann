@@ -2,7 +2,7 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 44)
+## Summary: Where We Are (End of Cycle 45)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
@@ -10,6 +10,8 @@
 
 **Blocking Chain**:
 ```
+dvr_intValuation_eq_via_pow_membership (SORRY - NOW UNBLOCKED)
+    ↓
 dvr_intValuation_of_algebraMap' hard case (SORRY - r ∈ v.asIdeal)
     ↓
 dvr_valuation_eq_height_one' (KEY BLOCKER)
@@ -24,6 +26,39 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 ---
 
 ## 2025-12-17
+
+### Cycle 45 - ROOT BLOCKER PROVED - 3 LEMMAS COMPLETE
+
+**Goal**: Prove ROOT BLOCKER `mem_pow_of_mul_mem_pow_of_not_mem`
+
+#### Key Discovery
+
+Found **`Ideal.IsPrime.mul_mem_pow`** in `Mathlib/RingTheory/DedekindDomain/Ideal/Lemmas.lean:668`:
+```lean
+theorem Ideal.IsPrime.mul_mem_pow (I : Ideal R) [hI : I.IsPrime] {a b : R} {n : ℕ}
+    (h : a * b ∈ I ^ n) : a ∈ I ∨ b ∈ I ^ n
+```
+
+This directly proves the ROOT BLOCKER!
+
+#### Results
+
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `mem_pow_of_mul_mem_pow_of_not_mem` | ✅ **PROVED** | ROOT BLOCKER via Ideal.IsPrime.mul_mem_pow |
+| `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` | ✅ **PROVED** | Backward direction |
+| `mem_asIdeal_pow_iff_mem_maxIdeal_pow'` | ✅ **PROVED** | Complete iff characterization |
+
+**Proof Strategy (worked perfectly)**:
+1. `Ideal.IsPrime.mul_mem_pow` gives: `a * b ∈ I^n → a ∈ I ∨ b ∈ I^n`
+2. Our lemma: `m ∉ v.asIdeal, m * r ∈ v.asIdeal^n → r ∈ v.asIdeal^n`
+3. Apply, then `resolve_left` with hypothesis `hm : m ∉ v.asIdeal`
+
+**Section Reordering**: Moved `mem_pow_of_mul_mem_pow_of_not_mem` before `mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow` to fix dependency ordering.
+
+**Cycle rating**: 10/10 (ROOT BLOCKER eliminated, cascade unblocked)
+
+---
 
 ### Cycle 44 - Ideal Power Membership Bridge - 3 PROVED + ROOT BLOCKER IDENTIFIED
 
