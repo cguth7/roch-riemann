@@ -348,7 +348,8 @@ lemma valuationRingAt_embedding_compatible (v : HeightOneSpectrum R)
   rw [← mem_valuationRingAt_iff]
   exact g.property
 
--- Candidate 5 [tag: rr_bundle_bridge] [status: SORRY]
+-- Candidate 5 [tag: rr_bundle_bridge] [status: SUPERSEDED]
+-- SUPERSEDED: Use residueFieldBridge_explicit (Cycle 52, line 2210) which is PROVED.
 /-- For Dedekind domains, the residue field of the valuation ring at v
 is ring-isomorphic to the residue field at the prime v.asIdeal.
 This is the KEY bridge for constructing evaluationMapAt.
@@ -359,7 +360,8 @@ Uses RingEquiv instead of LinearEquiv to avoid Module instance issues. -/
 noncomputable def residueFieldBridge (v : HeightOneSpectrum R) :
     valuationRingAt.residueField (R := R) (K := K) v ≃+* residueFieldAtPrime R v := sorry
 
--- Candidate 6 [tag: rr_bundle_bridge] [status: SORRY]
+-- Candidate 6 [tag: rr_bundle_bridge] [status: SUPERSEDED]
+-- SUPERSEDED: Should use residueFieldBridge_explicit + residueField_equiv_commutes_with_residue.
 /-- The residue field bridge commutes with the natural residue maps:
 algebraMap R → valuationRingAt v → residue field at valuation ring
 is equivalent to algebraMap R → residue field at prime. -/
@@ -368,7 +370,9 @@ lemma residueFieldBridge_algebraMap_comm (v : HeightOneSpectrum R) (r : R) :
       ⟨algebraMap R K r, algebraMap_mem_valuationRingAt v r⟩) =
     (residueMapAtPrime R v) r := sorry
 
--- Candidate 7 [tag: rr_bundle_bridge] [status: SORRY]
+-- Candidate 7 [tag: rr_bundle_bridge] [status: ACTIVE_TARGET]
+-- ACTIVE TARGET: Can now be proved using residueFieldBridge_explicit (PROVED in Cycle 52).
+-- BLOCKED BY: shifted_element_valuation_le_one (Infrastructure.lean:274)
 /-- Construct evaluationMapAt using the residue field bridge.
 For f ∈ L(D+v), compute g = f · π^{D(v)+1}, use shifted_element_valuation_le_one
 to show g ∈ valuationRingAt v, apply residue, then bridge to residueFieldAtPrime. -/
@@ -452,7 +456,10 @@ lemma residueMapFromR_ker (v : HeightOneSpectrum R) :
   rw [← h]
   simp only [Ideal.mem_comap]
 
--- Candidate 4 [tag: bypass_bridge] [status: OK] [cycle: 30]
+-- Candidate 4 [tag: bypass_bridge] [status: OBSOLETE] [cycle: 30]
+-- OBSOLETE: Bypassed by Cycle 52's mapEquiv approach. residueFieldBridge_explicit
+-- now uses valuationRingAt_equiv_localization' + IsLocalRing.ResidueField.mapEquiv
+-- without needing surjectivity of R → residueField.
 /-- The residue map from R to valuationRingAt.residueField v is surjective.
 Every element of the residue field has a representative in R. -/
 lemma residueMapFromR_surjective (v : HeightOneSpectrum R) :
@@ -466,7 +473,9 @@ lemma residueMapFromR_surjective (v : HeightOneSpectrum R) :
   -- This uses the fact that R is integrally closed and v is a DVR
   sorry
 
--- Candidate 5 [tag: bypass_bridge] [status: SORRY] [cycle: 30]
+-- Candidate 5 [tag: bypass_bridge] [status: OBSOLETE] [cycle: 30]
+-- OBSOLETE: First Isomorphism Theorem approach superseded by Cycle 52's mapEquiv.
+-- Use residueFieldBridge_explicit (line 2196) instead.
 /-- The residue field of valuationRingAt v is isomorphic to R/v.asIdeal as rings.
 Uses the First Isomorphism Theorem: if φ: R → S is surjective, then R/ker(φ) ≃ S.
 
@@ -485,7 +494,8 @@ noncomputable def residueFieldBridge_v2 (v : HeightOneSpectrum R) :
   -- So R / v.asIdeal ≃ residueField
   sorry
 
--- Candidate 6 [tag: bypass_bridge] [status: SORRY] [cycle: 30]
+-- Candidate 6 [tag: bypass_bridge] [status: OBSOLETE] [cycle: 30]
+-- OBSOLETE: Superseded by residueFieldBridge_explicit (Cycle 52, line 2196).
 /-- The full residue field bridge: valuationRingAt.residueField v ≃+* residueFieldAtPrime R v.
 Composes Candidate 5 with the canonical isomorphism R/v.asIdeal ≃ v.asIdeal.ResidueField.
 
@@ -495,7 +505,7 @@ noncomputable def residueFieldBridge_v3 (v : HeightOneSpectrum R) :
   -- Placeholder - compose with quotient isomorphism
   sorry
 
--- The original residueFieldBridge now uses v3
+-- OBSOLETE: Use residueFieldBridge_explicit (Cycle 52, line 2196) instead.
 noncomputable def residueFieldBridge' (v : HeightOneSpectrum R) :
     valuationRingAt.residueField (R := R) (K := K) v ≃+* residueFieldAtPrime R v :=
   residueFieldBridge_v3 v
@@ -503,6 +513,11 @@ noncomputable def residueFieldBridge' (v : HeightOneSpectrum R) :
 end Cycle30Candidates
 
 /-! ## Cycle 31 Candidates: Proving residueMapFromR_surjective
+
+OBSOLETE: This entire approach was bypassed by Cycle 52's mapEquiv discovery.
+The residueFieldBridge is now proved via:
+  valuationRingAt_equiv_localization' → IsLocalRing.ResidueField.mapEquiv → localization_residueField_equiv
+See residueFieldBridge_explicit (line 2196) for the working proof.
 
 Strategy: Direct proof using First Isomorphism Theorem approach.
 
@@ -527,7 +542,8 @@ instance localizationAtPrime_isDVR (v : HeightOneSpectrum R) :
   IsLocalization.AtPrime.isDiscreteValuationRing_of_dedekind_domain R v.ne_bot
     (Localization.AtPrime v.asIdeal)
 
--- Candidate 2 [tag: core_lemma] [status: SORRY] [cycle: 31]
+-- Candidate 2 [tag: core_lemma] [status: OBSOLETE] [cycle: 31]
+-- OBSOLETE: Not needed - Cycle 52 proved residueFieldBridge without this density argument.
 /-- For any g ∈ valuationRingAt v (i.e., v(g) ≤ 1), there exists r ∈ R such that
 algebraMap r ≡ g (mod maximalIdeal of valuationRingAt).
 
@@ -543,7 +559,8 @@ lemma exists_same_residue_class (v : HeightOneSpectrum R)
       IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := by
   sorry
 
--- Candidate 3 [tag: main_proof] [status: SORRY] [cycle: 31]
+-- Candidate 3 [tag: main_proof] [status: OBSOLETE] [cycle: 31]
+-- OBSOLETE: Not needed - Cycle 52 proved residueFieldBridge without surjectivity.
 /-- Surjectivity of residueMapFromR using exists_same_residue_class. -/
 lemma residueMapFromR_surjective' (v : HeightOneSpectrum R) :
     Function.Surjective (residueMapFromR (R := R) (K := K) v) := by
@@ -2134,7 +2151,9 @@ lemma valuationRingAt_equiv_map_unit_iff (v : HeightOneSpectrum R)
   haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
   exact (MulEquiv.isUnit_map (valuationRingAt_equiv_localization' (R := R) (K := K) v)).symm
 
--- Candidate 2 [tag: rr_bundle_bridge] [relevance: 5/5] [status: TBD] [cycle: 51]
+-- Candidate 2 [tag: rr_bundle_bridge] [relevance: 3/5] [status: NOT_NEEDED] [cycle: 51]
+-- NOT_NEEDED: IsLocalRing.ResidueField.mapEquiv handles ideal correspondence automatically.
+-- The mapEquiv approach (Candidate 3) bypasses the need for explicit ideal comap equality.
 /-- The maximal ideal of valuationRingAt v equals the preimage of the maximal ideal
 of Localization.AtPrime v.asIdeal under valuationRingAt_equiv_localization'.
 This establishes the ideal correspondence needed for residue field transport. -/

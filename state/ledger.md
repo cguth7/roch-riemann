@@ -2,28 +2,78 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 52)
+## Summary: Where We Are (End of Cycle 53)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
 **Current Target**: `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
-**Blocking Chain**:
+**Blocking Chain** (CORRECTED Cycle 53):
 ```
-valuationRingAt_equiv_localization' (Cycle 50 - PROVED ✅)
-    ↓
-residueField_transport_direct (Cycle 52 - PROVED ✅)
-    ↓
 residueFieldBridge_explicit (Cycle 52 - PROVED ✅)
     ↓
-residueMapFromR_surjective  ← NEXT TARGET
+shifted_element_valuation_le_one (Infrastructure.lean:274 - SORRY)  ← ACTUAL NEXT TARGET
     ↓
-evaluationMapAt → kernel → LocalGapBound → VICTORY
+evaluationMapAt_via_bridge → kernel → LocalGapBound → VICTORY
 ```
+
+**Note**: `residueMapFromR_surjective` is OBSOLETE - bypassed by Cycle 52's mapEquiv approach.
 
 ---
 
 ## 2025-12-17
+
+### Cycle 53 - Consolidation & Cull - DEAD CODE MARKED OBSOLETE
+
+**Goal**: Clean up accumulated dead-end sorries to prevent LLM confusion in future cycles.
+
+#### Key Insight
+
+The Cycle 52 discovery of `IsLocalRing.ResidueField.mapEquiv` completely bypassed the Cycle 30-31
+approach that required proving `residueMapFromR_surjective` (R is dense in valuation ring mod maxIdeal).
+
+**The mapEquiv path**:
+```
+valuationRingAt_equiv_localization' → IsLocalRing.ResidueField.mapEquiv → localization_residueField_equiv
+```
+
+This elegant approach makes the following lemmas OBSOLETE:
+- `residueMapFromR_surjective` (Cycle 30)
+- `exists_same_residue_class` (Cycle 31)
+- `residueFieldBridge_v2`, `v3`, `residueFieldBridge'` (Cycle 30)
+- `valuationRingAt_maximalIdeal_correspondence` (Cycle 51 - not needed, mapEquiv handles it)
+
+#### Changes Made
+
+1. **Marked as OBSOLETE**: All dead-end lemmas in Cycles 30-31
+2. **Marked as SUPERSEDED**: Original `residueFieldBridge` stub (line 360)
+3. **Marked as NOT_NEEDED**: `valuationRingAt_maximalIdeal_correspondence` (Cycle 51)
+4. **Marked as ACTIVE_TARGET**: `evaluationMapAt_via_bridge` (line 379)
+
+#### Corrected Victory Path
+
+The ACTUAL next target is `shifted_element_valuation_le_one` (Infrastructure.lean:274), NOT `residueMapFromR_surjective`.
+
+The path is now:
+```
+shifted_element_valuation_le_one (Infrastructure.lean:274)
+    ↓ (proves element lands in valuationRingAt)
+evaluationMapAt_via_bridge (line 379) using residueFieldBridge_explicit (PROVED!)
+    ↓
+kernel_evaluationMapAt = L(D)
+    ↓
+LocalGapBound instance
+    ↓
+VICTORY
+```
+
+#### Reflector Score: 8/10
+
+**Assessment**: Important housekeeping cycle. Marking dead code prevents future LLMs from wasting cycles on bypassed approaches. The corrected victory path is now clear.
+
+**Cycle rating**: 8/10 (No new proofs, but critical strategic clarity achieved)
+
+---
 
 ### Cycle 52 - residueFieldBridge PROVED - 7/8 CANDIDATES COMPLETE
 

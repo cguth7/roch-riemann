@@ -1,5 +1,32 @@
 # Playbook (Curator maintained)
 
+## Ultimate Goal: Riemann-Roch Theorem
+
+**IMPORTANT CONTEXT FOR ALL LOOPS**: The current target (`LocalGapBound R K`) is a milestone, NOT the final goal.
+
+The **ultimate objective** is a complete formalization of the **Riemann-Roch theorem** for algebraic curves/function fields in Lean 4:
+```
+ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
+```
+
+Where:
+- `ℓ(D)` = dimension of the Riemann-Roch space L(D)
+- `K` = canonical divisor
+- `g` = genus of the curve/function field
+- `deg(D)` = degree of divisor D
+
+**Current Phase**: We're proving the **Riemann inequality** (`ℓ(D) ≤ deg(D) + 1 - g` or affine variant) as a stepping stone. This requires:
+1. ✅ `riemann_inequality_affine` theorem (PROVED, but needs `LocalGapBound` instance)
+2. ⚠️ `LocalGapBound R K` instance (CURRENT TARGET)
+3. 🔮 Full Riemann-Roch with canonical divisor and genus (FUTURE)
+
+**Why this matters for decision-making**:
+- When choosing between approaches, prefer ones that generalize to the full RR theorem
+- The residue field / evaluation map machinery will be reused for the canonical divisor construction
+- Keep an eye on how genus `g` will eventually be defined (likely via differentials or Serre duality)
+
+---
+
 ## Heuristics
 
 ### General
@@ -26,7 +53,7 @@
 
 ---
 
-## Current Status (Cycle 52)
+## Current Status (Cycle 53)
 
 **Codebase Structure**:
 ```
@@ -36,11 +63,11 @@ RrLean/RiemannRochV2/
 ├── RRSpace.lean            # L(D), ℓ(D) ✅ (1 sorry placeholder)
 ├── Typeclasses.lean        # LocalGapBound ✅
 ├── RiemannInequality.lean  # Main theorems ✅ (1 sorry placeholder)
-├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry WIP)
-└── LocalGapInstance.lean   # Cycles 25-52 WIP ✅ BUILDS
+├── Infrastructure.lean     # Residue, uniformizer ✅ (1 sorry: shifted_element_valuation_le_one)
+└── LocalGapInstance.lean   # Cycles 25-53 WIP ✅ BUILDS (dead code marked OBSOLETE)
 ```
 
-**Active Development**: `LocalGapInstance.lean`
+**Active Development**: `Infrastructure.lean` (shifted_element) then `LocalGapInstance.lean` (evaluationMapAt)
 
 ### Typeclass Hierarchy
 ```
@@ -63,17 +90,18 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 | `valuationRingAt_equiv_localization'` | ✅ **PROVED** | Cycle 50: Ring equivalence |
 | `residueField_transport_direct` | ✅ **PROVED** | Cycle 52: via IsLocalRing.ResidueField.mapEquiv |
 | `residueFieldBridge_explicit` | ✅ **PROVED** | Cycle 52: composition with localization_residueField_equiv |
-| `residueMapFromR_surjective` | ⚠️ **NEXT** | Cycle 53 target |
+| `residueMapFromR_surjective` | ❌ **OBSOLETE** | Bypassed by Cycle 52's mapEquiv approach |
+| `shifted_element_valuation_le_one` | ⚠️ **NEXT** | Infrastructure.lean:274 - valuation arithmetic |
 
-### Next Cycle (53) Priorities
-1. **Prove `residueMapFromR_surjective`** - Uses residueFieldBridge to establish surjectivity
-2. **Build `evaluationMapAt`** - Evaluation map at a prime
+### Next Cycle (54) Priorities
+1. **Prove `shifted_element_valuation_le_one`** (Infrastructure.lean:274) - Valuation arithmetic with WithZero.exp
+2. **Build `evaluationMapAt_via_bridge`** (LocalGapInstance.lean:379) - Uses residueFieldBridge_explicit (PROVED!)
 3. **Prove kernel characterization** - Key for gap bound
 4. **Instance `LocalGapBound R K`** - Final target
 
 ---
 
-## Victory Path
+## Victory Path (CORRECTED Cycle 53)
 
 ```
 dvr_intValuation_eq_via_pow_membership (Cycle 46 - PROVED ✅)
@@ -90,10 +118,16 @@ residueField_transport_direct (Cycle 52 - PROVED ✅)
     ↓
 residueFieldBridge_explicit (Cycle 52 - PROVED ✅)
     ↓
-residueMapFromR_surjective  ← NEXT TARGET
+shifted_element_valuation_le_one (Infrastructure.lean:274)  ← ACTUAL NEXT TARGET
+    ↓ (proves f·π^{D(v)+1} ∈ valuationRingAt v)
+evaluationMapAt_via_bridge (LocalGapInstance.lean:379)
     ↓
-evaluationMapAt → kernel → LocalGapBound → VICTORY
+kernel_evaluationMapAt = L(D)
+    ↓
+LocalGapBound instance → VICTORY
 ```
+
+**NOTE**: `residueMapFromR_surjective` is OBSOLETE - the mapEquiv approach bypasses it entirely.
 
 - [ ] `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
@@ -154,6 +188,7 @@ evaluationMapAt → kernel → LocalGapBound → VICTORY
 | 50 | **valuationRingAt_equiv_localization' PROVED** (Ring equiv via ValuationSubring equality) |
 | 51 | **residueFieldBridge candidates** (8 stubs, proof chain identified: 1→6→2→3→7) |
 | 52 | **residueFieldBridge PROVED** (7/8 candidates via IsLocalRing.ResidueField.mapEquiv) |
+| 53 | **Consolidation & Cull** (dead code marked OBSOLETE, corrected victory path) |
 
 ---
 
