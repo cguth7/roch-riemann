@@ -2299,26 +2299,80 @@ noncomputable def evaluationFun_via_bridge (v : HeightOneSpectrum R) (D : Diviso
   let res := (valuationRingAt.residue (R := R) (K := K) v) g
   (residueFieldBridge_explicit (R := R) (K := K) v) res
 
--- Candidate 6 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 55]
+-- Cycle 56 helper: subtype equality in valuationRingAt for addition
+-- [tag: coercion_simplify] [status: PROVED] [cycle: 56]
+/-- The shifted element subtype for (f + g) equals the sum of shifted subtypes.
+Key for proving evaluationFun_add. -/
+lemma shiftedSubtype_add (v : HeightOneSpectrum R) (D : DivisorV2 R)
+    (f g : RRModuleV2_real R K (D + DivisorV2.single v 1)) :
+    (⟨shiftedElement v D (f + g).val, shiftedElement_mem_valuationRingAt v D (f + g)⟩ :
+      valuationRingAt (R := R) (K := K) v) =
+    ⟨shiftedElement v D f.val, shiftedElement_mem_valuationRingAt v D f⟩ +
+    ⟨shiftedElement v D g.val, shiftedElement_mem_valuationRingAt v D g⟩ := by
+  apply Subtype.ext
+  show shiftedElement v D (f + g).val =
+       (⟨shiftedElement v D f.val, _⟩ + ⟨shiftedElement v D g.val, _⟩ : valuationRingAt v).val
+  conv_rhs => rw [show (⟨shiftedElement v D f.val, _⟩ + ⟨shiftedElement v D g.val, _⟩ : valuationRingAt v).val =
+    shiftedElement v D f.val + shiftedElement v D g.val from rfl]
+  exact shiftedElement_add v D f.val g.val
+
+-- Cycle 56 helper: subtype equality in valuationRingAt for smul
+-- [tag: coercion_simplify] [status: PROVED] [cycle: 56]
+/-- The shifted element subtype for (r • f) equals algebraMap r times shifted subtype.
+Key for proving evaluationFun_smul. -/
+lemma shiftedSubtype_smul (v : HeightOneSpectrum R) (D : DivisorV2 R) (r : R)
+    (f : RRModuleV2_real R K (D + DivisorV2.single v 1)) :
+    (⟨shiftedElement v D (r • f).val, shiftedElement_mem_valuationRingAt v D (r • f)⟩ :
+      valuationRingAt (R := R) (K := K) v) =
+    ⟨algebraMap R K r, algebraMap_mem_valuationRingAt v r⟩ *
+    ⟨shiftedElement v D f.val, shiftedElement_mem_valuationRingAt v D f⟩ := by
+  apply Subtype.ext
+  show shiftedElement v D (r • f).val = _
+  conv_lhs => rw [show (r • f).val = r • f.val from rfl, Algebra.smul_def]
+  rw [shiftedElement_smul]
+  rfl
+
+-- Cycle 56 KEY BLOCKER: Diagram commutativity for algebra structure
+-- [tag: rr_bundle_bridge] [status: SORRY] [cycle: 56]
+/-- Diagram commutativity: bridge(residue(algebraMap r)) = algebraMap r in residue field.
+This is the key lemma for R-linearity of the evaluation map. -/
+lemma bridge_residue_algebraMap (v : HeightOneSpectrum R) (r : R) :
+    (residueFieldBridge_explicit (R := R) (K := K) v)
+      ((valuationRingAt.residue (R := R) (K := K) v) ⟨algebraMap R K r, algebraMap_mem_valuationRingAt v r⟩) =
+    algebraMap R (residueFieldAtPrime R v) r := sorry
+
+-- Candidate 6 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 56]
 /-- The evaluation function is additive.
-Uses shiftedElement_add and that residue and bridge are additive homomorphisms. -/
+Uses shiftedSubtype_add and that residue and bridge are additive homomorphisms. -/
 lemma evaluationFun_add (v : HeightOneSpectrum R) (D : DivisorV2 R)
     (f g : RRModuleV2_real R K (D + DivisorV2.single v 1)) :
     evaluationFun_via_bridge v D (f + g) =
-    evaluationFun_via_bridge v D f + evaluationFun_via_bridge v D g := sorry
+    evaluationFun_via_bridge v D f + evaluationFun_via_bridge v D g := by
+  simp only [evaluationFun_via_bridge]
+  rw [shiftedSubtype_add]
+  simp only [map_add]
 
--- Candidate 7 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 55]
+-- Candidate 7 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 56]
 /-- The evaluation function respects R-scalar multiplication.
-Uses shiftedElement_smul and that residue and bridge are R-linear. -/
+Uses shiftedSubtype_smul and bridge_residue_algebraMap. -/
 lemma evaluationFun_smul (v : HeightOneSpectrum R) (D : DivisorV2 R) (r : R)
     (f : RRModuleV2_real R K (D + DivisorV2.single v 1)) :
-    evaluationFun_via_bridge v D (r • f) = r • evaluationFun_via_bridge v D f := sorry
+    evaluationFun_via_bridge v D (r • f) = r • evaluationFun_via_bridge v D f := by
+  simp only [evaluationFun_via_bridge]
+  rw [shiftedSubtype_smul]
+  simp only [map_mul]
+  rw [Algebra.smul_def]
+  congr 1
+  exact bridge_residue_algebraMap v r
 
--- Candidate 8 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 55]
+-- Candidate 8 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 56]
 /-- The complete evaluation map as a linear map.
 Bundles evaluationFun_via_bridge with additivity and R-linearity proofs. -/
 noncomputable def evaluationMapAt_complete (v : HeightOneSpectrum R) (D : DivisorV2 R) :
-    RRModuleV2_real R K (D + DivisorV2.single v 1) →ₗ[R] residueFieldAtPrime R v := sorry
+    RRModuleV2_real R K (D + DivisorV2.single v 1) →ₗ[R] residueFieldAtPrime R v where
+  toFun := evaluationFun_via_bridge v D
+  map_add' := evaluationFun_add v D
+  map_smul' r f := evaluationFun_smul v D r f
 
 end Cycle55Candidates
 

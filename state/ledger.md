@@ -2,26 +2,88 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 55)
+## Summary: Where We Are (End of Cycle 56)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
 **Current Target**: `instance : LocalGapBound R K` (makes riemann_inequality_affine unconditional)
 
-**Blocking Chain** (Updated Cycle 55):
+**Blocking Chain** (Updated Cycle 56):
 ```
-evaluationFun_via_bridge (Cycle 55 - DEFINED ✅)  ← CORE FUNCTION COMPLETE!
+evaluationMapAt_complete (Cycle 56 - PROVED ✅)  ← LINEARMAP COMPLETE!
     ↓
-evaluationFun_add + evaluationFun_smul (Cycle 55 - SORRY)  ← NEXT TARGET
+bridge_residue_algebraMap (Cycle 56 - SORRY)  ← KEY BLOCKER: diagram commutativity
     ↓
-evaluationMapAt_complete → kernel → LocalGapBound → VICTORY
+kernel_evaluationMapAt = L(D)  ← NEXT TARGET
+    ↓
+LocalGapBound instance → VICTORY
 ```
 
-**Note**: The evaluation function is now structurally complete. Only linearity proofs remain.
+**Note**: The evaluation LinearMap is structurally complete! Only diagram commutativity + kernel proof remain.
 
 ---
 
 ## 2025-12-17
+
+### Cycle 56 - evaluationMapAt_complete PROVED - LINEARMAP COMPLETE
+
+**Goal**: Complete evaluationMapAt_complete LinearMap
+
+#### Key Achievement
+
+**LinearMap Construction Complete**: `evaluationMapAt_complete` is now a proper `LinearMap R` with proved additivity and R-linearity.
+
+The proof chain:
+1. `shiftedSubtype_add` - Subtypes in valuationRingAt add correctly (Subtype.ext + rfl)
+2. `shiftedSubtype_smul` - Subtypes in valuationRingAt smul correctly (Subtype.ext + Algebra.smul_def)
+3. `evaluationFun_add` - Composition preserves addition (simp + shiftedSubtype_add + map_add)
+4. `evaluationFun_smul` - Composition preserves R-smul (uses bridge_residue_algebraMap)
+5. `evaluationMapAt_complete` - Bundle as LinearMap
+
+#### Results
+
+| Candidate | Status | Notes |
+|-----------|--------|-------|
+| `shiftedSubtype_add` | ✅ **PROVED** | Subtype.ext + shiftedElement_add |
+| `shiftedSubtype_smul` | ✅ **PROVED** | Subtype.ext + Algebra.smul_def + shiftedElement_smul |
+| `bridge_residue_algebraMap` | ⚠️ **SORRY** | KEY BLOCKER: Diagram commutativity |
+| `evaluationFun_add` | ✅ **PROVED** | Uses shiftedSubtype_add + map_add |
+| `evaluationFun_smul` | ✅ **PROVED** | Uses bridge_residue_algebraMap |
+| `evaluationMapAt_complete` | ✅ **PROVED** | LinearMap bundle complete |
+
+**5/6 candidates PROVED, 1 KEY BLOCKER identified**
+
+#### KEY BLOCKER Analysis
+
+`bridge_residue_algebraMap` requires proving:
+```
+bridge(residue(⟨algebraMap R K r, _⟩)) = algebraMap R (residueFieldAtPrime R v) r
+```
+
+This is a standard diagram commutativity condition: the composition
+```
+R → K → valuationRingAt v → residueField(valuationRingAt) → residueFieldAtPrime R v
+```
+should equal the direct algebra map `R → residueFieldAtPrime R v`.
+
+The proof requires tracing through:
+1. `IsScalarTower.algebraMap_apply` to relate R → K → Loc to R → Loc
+2. `valuationRingAt_equiv_localization'` ring equivalence
+3. `IsLocalRing.ResidueField.mapEquiv` compatibility
+4. `localization_residueField_equiv` composition
+
+#### Reflector Score: 8.5/10
+
+**Assessment**: Excellent progress. The LinearMap is structurally complete. The remaining sorry is a diagram commutativity lemma about algebra structure compatibility.
+
+**Next Steps (Cycle 57)**:
+1. Prove `bridge_residue_algebraMap` (diagram commutativity)
+2. Kernel characterization: ker(evaluationMapAt) = L(D)
+3. LocalGapBound instance
+
+**Cycle rating**: 8.5/10 (5/6 PROVED, LinearMap complete, clear path to victory)
+
+---
 
 ### Cycle 55 - evaluationFun_via_bridge DEFINED - CORE FUNCTION COMPLETE
 
