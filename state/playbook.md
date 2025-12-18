@@ -98,6 +98,7 @@ RrLean/RiemannRochV2/
 ├── Projective.lean         # Projective layer ✅
 ├── FullRRData.lean         # ✅ Full RR typeclass + theorem (Cycle 80)
 ├── DifferentIdealBridge.lean # ✅ Track B bridge (Cycle 82, 0 sorries)
+├── TraceDualityProof.lean  # ⏳ Track B duality (Cycle 83, 3 sorries)
 ├── TestBlockerProofs.lean  # Experimental proofs
 └── archive/
     └── LocalGapInstance.lean  # ARCHIVED
@@ -180,9 +181,10 @@ riemann_roch_full (Cycle 80) ✅
 ```
 DifferentIdealBridge.lean (Cycle 82) ✅ COMPLETE
     ↓ Connect differentIdeal to DivisorV2 via FractionalIdeal.count
-TraceDualityProof.lean (Cycle 83+)
-    ↓ Prove ell(K-D) = dim(traceDual L(D))
-FullRRData instance (Cycle 84+)
+TraceDualityProof.lean (Cycle 83) ⏳ IN PROGRESS
+    ↓ Infrastructure for RRSpace ↔ FractionalIdeal (3 sorries)
+    ↓ Need: valuation-ideal bridge, trace nondegeneracy
+FullRRData instance (Cycle 85+)
     ↓ Instantiate axioms with concrete proofs
 ```
 
@@ -195,7 +197,9 @@ Track A (Cycle 80): ✅ COMPLETE
 
 Track B (Cycles 81+):
 - [x] Bridge `differentIdeal` → `DivisorV2 R` (Cycle 82 - COMPLETE, 0 sorries)
-- [ ] Prove duality via `Submodule.traceDual`
+- [x] Create TraceDualityProof.lean infrastructure (Cycle 83 - 3 sorries)
+- [ ] Prove `RRModuleV2_eq_fractionalIdeal_toSubmodule` (valuation ↔ ideal)
+- [ ] Prove `finrank_dual_eq` (trace nondegeneracy)
 - [ ] Instantiate `FullRRData` for Dedekind domains
 
 ---

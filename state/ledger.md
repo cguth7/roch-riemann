@@ -235,6 +235,61 @@ Since `dual A K_A 1 ≠ 0` (via `dual_ne_zero`), its inverse is also nonzero.
 
 ---
 
+#### Cycle 83 - TraceDualityProof Infrastructure (Track B)
+
+**Goal**: Create infrastructure connecting RRSpace dimensions to trace duals.
+
+**Status**: ✅ COMPLETE (infrastructure laid)
+
+**Created**: `RrLean/RiemannRochV2/TraceDualityProof.lean` (~200 lines)
+
+**New Definitions**:
+```lean
+-- L(D) as a fractional ideal
+noncomputable def RRSpaceFractionalIdeal (D : DivisorV2 R) : FractionalIdeal R⁰ K :=
+  divisorToFractionalIdeal R K (-D)
+
+-- Key correspondence (with sorry)
+lemma RRModuleV2_eq_fractionalIdeal_toSubmodule (D : DivisorV2 R) :
+    (RRModuleV2_real R K D).toAddSubmonoid =
+      ((RRSpaceFractionalIdeal R K D) : Submodule R K).toAddSubmonoid
+
+-- Dimension preservation via trace (with sorry)
+lemma finrank_dual_eq (I : FractionalIdeal R⁰ K) (hI : I ≠ 0)
+    [hfin : Module.Finite k I] :
+    Module.finrank k (dual A K_A I) = Module.finrank k I
+
+-- Serre duality theorem (uses FullRRData axiom)
+theorem serre_duality_dimension (frr : FullRRData k R K) (D : DivisorV2 R) ...
+```
+
+**Key Insights Documented**:
+1. L(D) corresponds to fractional ideal `I_{-D} = ∏ P_v^{-D(v)}`
+2. `dual(I)` has divisor `K - div(I)` (from `fractionalIdealToDivisor_dual`)
+3. For full Serre duality, need adelic exact sequence interpretation
+4. `dual_dual = id` (Mathlib's `FractionalIdeal.dual_dual`) gives involution
+
+**Mathematical Strategy for Track B**:
+- The trace dual of L(D) as fractional ideal gives L(K+D), not L(K-D)
+- Full RR requires the adelic exact sequence: `0 → K → ∏_v K_v → coker → 0`
+- h^1(D) := dim(adelic cokernel with D-conditions)
+- Serre duality: h^1(D) = h^0(K-D) via local trace pairings
+
+**Sorry Status**:
+- TraceDualityProof.lean: 3 sorries (expected - foundational bridges)
+- FullRRData.lean: 1 sorry (unchanged)
+- DifferentIdealBridge.lean: 0 sorries
+- TestBlockerProofs.lean: 2 sorries (experimental)
+
+**Total**: 6 sorries (4 in main path, 2 experimental)
+
+**Next Steps** (Cycle 84+):
+1. Prove `RRModuleV2_eq_fractionalIdeal_toSubmodule` - connect valuation condition to ideal membership
+2. Prove `finrank_dual_eq` - use trace form nondegeneracy
+3. Or: Pivot to adelic/idelic formulation for H^1
+
+---
+
 ## References
 
 ### Primary (Validated)
