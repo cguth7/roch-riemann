@@ -1,8 +1,8 @@
 # Playbook (Curator maintained)
 
-## Ultimate Goal: Riemann-Roch Theorem
+## Ultimate Goal: Full Riemann-Roch Theorem
 
-**IMPORTANT CONTEXT FOR ALL LOOPS**: The Riemann inequality milestones are complete. Next target is full Riemann-Roch.
+**CURRENT PHASE**: Phase 3 - Full Riemann-Roch via Adelic Abstraction
 
 The **ultimate objective** is a complete formalization of the **Riemann-Roch theorem** for algebraic curves/function fields in Lean 4:
 ```
@@ -11,19 +11,26 @@ The **ultimate objective** is a complete formalization of the **Riemann-Roch the
 
 Where:
 - `ℓ(D)` = dimension of the Riemann-Roch space L(D)
-- `K` = canonical divisor
+- `K` = canonical divisor (via differentials)
 - `g` = genus of the curve/function field
 - `deg(D)` = degree of divisor D
 
-**Current Phase**: Both affine and projective Riemann inequalities are **COMPLETE**!
+### Milestone Achieved: v1.0-riemann-inequality
+
+**Git tag**: `v1.0-riemann-inequality` (2025-12-18)
+
 1. ✅ `riemann_inequality_affine` — UNCONDITIONALLY PROVED (Cycle 73)
 2. ✅ `riemann_inequality_proj` — SORRY-FREE (Cycle 79)
-3. 🔮 Full Riemann-Roch with canonical divisor and genus (FUTURE)
+3. 🎯 **CURRENT**: Full Riemann-Roch with canonical divisor and genus
 
-**Why this matters for decision-making**:
-- When choosing between approaches, prefer ones that generalize to the full RR theorem
-- The residue field / evaluation map machinery will be reused for the canonical divisor construction
-- Keep an eye on how genus `g` will eventually be defined (likely via differentials or Serre duality)
+### Phase 3 Strategy: Adelic Interface
+
+Decouple linear algebra from geometric construction:
+1. Define `GlobalCurveData` / `GlobalCurveLaws` typeclasses
+2. Prove full RR assuming these axioms
+3. Later: instantiate axioms for concrete curves
+
+This mirrors the successful Phase 2 pattern: `LocalGapBound` → `SinglePointBound` → `ProperCurve`
 
 ---
 
@@ -53,28 +60,29 @@ Where:
 
 ---
 
-## Current Status (Cycle 79 - Projective Complete! 🎉)
+## Current Status (Phase 3 - Full RR)
 
 **Codebase Structure**:
 ```
 RrLean/RiemannRochV2/
 ├── Basic.lean              # Imports ✅
 ├── Divisor.lean            # DivisorV2 ✅
-├── RRSpace.lean            # L(D), ℓ(D) via Module.length ✅ **CLEAN** (0 sorries!)
+├── RRSpace.lean            # L(D), ℓ(D) via Module.length ✅
 ├── Typeclasses.lean        # LocalGapBound, SinglePointBound, BaseDim ✅
 ├── RiemannInequality.lean  # Affine theorem ✅ **UNCONDITIONAL!**
-├── Infrastructure.lean     # Residue, uniformizer ✅ **CLEAN** (0 sorries!)
-├── RRDefinitions.lean      # Essential definitions ✅ **CLEAN** (0 sorries!)
-├── KernelProof.lean        # Kernel proofs ✅ **CLEAN** (0 sorries!)
-├── DimensionCounting.lean  # Cycle 73 ✅ **CLEAN** (0 sorries!)
-├── Projective.lean         # Cycle 79 ✅ **CLEAN** (0 sorries!)
-├── TestBlockerProofs.lean  # Cycle 58-60: Test proofs
+├── Infrastructure.lean     # Residue, uniformizer ✅
+├── RRDefinitions.lean      # Essential definitions ✅
+├── KernelProof.lean        # Kernel proofs ✅
+├── DimensionCounting.lean  # Gap bound ✅
+├── Projective.lean         # Projective layer ✅
+├── AdelicInterface.lean    # 🎯 NEW: Phase 3 typeclasses (TODO)
+├── TestBlockerProofs.lean  # Experimental proofs
 └── archive/
-    └── LocalGapInstance.lean  # ARCHIVED: exploration history
+    └── LocalGapInstance.lean  # ARCHIVED
 ```
 
-**Affine codebase**: 0 sorries (complete!)
-**Projective layer**: 0 sorries (complete!)
+**Phase 2 (Complete)**: 0 sorries - Riemann inequality proved!
+**Phase 3 (Active)**: Full RR via Adelic abstraction
 
 ### 🎉 MILESTONE ACHIEVED (Cycle 73)
 
@@ -119,7 +127,7 @@ BaseDim R K                -- SEPARATE (explicit base dimension)
 
 ---
 
-## Victory Path (COMPLETE! 🎉)
+## Phase 2 Victory Path (COMPLETE! 🎉)
 
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)
@@ -128,15 +136,34 @@ kernel_evaluationMapAt_complete_proof (Cycle 71 - PROVED ✅)
     ↓
 localGapBound_of_dedekind (Cycle 73 - PROVED ✅)
     ↓
-riemann_inequality_affine (Cycle 73 - UNCONDITIONAL ✅)  ← 🎉 VICTORY!
+riemann_inequality_affine (Cycle 73 - UNCONDITIONAL ✅)
+    ↓
+riemann_inequality_proj (Cycle 79 - SORRY-FREE ✅)  ← 🎉 PHASE 2 VICTORY!
 ```
 
-**All checkboxes complete!**
+---
 
-- [x] `evaluationMapAt_complete` - Cycle 56 (PROVED)
-- [x] `kernel_evaluationMapAt_complete_proof` - Cycle 71 (PROVED)
-- [x] `localGapBound_of_dedekind` - Cycle 73 (PROVED)
-- [x] `riemann_inequality_affine` - Cycle 73 (UNCONDITIONAL)
+## Phase 3 Victory Path (ACTIVE)
+
+```
+AdelicInterface.lean (Cycle 80 - TODO)
+    ↓ Define GlobalCurveData, GlobalCurveLaws typeclasses
+CanonicalDivisor (Cycle 81+ - TODO)
+    ↓ Define K, deg(K) = 2g - 2
+SerreDuality (Cycle 82+ - TODO)  ← HARD
+    ↓ L(K-D) ≅ (L(D))*
+riemann_roch_full (Cycle 83+ - TODO)
+    ↓
+ℓ(D) - ℓ(K-D) = deg(D) + 1 - g  ← 🎯 ULTIMATE GOAL
+```
+
+**Phase 3 Checklist**:
+
+- [ ] `GlobalCurveData` typeclass - finite + infinite adeles
+- [ ] `GlobalCurveLaws` typeclass - residue theorem, non-degeneracy
+- [ ] `CanonicalDivisor` - K via differentials or axiom
+- [ ] `SerreDuality` - L(K-D) ≅ (L(D))* pairing
+- [ ] `riemann_roch_full` - Full RR equation
 
 ---
 
@@ -154,40 +181,48 @@ All technical debt has been addressed:
 
 ---
 
-## Future Work
+## Phase 3: Full Riemann-Roch
 
-### ✅ Projective Layer (Cycle 79 - COMPLETE)
-
-**Status**: Projective RR is now **SORRY-FREE**!
+### Target Theorem
 
 ```lean
-theorem riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
-    {D : DivisorV2 R} (hD : D.Effective)
-    [∀ E, Module.Finite k (RRSpace_proj k R K E)] :
-    (ell_proj k R K D : ℤ) ≤ D.deg + 1
+theorem riemann_roch_full [FullRRData k R K] {D : DivisorV2 R} :
+    ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
 ```
 
-**Solution Used** (Cycle 79):
-1. Derived `Module.Finite k κ(v)` from `RationalPoint` via `κ(v) ≃ₐ[k] k`
-2. Constructed k-linear map `ψ` using scalar tower `IsScalarTower.algebraMap_smul`
-3. Proved `LD = ker(ψ)` using `LD_element_maps_to_zero` and `kernel_evaluationMapAt_complete_proof`
-4. Applied `Submodule.liftQ` + `LinearMap.finrank_le_finrank_of_injective`
+### Approach: Adelic Abstraction
 
-**Key Typeclasses**:
-- `RationalPoint k R v` — κ(v) ≅ₐ[k] k
-- `ProperCurve k R K` — axiom `ell_proj 0 = 1`
-- `AllRational k R` — all points are rational
+**Step 1: AdelicInterface.lean**
+- `GlobalCurveData k R K` - bundles finite + infinite adeles
+- `GlobalCurveLaws k R K` - residue theorem, non-degenerate pairing
+- Integration with `KaehlerDifferential k K`
 
-### Long-term: Full Riemann-Roch
+**Step 2: Canonical Divisor**
+- Define `K` via differentials or as axiom
+- Prove/axiomatize `deg(K) = 2g - 2`
 
+**Step 3: Serre Duality** (HARD)
+- `L(K-D) ≅ (L(D))*` as k-vector spaces
+- Pairing: `⟨f, ω⟩ = Σ Res(fω)`
+
+**Step 4: Combine**
+- Riemann inequality (proved)
+- Serre duality
+- Degree formula: `deg(K-D) = deg(K) - deg(D)`
+
+### Key Mathlib Dependencies
+
+```lean
+import Mathlib.RingTheory.DedekindDomain.AdeleRing
+import Mathlib.RingTheory.Kaehler.Basic
 ```
-ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
-```
 
-Requires:
-1. Canonical divisor K
-2. Genus g (via differentials or Serre duality)
-3. Duality between L(D) and L(K-D)
+### Potential Blockers
+
+1. KaehlerDifferential scalar action
+2. Residue map construction
+3. Infinite places formalization
+4. Duality isomorphism linear algebra
 
 ---
 
