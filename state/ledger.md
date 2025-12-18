@@ -654,6 +654,56 @@ Effective divisors (all coefficients ≥ 0) have non-negative degree.
 
 ---
 
+#### Cycle 91 - AdelicH1v2 using Mathlib's FiniteAdeleRing
+
+**Goal**: Create proper H¹(D) infrastructure using Mathlib's `FiniteAdeleRing` (restricted product).
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] Created `AdelicH1v2.lean` with `FiniteAdeleRing R K` foundation
+- [x] Defined `boundedSubset R K D` (A_K(D) as subset of FiniteAdeleRing)
+- [x] Proved `boundedAddSubgroup` properties (zero, add, neg membership)
+- [x] Defined `globalPlusBounded R K D` (K + A_K(D) as subgroup)
+- [x] Defined `Space R K D` (H¹(D) = FiniteAdeleRing / (K + A_K(D)))
+- [x] Proved `quotientMap_of_global`: K maps to 0 in H¹(D)
+- [x] Proved `boundedSubset_mono`: D ≤ E → A_K(D) ⊆ A_K(E)
+- [ ] `globalInBounded`: L(D) ⊆ A_K(D) - 1 sorry (valuation bridge)
+
+**Key Improvement**:
+The previous `Adeles.lean` used ALL functions `HeightOneSpectrum R → K`, making H¹(D)
+infinite-dimensional. The new `AdelicH1v2.lean` uses Mathlib's restricted product
+`FiniteAdeleRing R K`, which ensures elements are integral at almost all places.
+
+This is essential for:
+1. **Finiteness of H¹(D)** - restricted product has compact quotient
+2. **Strong approximation** - H¹(D) = 0 for large degree
+3. **Serre duality** - correct connection to classical adelic theory
+
+**New Definitions**:
+```lean
+-- A_K(D) = {a ∈ FiniteAdeleRing : v(a_v) ≤ exp(D(v)) for all v}
+def boundedSubset (D : DivisorV2 R) : Set (FiniteAdeleRing R K)
+
+-- H¹(D) = FiniteAdeleRing / (K + A_K(D))
+abbrev Space (D : DivisorV2 R) : Type _ :=
+  (FiniteAdeleRing R K) ⧸ (globalPlusBounded R K D)
+```
+
+**Sorry Status**:
+- AdelicH1v2.lean: 1 sorry (`globalInBounded` - valuation on adicCompletion bridge)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (`ell_canonical_minus_eq_zero_of_large_deg` - needs principal divisor theory)
+
+**Total**: 3 sorries in main path (was 2, added 1 for new infrastructure)
+
+**Next Steps** (Cycle 92):
+1. Prove `globalInBounded` using `valuedAdicCompletion_eq_valuation'` from Mathlib
+2. Prove H¹(D) finiteness via strong approximation
+3. Or: Connect to existing Adeles.lean infrastructure
+
+---
+
 ## References
 
 ### Primary (Validated)
