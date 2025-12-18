@@ -3,7 +3,7 @@
 *For Cycles 1-34, see `state/ledger_archive.md` (Vol. 1)*
 *For Cycles 35-79, see `state/ledger_archive.md` (Vol. 2)*
 
-## Phase 3: Full Riemann-Roch via Adelic Abstraction
+## Phase 3: Full Riemann-Roch
 
 ### Milestone Achieved (v1.0-riemann-inequality)
 
@@ -28,94 +28,52 @@ theorem riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
 ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
 ```
 
-Where:
-- `ℓ(D)` = dimension of the Riemann-Roch space L(D)
-- `K` = canonical divisor (defined via differentials)
-- `g` = genus of the curve
-- `deg(D)` = degree of divisor D
+---
 
-### Strategy: Adelic Interface Approach
+## Strategy Validation (2025-12-18)
 
-Decouple the linear algebra/cohomological logic from the geometric construction by:
-1. Defining typeclasses that axiomatize the "Adelic" structure
-2. Proving RR assuming these axioms
-3. Later: instantiate the axioms for concrete curves
+**Gemini Report Analysis**: Validated key Mathlib resources exist.
 
-This mirrors the successful strategy from Phase 2 (LocalGapBound → SinglePointBound → ProperCurve).
+### Validated Mathlib Files
+
+| Component | File | Status |
+|-----------|------|--------|
+| Kähler Differentials | `Mathlib/RingTheory/Kaehler/Basic.lean` | ✅ EXISTS - `Ω[S⁄R]` notation |
+| Different Ideal | `Mathlib/RingTheory/DedekindDomain/Different.lean` | ✅ EXISTS - `differentIdeal`, `traceDual` |
+| Hilbert Polynomial | `Mathlib/RingTheory/Polynomial/HilbertPoly.lean` | ✅ EXISTS - `hilbertPoly` |
+| Function Field | `Mathlib/AlgebraicGeometry/FunctionField.lean` | ✅ EXISTS - `Scheme.functionField` |
+| Projective Spectrum | `Mathlib/AlgebraicGeometry/ProjectiveSpectrum/` | ✅ EXISTS - Full directory |
+
+### Key Discovery: `Different.lean` Has Arithmetic Duality
+
+The file `Mathlib/RingTheory/DedekindDomain/Different.lean` contains:
+
+```lean
+-- Trace dual (arithmetic Serre duality!)
+def Submodule.traceDual (I : Submodule B L) : Submodule B L :=
+  -- x ∈ Iᵛ ↔ ∀ y ∈ I, Tr(x * y) ∈ A
+
+-- Different ideal (arithmetic canonical divisor!)
+def differentIdeal : Ideal B :=
+  (1 / Submodule.traceDual A K 1).comap (algebraMap B L)
+
+-- Duality via fractional ideals
+def FractionalIdeal.dual (I : FractionalIdeal B⁰ L) : FractionalIdeal B⁰ L
+```
+
+**This is exactly what we need for Serre duality without derived categories!**
 
 ---
 
-## Roadmap
+## Revised Roadmap
 
-### Step 1: AdelicInterface.lean (~2-4 hours)
+### Track A: Axiomatize First (Fast)
 
-Create typeclasses:
-- `GlobalCurveData k R K` - bundles finite adeles + infinite adeles
-- `GlobalCurveLaws k R K` - axiomatizes residue theorem and duality
+Create `FullRRData` typeclass with axioms, prove RR algebraically.
 
-Key components:
-- Finite adeles via Mathlib's `DedekindDomain.AdeleRing`
-- Infinite adeles as abstract `Type*` with K-module structure
-- Residue maps at finite and infinite places
-- Integration with `KaehlerDifferential k K`
+### Track B: Discharge Axioms (Complete)
 
-### Step 2: Canonical Divisor (~4-8 hours)
-
-Define:
-- `CanonicalDivisor K` - the canonical divisor via differentials or as axiom
-- `deg_canonical : deg(K) = 2g - 2`
-
-Options:
-- Axiomatize K directly in `GlobalCurveLaws`
-- Define K via differentials (requires more Mathlib infrastructure)
-
-### Step 3: Serre Duality Bridge (~8-16 hours) - HARD
-
-Prove or axiomatize:
-- `SerreDuality : L(K-D) ≅ (L(D))*` - as vector space duality
-- Non-degenerate pairing: `⟨f, ω⟩ = Σ Res(fω)`
-
-This is the core mathematical difficulty. Options:
-- Axiomatize as typeclass field
-- Derive from residue theorem + non-degeneracy
-
-### Step 4: Full RR Theorem (~4-8 hours)
-
-Combine:
-- Riemann inequality (proved)
-- Serre duality (Step 3)
-- Degree formula: `deg(K-D) = deg(K) - deg(D)`
-
-Result:
-```lean
-theorem riemann_roch [FullRRData k R K] {D : DivisorV2 R} :
-    ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
-```
-
----
-
-## Technical Dependencies
-
-### Mathlib Imports Needed
-
-```lean
-import Mathlib.RingTheory.DedekindDomain.AdeleRing
-import Mathlib.RingTheory.Kaehler.Basic
-import Mathlib.Algebra.Category.ModuleCat.Basic
-```
-
-### Key Mathlib Types
-
-- `KaehlerDifferential k K` - Kähler differentials of K over k
-- `DedekindDomain.ProdAdicCompletions` - Finite adeles
-- `IsDedekindDomain.HeightOneSpectrum` - Finite places (already used)
-
-### Potential Blockers
-
-1. **KaehlerDifferential scalar action** - need `f • ω` to work correctly
-2. **Residue map definition** - may need custom construction
-3. **Infinite places formalization** - not in Mathlib for function fields
-4. **Duality isomorphism** - requires careful linear algebra
+Use `differentIdeal` and `traceDual` to prove the axioms.
 
 ---
 
@@ -123,23 +81,53 @@ import Mathlib.Algebra.Category.ModuleCat.Basic
 
 ### 2025-12-18
 
-#### Cycle 80 - Phase 3 Kickoff (Pending)
+#### Cycle 80 - FullRRData Typeclass (Track A)
 
-**Goal**: Create `AdelicInterface.lean` with core typeclasses
+**Goal**: Create `FullRRData.lean` with axiomatized K, g, and duality. Prove RR equation.
 
 **Plan**:
-1. Add imports for `KaehlerDifferential` and `AdeleRing`
-2. Define `GlobalCurveData k R K` typeclass
-3. Define `GlobalCurveLaws k R K` typeclass
-4. Verify everything compiles
+1. Create `RrLean/RiemannRochV2/FullRRData.lean`
+2. Import `Mathlib.RingTheory.DedekindDomain.Different`
+3. Define `FullRRData` typeclass extending `ProperCurve`:
+   ```lean
+   class FullRRData (k R K : Type*) [Field k] ... extends ProperCurve k R K where
+     canonical : DivisorV2 R
+     genus : ℕ
+     deg_canonical : canonical.deg = 2 * genus - 2
+     serre_duality : ∀ D, ell_proj k R K (canonical - D) + ell_proj k R K D =
+                         ell_proj k R K canonical
+   ```
+4. State and prove `riemann_roch_full` theorem:
+   ```lean
+   theorem riemann_roch_full [FullRRData k R K] {D : DivisorV2 R} :
+     (ell_proj k R K D : ℤ) - ell_proj k R K (canonical - D) = D.deg + 1 - genus
+   ```
 
-**Status**: Not started
+**Key Insight**: The duality axiom `serre_duality` is equivalent to RR when combined with:
+- `riemann_inequality_proj`: ℓ(D) ≤ deg(D) + 1
+- `deg_canonical`: deg(K) = 2g - 2
+- Algebraic manipulation: ℓ(D) - ℓ(K-D) = deg(D) - deg(K-D) = deg(D) - (2g-2-deg(D))
+
+**Status**: Ready to start
+
+**Success Criteria**:
+- [ ] `FullRRData.lean` compiles
+- [ ] `riemann_roch_full` theorem statement elaborates
+- [ ] Proof completes (may need helper lemmas)
 
 ---
 
 ## References
 
-- flt-regular project: `NumberTheory/Cyclotomic/Trace.lean` for trace pairing patterns
-- Mathlib: `RingTheory.DedekindDomain.*` for Dedekind infrastructure
-- Mathlib: `RingTheory.Kaehler.Basic` for differentials
-- Hartshorne IV.1 for Riemann-Roch background
+### Primary (Validated)
+- `Mathlib/RingTheory/DedekindDomain/Different.lean` - traceDual, differentIdeal
+- `Mathlib/RingTheory/Kaehler/Basic.lean` - Ω[S⁄R], KaehlerDifferential
+
+### Secondary
+- flt-regular project - arithmetic duality patterns
+- Liu "Algebraic Geometry and Arithmetic Curves" Ch. 7 - arithmetic RR
+
+### Mathematical Background
+- The "Different Ideal" approach: K corresponds to the inverse of the different ideal
+- Serre duality becomes: L(K-D)* ≅ H¹(D) via trace pairing
+- For curves: H¹(D) = (global differentials with prescribed poles) / (exact forms)

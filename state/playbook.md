@@ -23,14 +23,35 @@ Where:
 2. ✅ `riemann_inequality_proj` — SORRY-FREE (Cycle 79)
 3. 🎯 **CURRENT**: Full Riemann-Roch with canonical divisor and genus
 
-### Phase 3 Strategy: Adelic Interface
+### Phase 3 Strategy: Validated Approach (2025-12-18)
 
-Decouple linear algebra from geometric construction:
-1. Define `GlobalCurveData` / `GlobalCurveLaws` typeclasses
-2. Prove full RR assuming these axioms
-3. Later: instantiate axioms for concrete curves
+**Key Insight**: Use Mathlib's `differentIdeal` and `traceDual` machinery instead of building Adelic infrastructure from scratch. This is the "arithmetic duality" that mirrors Serre duality.
 
-This mirrors the successful Phase 2 pattern: `LocalGapBound` → `SinglePointBound` → `ProperCurve`
+**Validated Mathlib Resources**:
+| Component | Mathlib File | What It Provides |
+|-----------|--------------|------------------|
+| Kähler Differentials | `RingTheory/Kaehler/Basic.lean` | `Ω[S⁄R]`, derivation `D` |
+| Different Ideal | `RingTheory/DedekindDomain/Different.lean` | `differentIdeal`, `traceDual` |
+| Trace Dual | `RingTheory/DedekindDomain/Different.lean` | `Submodule.traceDual` (arithmetic duality!) |
+| Hilbert Polynomial | `RingTheory/Polynomial/HilbertPoly.lean` | `hilbertPoly` for genus definition |
+| Function Field | `AlgebraicGeometry/FunctionField.lean` | `Scheme.functionField` |
+| Projective Spectrum | `AlgebraicGeometry/ProjectiveSpectrum/` | Full Proj construction |
+
+**Two-Track Strategy**:
+
+**Track A (Fast): Axiomatize K and g directly**
+```lean
+class FullRRData (k R K : Type*) extends ProperCurve k R K where
+  canonical : DivisorV2 R
+  genus : ℕ
+  serre_duality : ∀ D, ell_proj k R K (canonical - D) = ell_proj k R K D  -- axiom
+  deg_canonical : canonical.deg = 2 * genus - 2  -- axiom
+```
+
+**Track B (Complete): Use Different Ideal**
+- Define `K` via `differentIdeal` from `Mathlib.RingTheory.DedekindDomain.Different`
+- Prove duality via `Submodule.traceDual` (trace form pairing)
+- This is exactly how flt-regular handles arithmetic duality
 
 ---
 
@@ -143,27 +164,38 @@ riemann_inequality_proj (Cycle 79 - SORRY-FREE ✅)  ← 🎉 PHASE 2 VICTORY!
 
 ---
 
-## Phase 3 Victory Path (ACTIVE)
+## Phase 3 Victory Path (ACTIVE - Revised)
 
+**Track A (Fast Path)**:
 ```
-AdelicInterface.lean (Cycle 80 - TODO)
-    ↓ Define GlobalCurveData, GlobalCurveLaws typeclasses
-CanonicalDivisor (Cycle 81+ - TODO)
-    ↓ Define K, deg(K) = 2g - 2
-SerreDuality (Cycle 82+ - TODO)  ← HARD
-    ↓ L(K-D) ≅ (L(D))*
-riemann_roch_full (Cycle 83+ - TODO)
-    ↓
-ℓ(D) - ℓ(K-D) = deg(D) + 1 - g  ← 🎯 ULTIMATE GOAL
+FullRRData.lean (Cycle 80)
+    ↓ Axiomatize canonical, genus, duality
+riemann_roch_full (Cycle 80)
+    ↓ Prove from axioms (algebraic manipulation)
+ℓ(D) - ℓ(K-D) = deg(D) + 1 - g  ← 🎯 THEOREM STATEMENT WORKS
+```
+
+**Track B (Discharge Axioms)**:
+```
+DifferentIdealBridge.lean (Cycle 81+)
+    ↓ Connect differentIdeal to DivisorV2
+TraceDualityProof.lean (Cycle 82+)
+    ↓ Prove ell(K-D) = dim(traceDual L(D))
+FullRRData instance (Cycle 83+)
+    ↓ Instantiate axioms with concrete proofs
 ```
 
 **Phase 3 Checklist**:
 
-- [ ] `GlobalCurveData` typeclass - finite + infinite adeles
-- [ ] `GlobalCurveLaws` typeclass - residue theorem, non-degeneracy
-- [ ] `CanonicalDivisor` - K via differentials or axiom
-- [ ] `SerreDuality` - L(K-D) ≅ (L(D))* pairing
-- [ ] `riemann_roch_full` - Full RR equation
+Track A (Cycle 80):
+- [ ] `FullRRData` typeclass with axiomatized K, g, duality
+- [ ] `riemann_roch_full` theorem (assuming axioms)
+- [ ] Verify imports: `Different.lean`, `Kaehler/Basic.lean`
+
+Track B (Cycles 81+):
+- [ ] Bridge `differentIdeal` → `DivisorV2 R`
+- [ ] Prove duality via `Submodule.traceDual`
+- [ ] Instantiate `FullRRData` for Dedekind domains
 
 ---
 
@@ -190,39 +222,59 @@ theorem riemann_roch_full [FullRRData k R K] {D : DivisorV2 R} :
     ℓ(D) - ℓ(K - D) = deg(D) + 1 - g
 ```
 
-### Approach: Adelic Abstraction
+### Revised Roadmap (Post-Validation)
 
-**Step 1: AdelicInterface.lean**
-- `GlobalCurveData k R K` - bundles finite + infinite adeles
-- `GlobalCurveLaws k R K` - residue theorem, non-degenerate pairing
-- Integration with `KaehlerDifferential k K`
-
-**Step 2: Canonical Divisor**
-- Define `K` via differentials or as axiom
-- Prove/axiomatize `deg(K) = 2g - 2`
-
-**Step 3: Serre Duality** (HARD)
-- `L(K-D) ≅ (L(D))*` as k-vector spaces
-- Pairing: `⟨f, ω⟩ = Σ Res(fω)`
-
-**Step 4: Combine**
-- Riemann inequality (proved)
-- Serre duality
-- Degree formula: `deg(K-D) = deg(K) - deg(D)`
-
-### Key Mathlib Dependencies
+**Cycle 80: FullRRData Typeclass (Track A)**
+- Create `FullRRData.lean` with axiomatized K and g
+- Prove RR equation assuming axioms
+- This gets the theorem statement working immediately
 
 ```lean
-import Mathlib.RingTheory.DedekindDomain.AdeleRing
+import Mathlib.RingTheory.DedekindDomain.Different
 import Mathlib.RingTheory.Kaehler.Basic
+
+class FullRRData (k R K : Type*) [Field k] [CommRing R] ... extends ProperCurve k R K where
+  canonical : DivisorV2 R           -- The canonical divisor K
+  genus : ℕ                          -- The genus g
+  deg_canonical : canonical.deg = 2 * genus - 2
+  ell_canonical_minus : ∀ D, ell_proj k R K (canonical - D) = ...  -- duality
 ```
 
-### Potential Blockers
+**Cycle 81+: Discharge Axioms (Track B)**
+- Connect `canonical` to `differentIdeal` from Mathlib
+- Use `Submodule.traceDual` for the duality pairing
+- Key lemma: `ell_proj k R K (K - D) = dim(traceDual of L(D))`
 
-1. KaehlerDifferential scalar action
-2. Residue map construction
-3. Infinite places formalization
-4. Duality isomorphism linear algebra
+### Key Mathlib Dependencies (Validated)
+
+```lean
+import Mathlib.RingTheory.DedekindDomain.Different  -- traceDual, differentIdeal
+import Mathlib.RingTheory.Kaehler.Basic             -- Ω[S⁄R], KaehlerDifferential
+import Mathlib.RingTheory.Polynomial.HilbertPoly   -- hilbertPoly (optional for g)
+```
+
+### Critical Definitions from Different.lean
+
+```lean
+-- Trace dual (arithmetic Serre duality)
+def Submodule.traceDual (I : Submodule B L) : Submodule B L :=
+  -- x ∈ Iᵛ ↔ ∀ y ∈ I, Tr(x * y) ∈ A
+
+-- Different ideal (arithmetic canonical divisor)
+def differentIdeal : Ideal B :=
+  (1 / Submodule.traceDual A K 1).comap (algebraMap B L)
+
+-- Key property
+lemma coeIdeal_differentIdeal :
+  ↑(differentIdeal A B) = (FractionalIdeal.dual A K 1)⁻¹
+```
+
+### Potential Blockers (Revised)
+
+1. ~~KaehlerDifferential scalar action~~ → EXISTS, notation `Ω[S⁄R]`
+2. ~~Residue map construction~~ → Use `traceDual` instead
+3. ~~Infinite places~~ → Not needed for Track A
+4. Connecting `differentIdeal` to `DivisorV2` (Track B challenge)
 
 ---
 
