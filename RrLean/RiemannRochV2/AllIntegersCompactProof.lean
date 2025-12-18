@@ -128,11 +128,45 @@ The DVR property is now PROVED in DedekindDVR.lean. Only these remain:
 -- We get this automatically via the import:
 -- instance : IsDiscreteValuationRing (v.adicCompletionIntegers K)
 
+/-- The adic completion valuation is nontrivial: there exists a uniformizer with valuation exp(-1).
+This follows from `valuation_exists_uniformizer`. -/
+instance isNontrivial_adicCompletionValuation (v : HeightOneSpectrum R) :
+    (Valued.v : Valuation (v.adicCompletion K) (WithZero (Multiplicative ℤ))).IsNontrivial := by
+  rw [Valuation.isNontrivial_iff_exists_lt_one]
+  obtain ⟨π, hπ⟩ := v.valuation_exists_uniformizer K
+  -- π : K with v.valuation K π = exp(-1)
+  -- We use the coercion K → v.adicCompletion K
+  use (π : v.adicCompletion K)
+  constructor
+  · intro hπ0
+    -- If ↑π = 0 in adicCompletion, then Valued.v ↑π = 0
+    -- But by valuedAdicCompletion_eq_valuation', Valued.v ↑π = v.valuation K π = exp(-1) ≠ 0
+    have hv0 : Valued.v (π : v.adicCompletion K) = 0 := by
+      rw [hπ0, Valuation.map_zero]
+    rw [valuedAdicCompletion_eq_valuation', hπ] at hv0
+    exact WithZero.coe_ne_zero hv0
+  · rw [valuedAdicCompletion_eq_valuation', hπ]
+    exact WithZero.exp_lt_exp.mpr (by norm_num : (-1 : ℤ) < 0)
+
+/-- RankOne for the adic completion valuation follows from MulArchimedean.
+Since ℤ is Archimedean, WithZero (Multiplicative ℤ) is MulArchimedean, and
+with IsNontrivial we get RankOne. -/
+def rankOne_adicCompletionValuation (R : Type*) [CommRing R] [IsDedekindDomain R]
+    (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K] (v : HeightOneSpectrum R) :
+    Valuation.RankOne (Valued.v : Valuation (v.adicCompletion K) (WithZero (Multiplicative ℤ))) :=
+  (Valuation.nonempty_rankOne_iff_mulArchimedean.mpr inferInstance).some
+
+/-! ## Legacy axiom (now superseded by instances above) -/
+
 /-- Axiom: All adic completion valuations have rank one.
-This requires finite residue fields for the norm-based construction. -/
+DEPRECATED: Now this is a theorem, not an axiom! See `rankOne_adicCompletionValuation` above. -/
 class RankOneValuations where
   rankOne : ∀ v : HeightOneSpectrum R, Valuation.RankOne
     (Valued.v : Valuation (v.adicCompletion K) (WithZero (Multiplicative ℤ)))
+
+/-- RankOneValuations is now trivially satisfied since we have the instances. -/
+instance rankOneValuations_instance : RankOneValuations R K where
+  rankOne v := rankOne_adicCompletionValuation R K v
 
 /-- Axiom: All residue fields of adic completions are finite. -/
 class FiniteCompletionResidueFields : Prop where

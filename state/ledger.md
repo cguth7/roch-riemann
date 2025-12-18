@@ -1649,6 +1649,72 @@ from 3 to 2.
 
 ---
 
+#### Cycle 106 - RankOne for ALL Dedekind Domains (Major Progress!)
+
+**Goal**: Prove that `RankOne` holds for adic completion valuations, eliminating the axiom.
+
+**Status**: ✅ COMPLETE (THEOREM, not axiom!)
+
+**Results**:
+- [x] `isNontrivial_adicCompletionValuation` - PROVED: valuation is nontrivial
+- [x] `rankOne_adicCompletionValuation` - PROVED: valuation has RankOne
+- [x] `rankOneValuations_instance` - PROVED: RankOneValuations is now automatic
+- [x] Updated AllIntegersCompactProof.lean with sorry-free proofs
+
+**Key Insight**: RankOne follows automatically from:
+1. `MulArchimedean (WithZero (Multiplicative ℤ))` - automatic from ℤ being Archimedean
+2. `Valuation.IsNontrivial` - proved from uniformizer existence
+3. `nonempty_rankOne_iff_mulArchimedean` - Mathlib theorem connecting these
+
+**Proof of IsNontrivial**:
+```lean
+instance isNontrivial_adicCompletionValuation (v : HeightOneSpectrum R) :
+    (Valued.v : Valuation (v.adicCompletion K) ℤᵐ⁰).IsNontrivial := by
+  rw [Valuation.isNontrivial_iff_exists_lt_one]
+  obtain ⟨π, hπ⟩ := v.valuation_exists_uniformizer K
+  use (π : v.adicCompletion K)
+  constructor
+  · intro hπ0  -- Assume ↑π = 0 in adicCompletion
+    have hv0 : Valued.v (π : v.adicCompletion K) = 0 := by rw [hπ0, Valuation.map_zero]
+    rw [valuedAdicCompletion_eq_valuation', hπ] at hv0
+    exact WithZero.coe_ne_zero hv0  -- exp(-1) ≠ 0, contradiction
+  · rw [valuedAdicCompletion_eq_valuation', hπ]
+    exact WithZero.exp_lt_exp.mpr (by norm_num : (-1 : ℤ) < 0)  -- exp(-1) < 1
+```
+
+**Updated Axiom Hierarchy** (simplified again!):
+```
+PROVED (Cycle 105):
+  IsDiscreteValuationRing (v.adicCompletionIntegers K)  ← DedekindDVR.lean
+
+PROVED (Cycle 106):
+  RankOne (Valued.v : Valuation (v.adicCompletion K) ℤᵐ⁰)  ← AllIntegersCompactProof.lean
+
+REMAINING AXIOM (for compactness):
+  FiniteCompletionResidueFields R K  (residue fields are finite)
+         |
+         v
+  AllIntegersCompact R K
+```
+
+**Significance**: This is another major generalization of Mathlib's NumberField-specific results.
+The RankOne property was thought to require finite residue fields (for the norm-based construction),
+but we've shown it holds for ALL Dedekind domains via the MulArchimedean ↔ RankOne correspondence.
+
+Now only ONE axiom remains for `AllIntegersCompact`: finite residue fields.
+
+**Sorry Status** (unchanged from Cycle 105):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Next Steps** (Cycle 107+):
+1. Prove `FiniteCompletionResidueFields` for function fields over finite k
+2. This will complete the `AllIntegersCompact` axiom discharge
+3. Then focus on `DiscreteCocompactEmbedding` for full adelic theory
+
+---
+
 ## References
 
 ### Primary (Validated)
