@@ -11,12 +11,21 @@ Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_fi
 ```
 
 This requires `Valuation.RankOne` on the valuation.
+
+## Key Result: DVR is PROVED (not axiomatized!)
+
+See `DedekindDVR.lean` for the proof that:
+```lean
+instance : IsDiscreteValuationRing (v.adicCompletionIntegers K)
+```
+This holds for ALL Dedekind domains, without any finiteness hypothesis.
 -/
 
 import Mathlib.RingTheory.DedekindDomain.FiniteAdeleRing
 import Mathlib.Topology.Algebra.Valued.LocallyCompact
 import Mathlib.RingTheory.Valuation.RankOne
 import RrLean.RiemannRochV2.AdelicTopology
+import RrLean.RiemannRochV2.DedekindDVR
 
 noncomputable section
 
@@ -74,19 +83,16 @@ The valuation is nontrivial (it surjects onto WithZero (Multiplicative ℤ)).
 #check @Valuation.nonempty_rankOne_iff_mulArchimedean
 -- Says: Nonempty v.RankOne ↔ MulArchimedean Γ₀ (when v.IsNontrivial)
 
-/-! ## Step 3: What's missing for general Dedekind domains
+/-! ## Step 3: What we've proved vs what remains
 
-For NumberFields, Mathlib provides:
-- `IsDiscreteValuationRing (v.adicCompletionIntegers K)` - FinitePlaces.lean:76
-- `instRankOneValuedAdicCompletion` - FinitePlaces.lean:137
+**PROVED** (see DedekindDVR.lean):
+- `IsDiscreteValuationRing (v.adicCompletionIntegers K)` for ALL Dedekind domains!
 
-For general Dedekind domains, these are NOT provided!
+**Still needed** (axiomatized or to be proved):
+- `RankOne` on the valuation - requires a finite residue field
+- `Finite` residue field - depends on the specific Dedekind domain
 
-We have two options:
-1. Directly axiomatize `AllIntegersCompact`
-2. Add the necessary axioms and derive compactness
-
-Option 1 is simpler - it's what AdelicTopology.lean already does.
+For function fields over finite k, both should be provable.
 -/
 
 variable (R K)
@@ -113,17 +119,17 @@ For now, we keep `AllIntegersCompact` as an axiom (Track A approach).
 The instances above would need to be proved for Track B.
 -/
 
-/-! ## Alternative: More granular axioms
+/-! ## Remaining axioms (after DVR is proved)
 
-If we want a more granular axiom structure, we could add:
+The DVR property is now PROVED in DedekindDVR.lean. Only these remain:
 -/
 
-/-- Axiom: All adicCompletionIntegers are DVRs.
-This is proven for NumberFields in Mathlib, but not for general Dedekind domains. -/
-class AdicCompletionIntegersDVR : Prop where
-  isDVR : ∀ v : HeightOneSpectrum R, IsDiscreteValuationRing (v.adicCompletionIntegers K)
+-- DVR is now a theorem! (see DedekindDVR.lean)
+-- We get this automatically via the import:
+-- instance : IsDiscreteValuationRing (v.adicCompletionIntegers K)
 
-/-- Axiom: All adic completion valuations have rank one. -/
+/-- Axiom: All adic completion valuations have rank one.
+This requires finite residue fields for the norm-based construction. -/
 class RankOneValuations where
   rankOne : ∀ v : HeightOneSpectrum R, Valuation.RankOne
     (Valued.v : Valuation (v.adicCompletion K) (WithZero (Multiplicative ℤ)))
@@ -144,24 +150,26 @@ instance completeSpace_adicCompletionIntegers (v : HeightOneSpectrum R) :
     isClosed_adicCompletionIntegers (R := R) K v
   exact IsClosed.completeSpace_coe
 
-/-- Each adicCompletionIntegers is compact, given the granular axioms. -/
+/-- Each adicCompletionIntegers is compact, given the remaining axioms.
+Note: DVR is now automatically available via DedekindDVR.lean! -/
 theorem compactSpace_adicCompletionIntegers
-    [AdicCompletionIntegersDVR R K]
     [RankOneValuations R K]
     [FiniteCompletionResidueFields R K]
     (v : HeightOneSpectrum R) :
     CompactSpace (v.adicCompletionIntegers K) := by
   -- Get axiom instances
   letI hrank := RankOneValuations.rankOne (R := R) (K := K) v
-  haveI hdvr := AdicCompletionIntegersDVR.isDVR (R := R) (K := K) v
+  -- DVR is now automatic! (from DedekindDVR.lean)
+  haveI hdvr : IsDiscreteValuationRing (v.adicCompletionIntegers K) :=
+    RiemannRochV2.DedekindDVR.isDiscreteValuationRing_adicCompletionIntegers (K := K) v
   haveI hfinite := FiniteCompletionResidueFields.finite (R := R) (K := K) v
   -- adicCompletionIntegers K v = 𝒪[adicCompletion K v] by definition
   exact Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField.mpr
     ⟨completeSpace_adicCompletionIntegers (R := R) K v, hdvr, hfinite⟩
 
-/-- AllIntegersCompact follows from our axioms. -/
+/-- AllIntegersCompact follows from our axioms.
+Note: Only RankOne + FiniteResidueFields needed now that DVR is proved! -/
 theorem allIntegersCompact_of_axioms
-    [AdicCompletionIntegersDVR R K]
     [RankOneValuations R K]
     [FiniteCompletionResidueFields R K] :
     RiemannRochV2.AdelicTopology.AllIntegersCompact R K :=
@@ -169,28 +177,29 @@ theorem allIntegersCompact_of_axioms
 
 /-! ## Summary
 
-**Axiom hierarchy** (more granular than just `AllIntegersCompact`):
+**Axiom hierarchy** (simplified now that DVR is proved!):
 ```
-AdicCompletionIntegersDVR R K
+PROVED:
+  IsDiscreteValuationRing (v.adicCompletionIntegers K)  ← DedekindDVR.lean
+
+REMAINING AXIOMS:
+  RankOneValuations R K
          +
-RankOneValuations R K
-         +
-FiniteCompletionResidueFields R K
+  FiniteCompletionResidueFields R K
          |
          v
-compactSpace_adicCompletionIntegers
+  compactSpace_adicCompletionIntegers
          |
          v
-AllIntegersCompact R K
+  AllIntegersCompact R K
 ```
 
 **To discharge for function fields k(C) over finite k**:
-1. `AdicCompletionIntegersDVR`: Each O_v is a DVR (completing a DVR gives a DVR)
+1. ✅ `IsDiscreteValuationRing`: PROVED for all Dedekind domains! (DedekindDVR.lean)
 2. `RankOneValuations`: Construct using |R/v| as exponential base
 3. `FiniteCompletionResidueFields`: Residue field = R/v is finite extension of k
 
-**Current approach**: Keep `AllIntegersCompact` as the primary axiom (Track A).
-This file documents the finer structure needed for Track B (discharging axioms).
+**Progress**: One of three requirements for compactness is now proved!
 -/
 
 end RiemannRochV2.AllIntegersCompactProof

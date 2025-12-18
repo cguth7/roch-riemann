@@ -1581,6 +1581,74 @@ Uses: `adicCompletion K v` is complete (it's a `Completion`) + valuation ring is
 
 ---
 
+#### Cycle 105 - DVR for ALL Dedekind Domains (Major Progress!)
+
+**Goal**: Prove that `adicCompletionIntegers` is a DVR for ALL Dedekind domains.
+
+**Status**: ✅ COMPLETE (THEOREM, not axiom!)
+
+**Results**:
+- [x] Created `DedekindDVR.lean` with sorry-free proofs
+- [x] `isPrincipalIdealRing_adicCompletionIntegers` - PROVED
+- [x] `isDiscreteValuationRing_adicCompletionIntegers` - PROVED
+- [x] Updated `AllIntegersCompactProof.lean` to use the new theorem
+- [x] Reduced axiom count for `AllIntegersCompact` from 3 to 2
+
+**Key Insight**: The NumberField-specific proofs in Mathlib only use:
+1. `Valued.v.range_nontrivial` - follows from surjectivity (general)
+2. `v.valuation_exists_uniformizer K` - available for all HeightOneSpectrum
+3. `MulArchimedean ℤᵐ⁰` - automatic from `Archimedean ℤ`
+
+**None of these require finite residue fields!** Only compactness needs finiteness.
+
+**New File**: `RrLean/RiemannRochV2/DedekindDVR.lean` (~100 lines)
+
+**Key Theorems**:
+```lean
+-- MulArchimedean for the valuation range
+instance mulArchimedean_mrange :
+    MulArchimedean (MonoidHom.mrange (Valued.v : Valuation (v.adicCompletion K) ℤᵐ⁰))
+
+-- adicCompletionIntegers is a PID
+instance isPrincipalIdealRing_adicCompletionIntegers :
+    IsPrincipalIdealRing (v.adicCompletionIntegers K)
+
+-- adicCompletionIntegers is a DVR (sorry-free!)
+instance isDiscreteValuationRing_adicCompletionIntegers :
+    IsDiscreteValuationRing (v.adicCompletionIntegers K)
+```
+
+**Updated Axiom Hierarchy** (simplified!):
+```
+PROVED:
+  IsDiscreteValuationRing (v.adicCompletionIntegers K)  ← DedekindDVR.lean
+
+REMAINING AXIOMS (for compactness):
+  RankOneValuations R K
+         +
+  FiniteCompletionResidueFields R K
+         |
+         v
+  AllIntegersCompact R K
+```
+
+**Sorry Status** (unchanged from Cycle 104):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Significance**: This is a generalization of Mathlib's result. The DVR property for
+adic completion integers was thought to require NumberField machinery, but we've shown
+it holds for ALL Dedekind domains. This reduces the axioms needed for `AllIntegersCompact`
+from 3 to 2.
+
+**Next Steps** (Cycle 106+):
+1. Construct `RankOneValuations` using |R/v| as exponential base
+2. Prove `FiniteCompletionResidueFields` from finiteness of k
+3. Or: Focus on other parts of Track B
+
+---
+
 ## References
 
 ### Primary (Validated)
