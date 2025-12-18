@@ -2,35 +2,99 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 69)
+## Summary: Where We Are (End of Cycle 70)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
-**Current Target**: Fix `withzero_lt_exp_succ_imp_le_exp` and `extract_neg_proof`
+**Current Target**: Prove `LD_element_maps_to_zero` and complete kernel characterization
 
-**Blocking Chain** (Updated Cycle 69 - REFACTOR REVEALED ISSUES):
+**Blocking Chain** (Updated Cycle 70 - ZPOW FIX COMPLETE):
 ```
 evaluationMapAt_complete (Cycle 56 - PROVED ✅)
     ↓
 bridge_residue_algebraMap_clean (Cycle 65 - PROVED ✅)
     ↓
-withzero_lt_exp_succ_imp_le_exp (Cycle 68 - SORRY ⚠️)  ← API issue
+uniformizerAt_zpow_valuation (Cycle 70 - PROVED ✅)  ← NEW!
     ↓
-extract_valuation_bound_nonneg_proof (Cycle 68 - PROVED ✅ if above fixed)
-extract_valuation_bound_neg_proof (Cycle 68 - SORRY ⚠️)  ← LOGIC FLAW
+extract_valuation_bound_zpow (Cycle 70 - PROVED ✅)  ← UNIFIED!
     ↓
-LD_element_maps_to_zero (Cycle 68 - SORRY)  ← **NEXT TARGET**
+LD_element_maps_to_zero (SORRY)  ← **NEXT TARGET**
     ↓
-kernel_evaluationMapAt_complete (pending)
+kernel_evaluationMapAt_complete (SORRY - no hn needed!)
     ↓
 LocalGapBound instance → VICTORY
 ```
 
-**Note**: Cycle 69 refactoring revealed 2 lemmas with issues. Both are fixable.
+**Key Cycle 70 Achievement**: The zpow fix resolved the `.toNat` bug that was breaking negative divisors!
 
 ---
 
 ## 2025-12-17
+
+### Cycle 70 - zpow Fix for shiftedElement
+
+**Goal**: Fix the critical `.toNat` bug in `shiftedElement` that broke negative divisors
+
+#### Key Discovery
+
+**The `.toNat` bug was CRITICAL**: Using `.toNat` clamped negative exponents to 0, breaking the evaluation map for divisors with `D v + 1 < 0`.
+
+**Old (broken)**:
+```lean
+f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)
+```
+
+**New (correct)**:
+```lean
+f * (algebraMap R K (uniformizerAt v)) ^ (D v + 1)  -- uses zpow
+```
+
+#### Key Achievement
+
+**2 lemmas PROVED**:
+1. `uniformizerAt_zpow_valuation` - v(π^n) = exp(-n) for ANY n ∈ ℤ (using map_zpow₀ + exp_zsmul)
+2. `extract_valuation_bound_zpow` - UNIFIED extraction for all integers
+
+**The hn hypothesis is REMOVED**: `kernel_element_satisfies_all_bounds` and `kernel_evaluationMapAt_complete_proof` no longer need `hn : 0 ≤ D v + 1`!
+
+#### Results
+
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `uniformizerAt_zpow_valuation` | ✅ **PROVED** | v(π^n) = exp(-n) for n ∈ ℤ |
+| `extract_valuation_bound_zpow` | ✅ **PROVED** | Unified for all integers |
+| `extract_valuation_bound_from_maxIdeal_neg_proof` | OBSOLETE | Replaced by zpow version |
+| `kernel_element_satisfies_all_bounds` | ⚠️ SORRY | No hn needed! |
+| `kernel_evaluationMapAt_complete_proof` | ⚠️ SORRY | No hn needed! |
+
+#### Technical Notes
+
+The proof of `uniformizerAt_zpow_valuation`:
+```lean
+rw [map_zpow₀, hπ]  -- v(π^n) = v(π)^n = exp(-1)^n
+rw [← WithZero.exp_zsmul]  -- exp(-1)^n = exp(n • (-1))
+simp only [smul_eq_mul, mul_neg, mul_one]  -- n • (-1) = -n
+```
+
+The proof of `extract_valuation_bound_zpow` is identical to the nonneg case, just using `uniformizerAt_zpow_valuation` instead of `uniformizerAt_pow_valuation_of_nonneg`.
+
+**Files Modified**:
+- `Infrastructure.lean` - uniformizerAt_zpow_valuation (PROVED)
+- `LocalGapInstance.lean` - shiftedElement now uses zpow
+- `KernelProof.lean` - extract_valuation_bound_zpow (PROVED), hn removed
+
+#### Reflector Score: 9/10
+
+**Assessment**: Major fix that resolves the mathematical issue with negative divisors. The zpow approach makes the proof work uniformly for ALL integers, eliminating the need for the `hn : 0 ≤ D v + 1` hypothesis.
+
+**Next Steps (Cycle 71)**:
+1. Prove `LD_element_maps_to_zero` - Connect f ∈ L(D) → v(shiftedElement) < 1
+2. Complete `kernel_evaluationMapAt_complete_proof` - Both directions
+3. LocalGapBound instance → **VICTORY**
+
+**Cycle rating**: 9/10 (Critical bug fixed, 2 lemmas PROVED, hn hypothesis eliminated)
+
+---
 
 ### Cycle 69 - File Split & Bug Discovery
 

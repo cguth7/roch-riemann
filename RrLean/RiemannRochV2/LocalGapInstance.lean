@@ -2258,12 +2258,16 @@ section Cycle55Candidates
 variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
 variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
 
--- Candidate 1 [tag: rr_bundle_bridge] [status: OK] [cycle: 55]
-/-- The shifted element function: f ↦ f * π^{(D v + 1).toNat}.
+-- Candidate 1 [tag: rr_bundle_bridge] [status: OK] [cycle: 55/70]
+/-- The shifted element function: f ↦ f * π^{D v + 1}.
 This is the core computation in the evaluation map construction.
-For f ∈ L(D+v), the shifted element has valuation ≤ 1 at v. -/
+For f ∈ L(D+v), the shifted element has valuation ≤ 1 at v.
+
+CYCLE 70 FIX: Changed from (uniformizerAt v) ^ (D v + 1).toNat to zpow.
+The .toNat was clamping negative exponents to 0, breaking the evaluation map
+for divisors with D v + 1 < 0. Now uses integer powers in K. -/
 noncomputable def shiftedElement (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) : K :=
-  f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)
+  f * (algebraMap R K (uniformizerAt v)) ^ (D v + 1)
 
 -- Candidate 2 [tag: coercion_simplify] [status: PROVED] [cycle: 55]
 /-- The shifted element of f ∈ L(D+v) lies in the valuation ring at v.

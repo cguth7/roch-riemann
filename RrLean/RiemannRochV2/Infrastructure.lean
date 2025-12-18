@@ -349,30 +349,50 @@ lemma valuation_product_le_one_of_neg
     _ < WithZero.exp 0 := WithZero.exp_lt_exp.mpr hn
     _ = 1 := rfl
 
--- Candidate 7 [tag: coercion_simplify] [status: PROVED] [cycle: 24.2 → 54]
+-- Candidate 9 [tag: uniformizer_zpow_valuation] [status: PROVED] [cycle: 70]
+/-- Valuation of uniformizer to an integer power: v(π^n) = exp(-n) for any n ∈ ℤ.
+This uses zpow in the field K, which handles negative exponents correctly.
+
+CYCLE 70: Added to support the zpow-based shiftedElement definition.
+Proof strategy: v(π) = exp(-1), so v(π^n) = exp(-n) by multiplicativity. -/
+lemma uniformizerAt_zpow_valuation (v : HeightOneSpectrum R) (n : ℤ) :
+    v.valuation K ((algebraMap R K (uniformizerAt v)) ^ n) = WithZero.exp (-n) := by
+  have hπ : v.valuation K (algebraMap R K (uniformizerAt v)) = WithZero.exp (-1 : ℤ) :=
+    uniformizerAt_valuation v
+  -- v(π^n) = v(π)^n by multiplicativity of valuations (map_zpow₀)
+  rw [map_zpow₀, hπ]
+  -- (exp(-1))^n = exp(n • (-1)) = exp(-n)
+  rw [← WithZero.exp_zsmul]
+  congr 1
+  -- n • (-1 : ℤ) = -n in the additive group ℤ
+  simp only [smul_eq_mul, mul_neg, mul_one]
+
+-- Candidate 7 [tag: coercion_simplify] [status: PROVED] [cycle: 24.2 → 54 → 70]
 /-- For f ∈ L(D+v), the shifted element f · π^{D(v)+1} has valuation ≤ 1 at v.
 
 This is KEY: allows us to "evaluate f at v" by shifting the pole away.
 
-PROOF (completed Cycle 54):
+PROOF (Cycle 70 update - now uses zpow):
 - f ∈ L(D+v) means v(f) ≤ exp(D(v)+1)
-- Case 1 (D(v)+1 ≥ 0): v(π^{D(v)+1}) = exp(-(D(v)+1)), product cancels to ≤ 1
-- Case 2 (D(v)+1 < 0): π^0 = 1, and v(f) < 1 since exp(D(v)+1) < 1 -/
+- v(π^{D(v)+1}) = exp(-(D(v)+1)) for ANY integer (positive or negative)
+- Product: v(f) · exp(-(D(v)+1)) ≤ exp(D(v)+1) · exp(-(D(v)+1)) = 1 -/
 lemma shifted_element_valuation_le_one
     (v : HeightOneSpectrum R) (D : DivisorV2 R)
     (f : K) (hf : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1)) :
-    v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) ≤ 1 := by
+    v.valuation K (f * (algebraMap R K (uniformizerAt v)) ^ (D v + 1)) ≤ 1 := by
   -- Handle f = 0 case
   rcases hf with rfl | hf'
   · simp only [zero_mul, map_zero, zero_le']
   -- f ≠ 0 case: use membership condition and uniformizer properties
   have hfv := hf' v
   simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_eq_same] at hfv
-  -- Case analysis on D v + 1 ≥ 0 vs D v + 1 < 0
-  by_cases h : 0 ≤ D v + 1
-  · exact valuation_product_le_one_of_nonneg v D f h hfv
-  · push_neg at h
-    exact valuation_product_le_one_of_neg v D f h hfv
+  -- Now use zpow valuation: v(π^n) = exp(-n) for any integer n
+  rw [Valuation.map_mul, uniformizerAt_zpow_valuation]
+  -- Goal: v(f) * exp(-(D v + 1)) ≤ 1
+  calc v.valuation K f * WithZero.exp (-(D v + 1))
+      = v.valuation K f * (WithZero.exp (D v + 1))⁻¹ := by rw [WithZero.exp_inv_eq_neg_int]
+    _ ≤ WithZero.exp (D v + 1) * (WithZero.exp (D v + 1))⁻¹ := mul_le_mul_right' hfv _
+    _ = 1 := by rw [mul_inv_cancel₀ (WithZero.coe_ne_zero)]
 
 end UniformizerInfrastructure
 

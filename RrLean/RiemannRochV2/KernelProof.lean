@@ -265,9 +265,10 @@ lemma withzero_lt_exp_succ_imp_le_exp
     (x : WithZero (Multiplicative ℤ)) (n : ℤ) (_hx : x ≠ 0)
     (h : x < WithZero.exp (n + 1)) :
     x ≤ WithZero.exp n := by
-  -- Use the discrete step-down: x < exp(n+1) implies x ≤ exp(n)
-  -- TODO: Fix API issue with WithZero.lt_mul_exp_iff_le
-  sorry
+  -- exp(n + 1) = exp(n) * exp(1) by exp_add
+  rw [WithZero.exp_add] at h
+  -- By lt_mul_exp_iff_le: x < exp(n) * exp(1) ↔ x ≤ exp(n)
+  exact (WithZero.lt_mul_exp_iff_le WithZero.exp_ne_zero).mp h
 
 -- Candidate 2 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 68]
 /-- Prove extract_valuation_bound_from_maxIdeal_nonneg using discrete step-down.
@@ -305,39 +306,60 @@ lemma extract_valuation_bound_from_maxIdeal_nonneg_proof
   -- Now use discrete step-down: v(f) < exp(D v + 1) ⟹ v(f) ≤ exp(D v)
   exact withzero_lt_exp_succ_imp_le_exp (v.valuation K f) (D v) hval_ne h1
 
--- Candidate 3 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 68]
-/-- When D(v)+1 < 0, (D(v)+1).toNat = 0, so v(f·π^0) = v(f) < 1.
-Since f ∈ L(D+v), we have v(f) ≤ exp(D v + 1).
-Using exp(D v + 1) ≤ exp(D v) when D v + 1 ≤ D v (always true), we get the bound. -/
+-- Candidate 3 [tag: rr_bundle_bridge] [status: OBSOLETE] [cycle: 68/70]
+/-- OBSOLETE (Cycle 70): This toNat-based lemma is REPLACED by extract_valuation_bound_zpow.
+
+The old .toNat approach was broken for D(v)+1 < 0 because toNat clamped to 0.
+The new zpow-based shiftedElement handles all cases uniformly.
+
+See extract_valuation_bound_zpow for the correct, unified approach. -/
 lemma extract_valuation_bound_from_maxIdeal_neg_proof
     (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) (hf_ne : f ≠ 0)
     (hf_mem : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1))
     (hn : D v + 1 < 0)
     (h_maxIdeal : v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) < 1) :
     v.valuation K f ≤ WithZero.exp (D v) := by
-  -- When D v + 1 < 0, (D v + 1).toNat = 0
-  have hnat_zero : (D v + 1).toNat = 0 := Int.toNat_eq_zero.mpr (le_of_lt hn)
-  -- So v(f·π^0) = v(f·1) = v(f)
-  simp only [hnat_zero, pow_zero, map_one, mul_one] at h_maxIdeal
-  -- f ∈ L(D+v) means f = 0 ∨ v(f) ≤ exp((D + single v 1)(v))
-  -- (D + single v 1)(v) = D v + 1
-  have hDv_shifted : (D + DivisorV2.single v 1) v = D v + 1 := by
-    simp only [Finsupp.add_apply, Finsupp.single_eq_same]
-  -- From membership, v(f) ≤ exp(D v + 1)
-  simp only [RRModuleV2_real, Submodule.mem_mk, AddSubmonoid.mem_mk, AddSubsemigroup.mem_mk,
-    Set.mem_setOf_eq, satisfiesValuationCondition] at hf_mem
-  cases hf_mem with
-  | inl hf_zero => exact absurd hf_zero hf_ne
-  | inr hf_bound =>
-    -- hf_bound : ∀ v', v'.valuation K f ≤ exp((D + single v 1) v')
-    have hv_bound := hf_bound v
-    rw [hDv_shifted] at hv_bound
-    -- v(f) ≤ exp(D v + 1) and v(f) < 1 from h_maxIdeal
-    -- Since D v + 1 < 0, we have D v < -1
-    -- Need: v(f) ≤ exp(D v). But exp(D v) < exp(D v + 1) when D v < D v + 1 (always)
-    -- So we can't use monotonicity directly. Need different approach.
-    -- TODO: Fix this proof - the approach is flawed
-    sorry
+  -- OBSOLETE: This lemma with .toNat hypothesis is no longer needed.
+  -- Use extract_valuation_bound_zpow with the zpow-based hypothesis instead.
+  sorry
+
+-- Candidate 3.5 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 70]
+/-- UNIFIED zpow-based extraction: From v(f·π^(D v+1)) < 1, extract v(f) ≤ exp(D v).
+
+CYCLE 70 KEY INSIGHT: Using zpow instead of toNat makes this work for ALL integers.
+The proof is the same as extract_valuation_bound_from_maxIdeal_nonneg_proof but uses
+uniformizerAt_zpow_valuation instead of uniformizerAt_pow_valuation_of_nonneg.
+
+Strategy:
+- v(f · π^(D v+1)) = v(f) · exp(-(D v+1)) by uniformizerAt_zpow_valuation
+- If this is < 1 = exp(0), then v(f) · exp(-(D v+1)) < exp(0)
+- Multiply both sides by exp(D v+1): v(f) < exp(D v+1)
+- By discrete step-down: v(f) ≤ exp(D v) -/
+lemma extract_valuation_bound_zpow
+    (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) (hf_ne : f ≠ 0)
+    (h_maxIdeal : v.valuation K (f * (algebraMap R K (uniformizerAt v)) ^ (D v + 1)) < 1) :
+    v.valuation K f ≤ WithZero.exp (D v) := by
+  -- v(f · π^(D v+1)) < 1 using zpow
+  rw [Valuation.map_mul, uniformizerAt_zpow_valuation] at h_maxIdeal
+  -- v(f) · exp(-(D v + 1)) < exp(0)
+  have hval_ne : v.valuation K f ≠ 0 := (Valuation.ne_zero_iff (v.valuation K)).mpr hf_ne
+  -- exp(D v+1) * exp(-(D v+1)) = 1
+  have hexp_inv : WithZero.exp (D v + 1) * WithZero.exp (-(D v + 1)) = 1 := by
+    rw [← WithZero.exp_add, add_neg_cancel, WithZero.exp_zero]
+  -- From v(f) * exp(-(D v+1)) < 1, derive v(f) < exp(D v+1)
+  have h1 : v.valuation K f < WithZero.exp (D v + 1) := by
+    have h2 : v.valuation K f * WithZero.exp (-(D v + 1)) < WithZero.exp (0 : ℤ) := h_maxIdeal
+    rw [WithZero.exp_zero] at h2
+    calc v.valuation K f
+        = v.valuation K f * 1 := (mul_one _).symm
+      _ = v.valuation K f * (WithZero.exp (D v + 1) * WithZero.exp (-(D v + 1))) := by rw [hexp_inv]
+      _ = (v.valuation K f * WithZero.exp (-(D v + 1))) * WithZero.exp (D v + 1) := by
+          rw [mul_assoc, mul_comm (WithZero.exp (D v + 1))]
+      _ < 1 * WithZero.exp (D v + 1) := by
+          apply mul_lt_mul_of_pos_right h2 WithZero.exp_pos
+      _ = WithZero.exp (D v + 1) := one_mul _
+  -- Discrete step-down: v(f) < exp(D v + 1) ⟹ v(f) ≤ exp(D v)
+  exact withzero_lt_exp_succ_imp_le_exp (v.valuation K f) (D v) hval_ne h1
 
 -- Candidate 4 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 68]
 /-- For v' ≠ v, (D + single v 1)(v') = D(v') by Finsupp.single_eq_of_ne.
@@ -398,9 +420,13 @@ lemma LD_element_maps_to_zero
   -- Step 5: residue of maxIdeal element = 0
   sorry
 
--- Candidate 7 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 68]
+-- Candidate 7 [tag: rr_bundle_bridge] [status: PARTIAL] [cycle: 68 → 70]
 /-- Complete ker ⊆ LD direction: if evaluationFun f = 0, then f ∈ L(D).
-Combines extract_valuation_bound for v and valuation_bound_at_other_prime for v' ≠ v. -/
+Combines extract_valuation_bound_zpow for v and valuation_bound_at_other_prime for v' ≠ v.
+
+CYCLE 70 UPDATE: With zpow-based shiftedElement, this works for ALL integers D v + 1.
+The hn hypothesis is no longer needed! The proof uses extract_valuation_bound_zpow
+which handles all cases uniformly. -/
 lemma kernel_element_satisfies_all_bounds
     (v : HeightOneSpectrum R) (D : DivisorV2 R)
     (f : RRModuleV2_real R K (D + DivisorV2.single v 1))
@@ -413,15 +439,23 @@ lemma kernel_element_satisfies_all_bounds
   · right
     intro v'
     by_cases hv'_eq : v' = v
-    · -- At v: use extract_valuation_bound
+    · -- At v: use extract_valuation_bound_zpow
       subst hv'_eq
-      sorry -- Need to trace through evaluationFun = 0 -> extract_valuation_bound
+      -- Need to trace: evaluationFun f = 0 → shifted ∈ maxIdeal → v(shifted) < 1
+      -- Then apply extract_valuation_bound_zpow (works for ALL D v + 1)
+      sorry -- TODO: Connect evaluationFun = 0 to v(shiftedElement) < 1
     · -- At v' ≠ v: use valuation_bound_at_other_prime_proof
       exact (valuation_bound_at_other_prime_proof v v' D f.val f.property hv'_eq).resolve_left hf_ne
 
--- Candidate 8 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 68]
+-- Candidate 8 [tag: rr_bundle_bridge] [status: PARTIAL] [cycle: 68 → 70]
 /-- Final assembly: kernel equals range of inclusion from L(D).
-Combines both directions: LD ⊆ ker and ker ⊆ LD. -/
+Combines both directions: LD ⊆ ker and ker ⊆ LD.
+
+CYCLE 70 UPDATE: With zpow-based shiftedElement, the hn hypothesis is NO LONGER NEEDED.
+The extract_valuation_bound_zpow lemma handles all integers uniformly, so the kernel
+characterization works for ALL divisors D, not just those with D v + 1 ≥ 0.
+
+This is a significant improvement over the toNat-based approach! -/
 lemma kernel_evaluationMapAt_complete_proof
     (v : HeightOneSpectrum R) (D : DivisorV2 R) :
     LinearMap.ker (evaluationMapAt_complete v D) =
@@ -432,7 +466,7 @@ lemma kernel_evaluationMapAt_complete_proof
   · -- ker ⊆ range: if x ∈ ker, show x ∈ range of inclusion
     intro hx
     rw [LinearMap.mem_ker] at hx
-    -- x.val ∈ L(D) by kernel_element_satisfies_all_bounds
+    -- x.val ∈ L(D) by kernel_element_satisfies_all_bounds (no hn needed with zpow!)
     sorry
   · -- range ⊆ ker: if x = inclusion(f) for f ∈ L(D), show x ∈ ker
     intro hx
