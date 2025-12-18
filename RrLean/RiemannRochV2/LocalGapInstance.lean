@@ -3592,7 +3592,7 @@ lemma extract_valuation_bound_from_maxIdeal_nonneg_proof
   rw [Valuation.map_mul] at h_maxIdeal
   rw [uniformizerAt_pow_valuation_of_nonneg v (D v + 1) hn] at h_maxIdeal
   -- v(f) · exp(-(D v + 1)) < exp(0) means v(f) < exp(D v + 1)
-  have hval_ne : v.valuation K f ≠ 0 := Valuation.ne_zero_iff.mpr hf_ne
+  have hval_ne : v.valuation K f ≠ 0 := (Valuation.ne_zero_iff (v.valuation K)).mpr hf_ne
   -- Use exp_mul_exp_neg: exp(a) * exp(-a) = 1
   have hexp_inv : WithZero.exp (D v + 1) * WithZero.exp (-(D v + 1)) = 1 := by
     rw [← WithZero.exp_add, add_neg_cancel, WithZero.exp_zero]
@@ -3602,12 +3602,13 @@ lemma extract_valuation_bound_from_maxIdeal_nonneg_proof
     rw [WithZero.exp_zero] at h2
     -- v(f) < exp(D v + 1) follows from v(f) * exp(-n) < 1 and exp(n) * exp(-n) = 1
     calc v.valuation K f
-        = v.valuation K f * 1 := by ring
+        = v.valuation K f * 1 := (mul_one _).symm
       _ = v.valuation K f * (WithZero.exp (D v + 1) * WithZero.exp (-(D v + 1))) := by rw [hexp_inv]
-      _ = (v.valuation K f * WithZero.exp (-(D v + 1))) * WithZero.exp (D v + 1) := by ring
+      _ = (v.valuation K f * WithZero.exp (-(D v + 1))) * WithZero.exp (D v + 1) := by
+          rw [mul_right_comm]
       _ < 1 * WithZero.exp (D v + 1) := by
           apply mul_lt_mul_of_pos_right h2 WithZero.exp_pos
-      _ = WithZero.exp (D v + 1) := by ring
+      _ = WithZero.exp (D v + 1) := one_mul _
   -- Now use discrete step-down: v(f) < exp(D v + 1) ⟹ v(f) ≤ exp(D v)
   exact withzero_lt_exp_succ_imp_le_exp (v.valuation K f) (D v) hval_ne h1
 
@@ -3654,6 +3655,7 @@ lemma valuation_bound_at_other_prime_proof
     (hf : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1))
     (hne : v' ≠ v) :
     f = 0 ∨ v'.valuation K f ≤ WithZero.exp (D v') := by
+  classical
   -- (D + single v 1)(v') = D(v') + (single v 1)(v') = D(v') + 0 = D(v')
   have hcoeff : (D + DivisorV2.single v 1) v' = D v' := by
     simp only [Finsupp.add_apply]
