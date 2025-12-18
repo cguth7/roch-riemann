@@ -457,6 +457,21 @@ def adelicRRData_to_FullRRData [arr : AdelicRRData k R K canonical genus]
     calc (ell_proj k R K D : ℤ) - ell_proj k R K (canonical - D)
         = (ell_proj k R K D : ℤ) - h1_finrank k R K D := by rw [arr.serre_duality D]
       _ = D.deg + 1 - genus := arr.adelic_rr D
+  ell_zero_of_neg_deg := fun D hD => by
+    -- If deg(D) < 0, then deg(K - D) = (2g-2) - deg(D) > 2g - 2
+    -- So h¹(K - D) = 0 by h1_vanishing
+    -- By Serre duality: h¹(K - D) = ℓ(K - (K - D)) = ℓ(D)
+    -- So ℓ(D) = 0
+    have h_deg_comp : (canonical - D).deg > 2 * (genus : ℤ) - 2 := by
+      -- deg(K - D) = deg(K + (-D)) = deg(K) + deg(-D) = deg(K) - deg(D)
+      rw [sub_eq_add_neg, DivisorV2.deg_add, DivisorV2.deg_neg, arr.deg_canonical]
+      omega
+    have h_vanish := arr.h1_vanishing (canonical - D) h_deg_comp
+    -- By Serre duality for (K - D): h¹(K - D) = ℓ(K - (K - D)) = ℓ(D)
+    have h_serre := arr.serre_duality (canonical - D)
+    -- Simplify K - (K - D) = D
+    simp only [sub_sub_cancel] at h_serre
+    omega
 
 /-- The full Riemann-Roch theorem from adelic data. -/
 theorem riemann_roch_from_adelic [arr : AdelicRRData k R K canonical genus]

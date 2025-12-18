@@ -1461,6 +1461,126 @@ Search targets in Mathlib:
 
 ---
 
+#### Cycle 103 - AllIntegersCompact Analysis + AdelicH1v2 Fix
+
+**Goal**: Analyze blockers for discharging `AllIntegersCompact` axiom.
+
+**Status**: ✅ COMPLETE (analysis done, blocker identified)
+
+**Results**:
+- [x] Fixed missing `ell_zero_of_neg_deg` field in `adelicRRData_to_FullRRData`
+- [x] Identified key Mathlib theorem for compactness:
+      `compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField`
+- [x] Created `AllIntegersCompactProof.lean` documenting analysis
+
+**Bug Fix**: `adelicRRData_to_FullRRData` in AdelicH1v2.lean was missing the
+`ell_zero_of_neg_deg` field added in Cycle 99. The fix derives this from other
+adelic axioms:
+- If deg(D) < 0, then deg(K - D) > 2g - 2
+- By h1_vanishing: h¹(K - D) = 0
+- By Serre duality: h¹(K - D) = ℓ(K - (K - D)) = ℓ(D)
+- Therefore ℓ(D) = 0
+
+**Key Theorem Identified**:
+```lean
+Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField :
+    CompactSpace 𝒪[K] ↔ CompleteSpace 𝒪[K] ∧ IsDiscreteValuationRing 𝒪[K] ∧ Finite 𝓀[K]
+```
+
+**What's Available in Mathlib**:
+1. `IsDiscreteValuationRing (v.adicCompletionIntegers K)` - ✅ EXISTS (FinitePlaces.lean)
+2. `CompleteSpace (v.adicCompletionIntegers K)` - ✅ EXISTS (completion structure)
+3. `Finite 𝓀[K]` (residue field of completion) - needs hypothesis + connection
+4. **BLOCKER**: `Valuation.RankOne` on `Valued.v` for adic completion
+
+**Blocking Issue**: The compactness theorem requires `[Valuation.RankOne v]`.
+
+For NumberFields, Mathlib provides this via `instRankOneValuedAdicCompletion` using
+`absNorm v.asIdeal`. For general Dedekind domains, we need either:
+1. Axiomatize: Add hypothesis class providing RankOne for all v
+2. Construct: Build RankOne using `Nat.card (R ⧸ v.asIdeal)` for function fields
+
+**Mathematical Insight**: ℤᵐ⁰ is MulArchimedean (via WithZero.instMulArchimedean),
+so a RankOne structure exists by `nonempty_rankOne_iff_mulArchimedean`. The challenge
+is constructing a *specific* instance suitable for typeclass resolution.
+
+**Created**: `RrLean/RiemannRochV2/AllIntegersCompactProof.lean` (~150 lines)
+- Documents analysis and blocking issues
+- Defines `FiniteResidueFields` hypothesis class
+- Explains the path to construction via residue field cardinality
+
+**Sorry Status** (unchanged from Cycle 102):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Next Steps** (Cycle 104+):
+1. **Option A (Axiomatize)**: Add `RankOneValuations` typeclass packaging RankOne for all v
+2. **Option B (Construct)**: For function fields over finite k, construct RankOne using
+   `cardQuot v := Nat.card (R ⧸ v.asIdeal)` as the base of the exponential map
+3. After RankOne: Need to show residue field of completion = residue field of original DVR
+
+---
+
+#### Cycle 104 - AllIntegersCompact Discharge Path Documented
+
+**Goal**: Establish the path for discharging `AllIntegersCompact` axiom.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] Created granular axiom structure for AllIntegersCompact:
+  - `AdicCompletionIntegersDVR`: Each O_v is a DVR
+  - `RankOneValuations`: Each adic completion valuation has rank one
+  - `FiniteCompletionResidueFields`: Each completion residue field is finite
+- [x] Proved `completeSpace_adicCompletionIntegers`: O_v is complete (sorry-free!)
+- [x] Proved `isClosed_adicCompletionIntegers`: O_v is closed in K_v (sorry-free!)
+- [x] Proved `compactSpace_adicCompletionIntegers`: O_v compact from axioms (sorry-free!)
+- [x] Proved `allIntegersCompact_of_axioms`: AllIntegersCompact from granular axioms
+
+**Key Discovery**: For general Dedekind domains, Mathlib does NOT provide:
+- `IsDiscreteValuationRing (v.adicCompletionIntegers K)` - only for NumberFields
+- `RankOne` for adic completion valuations - only for NumberFields
+
+We must axiomatize these or prove them for function fields specifically.
+
+**Axiom Hierarchy**:
+```
+AdicCompletionIntegersDVR R K
+         +
+RankOneValuations R K
+         +
+FiniteCompletionResidueFields R K
+         |
+         v
+compactSpace_adicCompletionIntegers (uses compactSpace_iff...)
+         |
+         v
+AllIntegersCompact R K
+```
+
+**Completeness Proof** (SORRY-FREE):
+```lean
+instance completeSpace_adicCompletionIntegers (v : HeightOneSpectrum R) :
+    CompleteSpace (v.adicCompletionIntegers K) := by
+  haveI : IsClosed (v.adicCompletionIntegers K : Set (v.adicCompletion K)) :=
+    isClosed_adicCompletionIntegers (R := R) K v
+  exact IsClosed.completeSpace_coe
+```
+Uses: `adicCompletion K v` is complete (it's a `Completion`) + valuation ring is closed.
+
+**Sorry Status** (unchanged from Cycle 103):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Next Steps** (Cycle 105+):
+1. For function fields: Prove `AdicCompletionIntegersDVR` (completing a DVR gives DVR)
+2. For function fields: Construct `RankOneValuations` using |R/v| as exponential base
+3. For function fields: Prove `FiniteCompletionResidueFields` from finiteness of k
+
+---
+
 ## References
 
 ### Primary (Validated)
