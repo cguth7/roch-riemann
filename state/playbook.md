@@ -53,26 +53,28 @@ Where:
 
 ---
 
-## Current Status (Cycle 75 - Sorry-Free Codebase! 🎉)
+## Current Status (Cycle 76 - Projective Layer Added!)
 
 **Codebase Structure**:
 ```
 RrLean/RiemannRochV2/
 ├── Basic.lean              # Imports ✅
 ├── Divisor.lean            # DivisorV2 ✅
-├── RRSpace.lean            # L(D), ℓ(D) ✅ **CLEAN** (0 sorries!)
-├── Typeclasses.lean        # LocalGapBound ✅
-├── RiemannInequality.lean  # Main theorems ✅ **UNCONDITIONAL!**
+├── RRSpace.lean            # L(D), ℓ(D) via Module.length ✅ **CLEAN** (0 sorries!)
+├── Typeclasses.lean        # LocalGapBound, SinglePointBound, BaseDim ✅
+├── RiemannInequality.lean  # Affine theorem ✅ **UNCONDITIONAL!**
 ├── Infrastructure.lean     # Residue, uniformizer ✅ **CLEAN** (0 sorries!)
 ├── RRDefinitions.lean      # Essential definitions ✅ **CLEAN** (0 sorries!)
 ├── KernelProof.lean        # Kernel proofs ✅ **CLEAN** (0 sorries!)
 ├── DimensionCounting.lean  # Cycle 73 ✅ **CLEAN** (0 sorries!)
+├── Projective.lean         # **NEW** Cycle 76: finrank-based ℓ(D) (1 sorry)
 ├── TestBlockerProofs.lean  # Cycle 58-60: Test proofs
 └── archive/
     └── LocalGapInstance.lean  # ARCHIVED: exploration history
 ```
 
-**🎉 SORRY-FREE**: The entire main codebase has 0 sorries!
+**Affine codebase**: 0 sorries (complete!)
+**Projective layer**: 1 sorry (quotient → κ(v) injection)
 
 ### 🎉 MILESTONE ACHIEVED (Cycle 73)
 
@@ -154,16 +156,27 @@ All technical debt has been addressed:
 
 ## Future Work
 
-### Near-term: SinglePointBound
+### Near-term: Projective Layer Completion (Cycle 76)
 
-To prove `riemann_inequality_real` (projective version), need:
+**NEW**: Projective RR now exists in `Projective.lean` with `finrank k`-based dimension!
+
+**Current State**:
 ```lean
-instance : SinglePointBound R K where
-  gap_le_one := localGapBound_of_dedekind.gap_le_one
-  ell_zero_eq_one := sorry  -- L(0) = R has dimension 1
+theorem riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
+    {D : DivisorV2 R} (hD : D.Effective)
+    [∀ E, Module.Finite k (RRSpace_proj k R K E)] :
+    (ell_proj k R K D : ℤ) ≤ D.deg + 1
 ```
 
-This requires proving ℓ(0) = 1, i.e., L(0) = R has Module.length 1.
+**1 Sorry Remaining** in `gap_le_one_proj_of_rational`:
+- Need: k-linear injection from quotient L(D+v)/L(D) to κ(v)
+- Have: R-linear evaluation map with correct kernel
+- Missing: Bridge showing quotient embeds into 1-dim κ(v) as k-space
+
+**Key Typeclasses** (Cycle 76):
+- `RationalPoint k R v` — κ(v) ≅ₐ[k] k
+- `ProperCurve k R K` — axiom `ell_proj 0 = 1`
+- `AllRational k R` — all points are rational
 
 ### Long-term: Full Riemann-Roch
 

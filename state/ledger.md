@@ -2,15 +2,15 @@
 
 *For Cycles 1-34, see `state/ledger_archive.md`*
 
-## Summary: Where We Are (End of Cycle 75)
+## Summary: Where We Are (End of Cycle 76)
 
 **Project Goal**: Prove Riemann-Roch inequality for Dedekind domains in Lean 4.
 
 **🎉 MILESTONE ACHIEVED**: `riemann_inequality_affine` is now **UNCONDITIONALLY PROVED**!
 
-**🎉 SORRY-FREE**: The entire main codebase has **0 sorries**!
+**🎉 NEW**: Projective layer with `finrank`-based dimension added!
 
-**Victory Chain** (Complete & Sorry-Free):
+**Victory Chain - Affine** (Complete & Sorry-Free):
 ```
 RRDefinitions.lean (0 sorries ✅)
     ↓
@@ -18,14 +18,81 @@ KernelProof.lean (0 sorries ✅)
     ↓
 DimensionCounting.lean (0 sorries ✅)
     ↓
-RiemannInequality.lean (UNCONDITIONAL ✅)  ← 🎉 VICTORY!
+RiemannInequality.lean (UNCONDITIONAL ✅)  ← 🎉 AFFINE VICTORY!
+```
+
+**Victory Chain - Projective** (1 sorry):
+```
+Projective.lean (1 sorry)
+    ↓
+riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
+    ↓
+ℓ(D) ≤ deg(D) + 1  ← 🎉 PROJECTIVE RR!
 ```
 
 **What This Means**:
-- For ANY Dedekind domain R with fraction field K
-- For ANY effective divisor D
-- We have: ℓ(D) ≤ deg(D) + basedim
-- The proof is **complete** with no axioms or sorries!
+- **Affine**: For ANY Dedekind domain R, ℓ(D) ≤ deg(D) + basedim (0 sorries)
+- **Projective**: For proper curves with rational points, ℓ(D) ≤ deg(D) + 1 (1 sorry)
+
+---
+
+## 2025-12-18
+
+### Cycle 76 - Projective Riemann-Roch Layer
+
+**Goal**: Create projective RR with `finrank k` instead of `Module.length R`
+
+#### Key Achievement
+
+**PROJECTIVE RIEMANN INEQUALITY PROVED** (modulo 1 sorry):
+```lean
+theorem riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
+    {D : DivisorV2 R} (hD : D.Effective)
+    [∀ E : DivisorV2 R, Module.Finite k (RRSpace_proj k R K E)] :
+    (ell_proj k R K D : ℤ) ≤ D.deg + 1
+```
+
+#### New File: `Projective.lean` (~260 lines)
+
+**Definitions**:
+- `RRSpace_proj k R K D` — L(D) as a k-subspace of K (via `restrictScalars`)
+- `ell_proj k R K D` — dimension using `finrank k` instead of `Module.length R`
+- `RationalPoint k R v` — typeclass: κ(v) ≅ₐ[k] k
+- `ProperCurve k R K` — typeclass with axiom `ell_proj 0 = 1`
+- `AllRational k R` — typeclass: all points are rational
+
+**Proved Lemmas**:
+- `RRSpace_proj_mono` — monotonicity of L(D) inclusion
+- `ell_proj_mono` — monotonicity of dimension
+- `residue_finrank_eq_one` — rational point has 1-dim residue field over k
+- `h_LD_eq` — comap equals range(inclusion), preserving finrank
+- `gap_le_one_proj_of_rational` — gap ≤ 1 for rational points (1 sorry)
+- `riemann_inequality_proj` — **ℓ(D) ≤ deg(D) + 1** for proper curves
+
+#### Remaining Sorry (1 total)
+
+In `gap_le_one_proj_of_rational`:
+```lean
+-- Need: finrank_k(quotient L(D+v)/L(D)) ≤ finrank_k(κ(v)) = 1
+-- Via: quotient ≅ range(eval) ⊆ κ(v), and κ(v) is 1-dimensional
+sorry
+```
+
+This requires constructing a k-linear injection from the quotient to κ(v). The R-linear evaluation map exists; the bridge to k-linearity needs plumbing.
+
+#### Architecture Validation
+
+The chat's Route A recommendation was **correct** — the affine infrastructure transferred cleanly:
+- Same L(D) definition (valuation-based membership)
+- Same divisor arithmetic
+- Same evaluation map construction
+- Only changed: dimension function from `Module.length R` to `finrank k`
+
+#### Reflector Score: 9/10
+
+**Assessment**: Major progress. Projective layer created with minimal code reuse. One technical sorry remains but the mathematical structure is complete.
+
+**Cycle rating**: 9/10 (Projective RR established!)
 
 ---
 

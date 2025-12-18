@@ -1,0 +1,336 @@
+import RrLean.RiemannRochV2.Infrastructure
+import RrLean.RiemannRochV2.KernelProof
+import RrLean.RiemannRochV2.RRDefinitions
+import Mathlib.LinearAlgebra.Dimension.Finrank
+
+/-!
+# Projective Riemann-Roch
+
+This module provides a projective version of Riemann-Roch using `finrank` over a base field `k`
+instead of `Module.length` over `R`.
+
+## Key Differences from Affine Version
+
+* **Affine (RRSpace.lean)**: ℓ(D) = Module.length R L(D)
+* **Projective (this file)**: ℓ(D) = finrank k L(D)
+
+The projective version requires:
+1. A base field `k` with `[Field k] [Algebra k K]`
+2. A "properness" axiom: ℓ(0) = 1 (global regular functions are constants)
+
+## Main Definitions
+
+* `ell_proj k R K D` - Dimension of L(D) as a k-vector space
+* `RationalPoint k R K v` - Typeclass asserting κ(v) ≅ k
+* `ProperCurve k R K` - Typeclass with properness axiom ℓ(0) = 1
+
+## Main Results
+
+* `gap_le_one_proj` - Adding a rational point increases dimension by at most 1
+* `riemann_inequality_proj` - ℓ(D) ≤ deg(D) + 1 for effective divisors
+-/
+
+namespace RiemannRochV2
+
+open IsDedekindDomain
+
+variable (k : Type*) [Field k]
+variable (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R]
+variable (K : Type*) [Field K] [Algebra R K] [IsFractionRing R K]
+variable [Algebra k R] [Algebra k K] [IsScalarTower k R K]
+
+/-! ## L(D) as a k-vector space
+
+The Riemann-Roch space L(D) is defined as an R-submodule of K in RRSpace.lean.
+Via the scalar tower k → R → K, it's automatically a k-subspace of K.
+-/
+
+/-- L(D) viewed as a k-subspace of K.
+This is just the R-submodule with its induced k-module structure. -/
+def RRSpace_proj (D : DivisorV2 R) : Submodule k K :=
+  (RRModuleV2_real R K D).restrictScalars k
+
+/-- The dimension ℓ(D) as a k-vector space dimension.
+Returns a natural number (0 if infinite-dimensional). -/
+noncomputable def ell_proj (D : DivisorV2 R) : ℕ :=
+  Module.finrank k (RRSpace_proj k R K D)
+
+/-! ## Monotonicity -/
+
+/-- When D ≤ E, we have L(D) ⊆ L(E) as k-subspaces. -/
+lemma RRSpace_proj_mono {D E : DivisorV2 R} (hDE : D ≤ E) :
+    RRSpace_proj k R K D ≤ RRSpace_proj k R K E := by
+  intro f hf
+  exact RRModuleV2_mono_inclusion R K hDE hf
+
+/-- Monotonicity of ell_proj for finite-dimensional spaces. -/
+lemma ell_proj_mono {D E : DivisorV2 R} (hDE : D ≤ E)
+    (hfin : Module.Finite k (RRSpace_proj k R K E)) :
+    ell_proj k R K D ≤ ell_proj k R K E := by
+  unfold ell_proj
+  exact Submodule.finrank_mono (RRSpace_proj_mono k R K hDE)
+
+/-! ## Rational Points
+
+A point v is "rational" over k if its residue field κ(v) is isomorphic to k.
+This is the generic situation for algebraically closed k. -/
+
+/-- A height-one prime v is a rational point if κ(v) ≅ k as k-algebras.
+For algebraically closed k, all closed points are rational. -/
+class RationalPoint (v : HeightOneSpectrum R) where
+  /-- The residue field is isomorphic to the base field -/
+  residue_equiv : residueFieldAtPrime R v ≃ₐ[k] k
+
+/-- For a rational point, the residue field has dimension 1 over k. -/
+lemma residue_finrank_eq_one (v : HeightOneSpectrum R) [RationalPoint k R v] :
+    Module.finrank k (residueFieldAtPrime R v) = 1 := by
+  have e := RationalPoint.residue_equiv (k := k) (R := R) (v := v)
+  -- κ(v) ≃ₐ[k] k means κ(v) ≅ k as k-vector spaces
+  -- k has finrank 1 over itself
+  have h1 : Module.finrank k k = 1 := Module.finrank_self k
+  rw [← h1]
+  exact LinearEquiv.finrank_eq e.toLinearEquiv
+
+/-! ## Proper Curve Typeclass -/
+
+/-- A proper curve over k has the property that global regular functions are constants.
+This is the key axiom that makes ℓ(0) = 1 hold. -/
+class ProperCurve where
+  /-- L(0) = k, i.e., functions with no poles are constants -/
+  ell_zero_eq_one : ell_proj k R K 0 = 1
+
+/-- Alternative: AllRational says every point is rational. -/
+class AllRational where
+  rational : ∀ v : HeightOneSpectrum R, RationalPoint k R v
+
+/-! ## Gap Bound for Projective Case
+
+The key insight is that the existing evaluation map infrastructure from the affine
+case transfers: we have a k-linear map L(D+v) → κ(v) with kernel containing L(D).
+When κ(v) ≅ k (rational point), dim κ(v) = 1 over k, so the gap is at most 1.
+-/
+
+section GapBound
+
+variable {k R K}
+
+/-- The gap bound: adding a single rational point increases dimension by at most 1.
+
+PROOF IDEA:
+1. The evaluation map φ : L(D+v) → κ(v) has ker φ ⊇ L(D)
+2. For rational v: dim κ(v) = 1 over k
+3. By rank-nullity: dim L(D+v) ≤ dim(ker φ) + 1 ≤ dim L(D) + 1
+-/
+lemma gap_le_one_proj_of_rational (D : DivisorV2 R) (v : HeightOneSpectrum R)
+    [RationalPoint k R v]
+    [hfin : Module.Finite k (RRSpace_proj k R K (D + DivisorV2.single v 1))] :
+    ell_proj k R K (D + DivisorV2.single v 1) ≤ ell_proj k R K D + 1 := by
+  -- The inclusion L(D) → L(D+v) is injective
+  have hle := divisor_le_add_single D v
+  have hincl : RRSpace_proj k R K D ≤ RRSpace_proj k R K (D + DivisorV2.single v 1) :=
+    RRSpace_proj_mono k R K hle
+
+  -- The comap gives us L(D) as a submodule of L(D+v)
+  let LD := (RRSpace_proj k R K D).comap (RRSpace_proj k R K (D + DivisorV2.single v 1)).subtype
+
+  -- The quotient L(D+v)/L(D) embeds into κ(v), which has dim 1
+  -- So finrank(quotient) ≤ 1
+  have h_quot_le : Module.finrank k (↥(RRSpace_proj k R K (D + DivisorV2.single v 1)) ⧸ LD) ≤ 1 := by
+    -- For a rational point, κ(v) ≅ k as k-vector space, so has dimension 1
+    have h_residue_dim : Module.finrank k (residueFieldAtPrime R v) = 1 :=
+      residue_finrank_eq_one k R v
+
+    -- The R-linear evaluation map φ : L(D+v) → κ(v) has kernel = range(inclusion : L(D) → L(D+v))
+    -- This is proved in kernel_evaluationMapAt_complete_proof
+    -- We've shown LD = range(inclusion), so LD = ker(φ)
+
+    -- The quotient L(D+v)/ker(φ) is isomorphic to range(φ) ⊆ κ(v)
+    -- So finrank_k(quotient) = finrank_k(range(φ)) ≤ finrank_k(κ(v)) = 1
+
+    -- Key: the R-module structure on κ(v) comes from scalar tower k → R → κ(v)
+    -- So any R-submodule is also a k-submodule, and finrank is preserved
+
+    -- The quotient (as k-module) has dimension at most that of κ(v) = 1
+    -- because quotient ≅ image ⊆ κ(v), and any k-subspace of a 1-dim space has dim ≤ 1
+
+    -- Technical: need to show LD = ker(φ) where φ is the R-linear eval map
+    -- Then use LinearMap.quotKerEquivRange to get quotient ≅ range
+    -- And range ⊆ κ(v) implies finrank(range) ≤ finrank(κ(v)) = 1
+
+    -- The issue is converting between k-finrank and the R-module structure
+    -- For k ⊆ R, any R-module is a k-module, and submodule finrank is monotonic
+
+    -- Direct argument: quotient is a k-vector space of dim ≤ 1
+    -- because it maps injectively into κ(v) ≅ k (a 1-dimensional k-space)
+
+    -- Using: if f : V → W is k-linear injective and dim W = 1, then dim V ≤ 1
+    -- The key missing piece: construct a k-linear injection from quotient to κ(v)
+
+    -- The R-linear evaluation map φ : L(D+v)_R → κ(v) becomes k-linear via restrict_scalars
+    -- We have: ker(φ) = range(incl) = LD (this is kernel_evaluationMapAt_complete_proof + h_eq)
+    -- So quotient L(D+v)/LD ≅ₗ[R] range(φ) via quotKerEquivRange
+    -- And range(φ) is a k-submodule of κ(v)
+
+    -- For the finrank bound: any k-subspace of κ(v) ≅ k has dimension ≤ 1
+    -- This is because κ(v) is 1-dimensional over k, so has only {0} and κ(v) as subspaces
+
+    -- The cleanest approach: use that finrank of a submodule ≤ finrank of the ambient module
+    -- range(φ) ⊆ κ(v) implies finrank_k(range(φ)) ≤ finrank_k(κ(v)) = 1
+    -- And quotient ≅ range(φ) implies finrank_k(quotient) = finrank_k(range(φ))
+
+    -- Technical issue: the quotient is over LD (defined via comap), but the kernel
+    -- characterization is for the R-module version. Need to bridge this.
+
+    -- Actually, the quotient we're computing finrank for is over the k-module structure
+    -- And LD (as k-submodule) should equal ker(φ) (as k-submodule) when φ is k-linear
+
+    -- For now, leave as admitted - this is the core technical content
+    -- that requires carefully constructing the k-linear evaluation map and showing
+    -- the quotient embeds into the 1-dimensional κ(v)
+    calc Module.finrank k (↥(RRSpace_proj k R K (D + DivisorV2.single v 1)) ⧸ LD)
+        ≤ Module.finrank k (residueFieldAtPrime R v) := by
+          -- TODO: Construct k-linear map from quotient to κ(v) and show it's injective
+          -- Key lemmas needed:
+          -- 1. kernel_evaluationMapAt_complete_proof gives ker(φ_R) = range(incl)
+          -- 2. LD = range(incl) (we proved h_eq)
+          -- 3. So LD = ker(φ_R) as R-submodules, hence as k-submodules
+          -- 4. The induced map quotient → range(φ_R) ⊆ κ(v) is injective
+          -- 5. finrank(quotient) ≤ finrank(κ(v)) = 1
+          sorry
+      _ = 1 := h_residue_dim
+
+  -- LD is the comap of L(D) via subtype, which equals range(inclusion) since L(D) ⊆ L(D+v)
+  -- The inclusion is injective, so finrank(LD) = finrank(range) = finrank(L(D))
+  have h_LD_eq : Module.finrank k LD = ell_proj k R K D := by
+    unfold ell_proj LD
+    -- LD = comap subtype L(D) = range(inclusion) since L(D) ⊆ L(D+v)
+    -- The proof: comap S.subtype T = {x ∈ S : x.val ∈ T}
+    --           range(inclusion hincl) = {x ∈ L(D+v) : ∃ y ∈ L(D), inclusion y = x}
+    -- These are equal when T ⊆ S (both equal T viewed inside S)
+    have h_eq : (RRSpace_proj k R K D).comap
+        (RRSpace_proj k R K (D + DivisorV2.single v 1)).subtype =
+        LinearMap.range (Submodule.inclusion hincl) := by
+      apply le_antisymm
+      · -- comap ≤ range: if x ∈ comap then x ∈ range
+        intro x hx
+        rw [Submodule.mem_comap] at hx
+        rw [LinearMap.mem_range]
+        exact ⟨⟨x.val, hx⟩, rfl⟩
+      · -- range ≤ comap: if x ∈ range then x ∈ comap
+        intro x hx
+        rw [LinearMap.mem_range] at hx
+        obtain ⟨y, hy⟩ := hx
+        rw [Submodule.mem_comap]
+        rw [← hy]
+        exact y.2
+    rw [h_eq]
+    exact LinearMap.finrank_range_of_inj (Submodule.inclusion_injective hincl)
+
+  have h_LD_le : Module.finrank k LD ≤ ell_proj k R K D := le_of_eq h_LD_eq
+
+  -- Use: finrank(quotient) + finrank(LD) = finrank(L(D+v))
+  -- So: finrank(L(D+v)) = finrank(LD) + finrank(quotient)
+  --                     ≤ finrank(L(D)) + 1
+  have h_add := Submodule.finrank_quotient_add_finrank LD
+  -- h_add : finrank(quotient) + finrank(LD) = finrank(L(D+v))
+  unfold ell_proj
+  -- Rewrite using h_add (rearranged)
+  have h_eq : Module.finrank k ↥(RRSpace_proj k R K (D + DivisorV2.single v 1)) =
+      Module.finrank k LD +
+      Module.finrank k (↥(RRSpace_proj k R K (D + DivisorV2.single v 1)) ⧸ LD) := by
+    rw [← h_add, add_comm]
+  rw [h_eq]
+  calc Module.finrank k LD +
+        Module.finrank k (↥(RRSpace_proj k R K (D + DivisorV2.single v 1)) ⧸ LD)
+      ≤ Module.finrank k (RRSpace_proj k R K D) + 1 := Nat.add_le_add h_LD_le h_quot_le
+
+end GapBound
+
+/-! ## Main Theorem: Projective Riemann Inequality -/
+
+/-- Riemann inequality for projective curves: ℓ(D) ≤ deg(D) + 1.
+
+Proof by induction on degree, using:
+- Base case: ℓ(0) = 1 from ProperCurve
+- Inductive step: gap ≤ 1 from gap_le_one_proj_of_rational
+-/
+theorem riemann_inequality_proj [ProperCurve k R K] [AllRational k R]
+    {D : DivisorV2 R} (hD : D.Effective)
+    [∀ E : DivisorV2 R, Module.Finite k (RRSpace_proj k R K E)] :
+    (ell_proj k R K D : ℤ) ≤ D.deg + 1 := by
+  -- Induction on degree
+  have h_deg_nonneg : 0 ≤ D.deg := by
+    unfold DivisorV2.deg
+    apply Finsupp.sum_nonneg
+    intro v _
+    exact hD v
+  generalize hn : D.deg.toNat = n
+  induction n generalizing D with
+  | zero =>
+    -- deg(D) = 0 and D effective implies D = 0
+    have hdeg_zero : D.deg = 0 := by
+      have : D.deg.toNat = 0 := hn
+      have := Int.toNat_of_nonneg h_deg_nonneg
+      omega
+    have h_zero : D = 0 := by
+      ext v
+      by_contra h_neq
+      have h_pos : 0 < D v := lt_of_le_of_ne (hD v) (Ne.symm h_neq)
+      have h_in_supp : v ∈ D.support := Finsupp.mem_support_iff.mpr (ne_of_gt h_pos)
+      have h_sum_pos : 0 < D.deg := by
+        unfold DivisorV2.deg
+        apply Finsupp.sum_pos'
+        · intro x _; exact hD x
+        · exact ⟨v, h_in_supp, h_pos⟩
+      omega
+    subst h_zero
+    simp only [DivisorV2.deg_zero, zero_add]
+    have h1 : ell_proj k R K 0 = 1 := ProperCurve.ell_zero_eq_one
+    omega
+  | succ n ih =>
+    -- deg(D) = n + 1 > 0, so exists v with D(v) > 0
+    have hdeg_pos : D.deg = n + 1 := by
+      have h1 := Int.toNat_of_nonneg h_deg_nonneg
+      omega
+    have h_exists_pos : ∃ v, 0 < D v := DivisorV2.exists_pos_of_deg_pos (R := R) hD (by omega)
+    obtain ⟨v, hv⟩ := h_exists_pos
+    -- D' = D - single v 1
+    let D' := D - DivisorV2.single v 1
+    have h_decomp : D = D' + DivisorV2.single v 1 := by
+      simp only [D', DivisorV2.sub_add_single_cancel]
+    -- D' is effective
+    have hD' : D'.Effective := DivisorV2.effective_sub_single (R := R) hD v hv
+    -- deg(D') = n
+    have hdeg' : D'.deg.toNat = n := by
+      have h1 : D'.deg = D.deg - 1 := DivisorV2.deg_sub_single (R := R) D v
+      have h2 : 0 ≤ D'.deg := by
+        unfold DivisorV2.deg
+        apply Finsupp.sum_nonneg
+        intro w _; exact hD' w
+      omega
+    -- Apply IH to D'
+    have h_le := ih hD' (by
+      unfold DivisorV2.deg
+      apply Finsupp.sum_nonneg
+      intro w _; exact hD' w) hdeg'
+    -- Apply gap bound
+    rw [h_decomp]
+    haveI : RationalPoint k R v := AllRational.rational v
+    have h_step : ell_proj k R K (D' + DivisorV2.single v 1) ≤ ell_proj k R K D' + 1 :=
+      gap_le_one_proj_of_rational D' v
+    -- Combine
+    have hdeg_D' : D'.deg = n := by
+      have h1 : D'.deg = D.deg - 1 := DivisorV2.deg_sub_single (R := R) D v
+      rw [h1, hdeg_pos]
+      ring
+    have hdeg_total : (D' + DivisorV2.single v 1).deg = D'.deg + 1 :=
+      DivisorV2.deg_add_single' (R := R) D' v
+    calc (ell_proj k R K (D' + DivisorV2.single v 1) : ℤ)
+        ≤ ell_proj k R K D' + 1 := by exact_mod_cast h_step
+      _ ≤ (D'.deg + 1) + 1 := by linarith
+      _ = D'.deg + 2 := by ring
+      _ = n + 2 := by rw [hdeg_D']
+      _ = (n + 1) + 1 := by ring
+      _ = (D' + DivisorV2.single v 1).deg + 1 := by rw [hdeg_total, hdeg_D']
+
+end RiemannRochV2
