@@ -739,6 +739,74 @@ This says that for `k : K` coerced into `adicCompletion K v`, its valuation equa
 
 ---
 
+#### Cycle 93 - k-Module Structure for H¹(D)
+
+**Goal**: Add proper k-module structure to AdelicH1v2.lean so that h¹(D) can be defined as a k-vector space dimension.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] `Algebra k (FiniteAdeleRing R K)` instance - PROVED via composition k → K → FiniteAdeleRing
+- [x] `IsScalarTower k K (FiniteAdeleRing R K)` instance - PROVED
+- [x] `IsScalarTower k R (FiniteAdeleRing R K)` instance - PROVED
+- [x] `smul_mem_boundedSubset` - PROVED (k-scalars preserve divisor bounds)
+- [x] `boundedSubmodule` - k-submodule version of A_K(D)
+- [x] `smul_mem_globalSubset` - PROVED (k-scalars preserve diagonal)
+- [x] `globalSubmodule` - k-submodule version of K diagonal
+- [x] `globalPlusBoundedSubmodule` - K + A_K(D) as k-submodule
+- [x] `SpaceModule` - H¹(D) as k-module quotient
+- [x] `quotientMapLinear` - k-linear quotient map
+- [x] `quotientMapLinear_of_global` - PROVED (globals map to zero)
+- [x] `h1_rank` - Cardinal rank of H¹(D)
+- [x] `h1_finrank` - finrank dimension of H¹(D)
+
+**Key Techniques**:
+
+1. **Algebra instance via composition**:
+   ```lean
+   instance : Algebra k (FiniteAdeleRing R K) :=
+     (FiniteAdeleRing.algebraMap R K).comp (algebraMap k K) |>.toAlgebra
+   ```
+
+2. **k-scalar preservation for bounded adeles**:
+   - For `c ∈ k`, `v(c • a) = v(c) * v(a) ≤ 1 * v(a) ≤ exp(D v)`
+   - Uses `IsScalarTower k R K` to factor: `algebraMap k K c = algebraMap R K (algebraMap k R c)`
+   - Then `valuation_le_one` gives `v(algebraMap k R c) ≤ 1`
+
+3. **k-scalar preservation for global diagonal**:
+   - For `c ∈ k`, `c • diagonalK R K x = diagonalK R K (c • x)`
+   - Uses that `diagonalK R K` is a ring homomorphism
+
+**New Definitions**:
+```lean
+-- H¹(D) as a k-module
+abbrev SpaceModule (D : DivisorV2 R) : Type _ :=
+  (FiniteAdeleRing R K) ⧸ (globalPlusBoundedSubmodule k R K D)
+
+-- Dimension h¹(D)
+def h1_finrank (D : DivisorV2 R) : ℕ :=
+  Module.finrank k (SpaceModule k R K D)
+```
+
+**Sorry Status** (unchanged):
+- AdelicH1v2.lean: 0 sorries ✅
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (`ell_canonical_minus_eq_zero_of_large_deg` - needs principal divisor theory)
+
+**Total**: 2 sorries in main path (unchanged)
+
+**Significance**: With proper k-module structure, we can now:
+1. Define h¹(D) = finrank_k H¹(D) mathematically correctly
+2. State and prove finiteness theorems
+3. Formulate Serre duality: h¹(D) = ℓ(K - D)
+
+**Next Steps** (Cycle 94):
+1. Prove H¹(D) finiteness for effective D via strong approximation
+2. Prove h¹(D) = 0 for deg(D) >> 0 (vanishing theorem)
+3. Connect h¹(D) to ℓ(K - D) (Serre duality)
+
+---
+
 ## References
 
 ### Primary (Validated)

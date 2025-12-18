@@ -17,8 +17,18 @@ Using `FiniteAdeleRing R K` (the restricted product Πʳ_v K_v) gives:
 ## Main Definitions
 
 * `AdelicH1v2.boundedSubset` : {a ∈ FiniteAdeleRing : v(a_v) ≤ exp(D(v)) for all v}
-* `AdelicH1v2.globalPlusBounded` : K + A_K(D) as a subgroup
-* `AdelicH1v2.Space` : H¹(D) = FiniteAdeleRing / (K + A_K(D))
+* `AdelicH1v2.boundedSubmodule` : A_K(D) as a k-submodule
+* `AdelicH1v2.globalSubmodule` : K embedded diagonally as a k-submodule
+* `AdelicH1v2.globalPlusBoundedSubmodule` : K + A_K(D) as a k-submodule
+* `AdelicH1v2.SpaceModule` : H¹(D) = FiniteAdeleRing / (K + A_K(D)) as a k-module
+* `AdelicH1v2.h1_finrank` : dim_k H¹(D)
+
+## Algebra Structure (Cycle 93)
+
+We establish `Algebra k (FiniteAdeleRing R K)` via the composition:
+  k → K → FiniteAdeleRing R K
+
+This allows us to view H¹(D) as a k-module quotient, enabling proper dimension counting.
 
 ## Mathematical Background
 
@@ -47,6 +57,37 @@ variable (K : Type*) [Field K] [Algebra k K] [Algebra R K] [IsFractionRing R K]
 variable [IsScalarTower k R K]
 
 namespace AdelicH1v2
+
+/-! ## Algebra Structure on FiniteAdeleRing
+
+We establish that `FiniteAdeleRing R K` is a k-algebra via the scalar tower k → R → K → FiniteAdeleRing.
+-/
+
+/-- The k-algebra structure on FiniteAdeleRing R K, obtained via composition. -/
+instance : Algebra k (FiniteAdeleRing R K) :=
+  (FiniteAdeleRing.algebraMap R K).comp (algebraMap k K) |>.toAlgebra
+
+/-- The scalar tower k → K → FiniteAdeleRing R K. -/
+instance : IsScalarTower k K (FiniteAdeleRing R K) :=
+  IsScalarTower.of_algebraMap_eq' rfl
+
+/-- The scalar tower k → R → FiniteAdeleRing R K. -/
+instance : IsScalarTower k R (FiniteAdeleRing R K) := by
+  constructor
+  intro x y z
+  simp only [Algebra.smul_def]
+  rw [← mul_assoc]
+  congr 1
+  -- algebraMap k (FiniteAdeleRing R K) x * algebraMap R (FiniteAdeleRing R K) y
+  -- = algebraMap R (FiniteAdeleRing R K) (algebraMap k R x * y)
+  rw [map_mul]
+  congr 1
+  -- algebraMap k (FiniteAdeleRing R K) x = algebraMap R (FiniteAdeleRing R K) (algebraMap k R x)
+  -- By the definition, algebraMap k (FiniteAdeleRing R K) = FiniteAdeleRing.algebraMap R K ∘ algebraMap k K
+  -- And algebraMap R (FiniteAdeleRing R K) = FiniteAdeleRing.algebraMap R K ∘ algebraMap R K
+  -- Using IsScalarTower k R K: algebraMap k K = algebraMap R K ∘ algebraMap k R
+  simp only [RingHom.algebraMap_toAlgebra, RingHom.coe_comp, Function.comp_apply]
+  rw [IsScalarTower.algebraMap_apply k R K]
 
 /-! ## Bounded Adeles using FiniteAdeleRing
 
@@ -130,6 +171,55 @@ def boundedAddSubgroup (D : DivisorV2 R) : AddSubgroup (FiniteAdeleRing R K) whe
   zero_mem' := zero_mem_boundedSubset R K D
   neg_mem' := neg_mem_boundedSubset R K
 
+/-- A_K(D) is closed under k-scalar multiplication.
+
+For c ∈ k, we have c • a = algebraMap k (FiniteAdeleRing R K) c * a.
+Since algebraMap factors through R, and elements of R have valuation ≤ 1 at each place,
+we get v(c • a) = v(c) * v(a) ≤ 1 * v(a) ≤ exp(D v). -/
+lemma smul_mem_boundedSubset (D : DivisorV2 R) (c : k) {a : FiniteAdeleRing R K}
+    (ha : a ∈ boundedSubset R K D) :
+    c • a ∈ boundedSubset R K D := by
+  intro v
+  unfold satisfiesBoundAt valuationAt
+  have ha_v := ha v
+  unfold satisfiesBoundAt valuationAt at ha_v
+  -- c • a = algebraMap k (FiniteAdeleRing R K) c * a by Algebra.smul_def
+  rw [Algebra.smul_def]
+  -- (algebraMap k (FiniteAdeleRing R K) c * a) v = algebraMap k (FiniteAdeleRing R K) c v * a v
+  have hmul : (algebraMap k (FiniteAdeleRing R K) c * a) v =
+      (algebraMap k (FiniteAdeleRing R K) c) v * a v := rfl
+  rw [hmul, Valuation.map_mul]
+  -- Need: v(algebraMap k (FiniteAdeleRing R K) c) ≤ 1
+  -- The algebraMap factors: k → K → FiniteAdeleRing R K
+  -- At component v, (algebraMap k (FiniteAdeleRing R K) c) v = (algebraMap k K c : v.adicCompletion K)
+  have hc_val : Valued.v ((algebraMap k (FiniteAdeleRing R K) c) v) ≤ 1 := by
+    -- The algebraMap k → FiniteAdeleRing factors through K via diagonal embedding
+    -- At component v: (algebraMap k (FiniteAdeleRing R K) c) v = (algebraMap k K c : adicCompletion)
+    -- This is just the coercion of algebraMap k K c into the completion
+    have heq : ((algebraMap k (FiniteAdeleRing R K) c) v) = (algebraMap k K c : v.adicCompletion K) := rfl
+    rw [heq, valuedAdicCompletion_eq_valuation']
+    -- Now goal: v.valuation K (algebraMap k K c) ≤ 1
+    -- Use scalar tower: algebraMap k K c = algebraMap R K (algebraMap k R c)
+    rw [IsScalarTower.algebraMap_apply k R K]
+    exact HeightOneSpectrum.valuation_le_one v (algebraMap k R c)
+  -- Use transitivity: v(c) * v(a) ≤ 1 * v(a) ≤ v(a) ≤ exp(D v)
+  have h1 : Valued.v ((algebraMap k (FiniteAdeleRing R K) c) v) * Valued.v (a v)
+      ≤ 1 * Valued.v (a v) := by
+    apply mul_le_mul_of_nonneg_right hc_val
+    exact WithZero.zero_le _
+  have h2 : (1 : WithZero (Multiplicative ℤ)) * Valued.v (a v) = Valued.v (a v) := one_mul _
+  calc Valued.v ((algebraMap k (FiniteAdeleRing R K) c) v) * Valued.v (a v)
+      ≤ 1 * Valued.v (a v) := h1
+    _ = Valued.v (a v) := h2
+    _ ≤ WithZero.exp (D v) := ha_v
+
+/-- A_K(D) as a k-submodule of FiniteAdeleRing. -/
+def boundedSubmodule (D : DivisorV2 R) : Submodule k (FiniteAdeleRing R K) where
+  carrier := boundedSubset R K D
+  add_mem' := add_mem_boundedSubset R K
+  zero_mem' := zero_mem_boundedSubset R K D
+  smul_mem' := smul_mem_boundedSubset k R K D
+
 /-! ## Global Elements
 
 The image of K in FiniteAdeleRing via diagonal embedding.
@@ -151,9 +241,37 @@ def globalAddSubgroup : AddSubgroup (FiniteAdeleRing R K) where
     rintro _ ⟨x, rfl⟩
     exact ⟨-x, (diagonalK R K).map_neg x⟩
 
+/-- The diagonal of K is closed under k-scalar multiplication. -/
+lemma smul_mem_globalSubset (c : k) {a : FiniteAdeleRing R K}
+    (ha : a ∈ globalSubset R K) :
+    c • a ∈ globalSubset R K := by
+  obtain ⟨x, rfl⟩ := ha
+  -- c • (diagonalK R K x) = diagonalK R K (c • x)
+  -- Because diagonalK R K = FiniteAdeleRing.algebraMap R K is a ring hom
+  -- and c • x = algebraMap k K c * x
+  use c • x
+  simp only [Algebra.smul_def]
+  -- Need: diagonalK R K (algebraMap k K c * x) = algebraMap k (FiniteAdeleRing R K) c * diagonalK R K x
+  -- Both sides are ring hom applications
+  rw [map_mul]
+  rfl
+
+/-- The diagonal of K as a k-submodule. -/
+def globalSubmodule : Submodule k (FiniteAdeleRing R K) where
+  carrier := globalSubset R K
+  add_mem' := by
+    rintro _ _ ⟨x, rfl⟩ ⟨y, rfl⟩
+    exact ⟨x + y, (diagonalK R K).map_add x y⟩
+  zero_mem' := ⟨0, (diagonalK R K).map_zero⟩
+  smul_mem' := smul_mem_globalSubset k R K
+
 /-! ## H¹(D) Definition
 
 H¹(D) = FiniteAdeleRing / (K + A_K(D))
+
+We define two versions:
+1. `globalPlusBounded` - AddSubgroup version (for compatibility)
+2. `globalPlusBoundedSubmodule` - k-Submodule version (for dimension counting)
 -/
 
 /-- K + A_K(D) as an additive subgroup.
@@ -161,14 +279,29 @@ This is the sum of the global diagonal and the bounded adeles. -/
 def globalPlusBounded (D : DivisorV2 R) : AddSubgroup (FiniteAdeleRing R K) :=
   globalAddSubgroup R K ⊔ boundedAddSubgroup R K D
 
+/-- K + A_K(D) as a k-submodule.
+This is the sum of the global diagonal and the bounded adeles as k-subspaces. -/
+def globalPlusBoundedSubmodule (D : DivisorV2 R) : Submodule k (FiniteAdeleRing R K) :=
+  globalSubmodule k R K + boundedSubmodule k R K D
+
 /-- H¹(D) = FiniteAdeleRing / (K + A_K(D)) as an additive quotient group. -/
 abbrev Space (D : DivisorV2 R) : Type _ :=
   (FiniteAdeleRing R K) ⧸ (globalPlusBounded R K D)
 
-/-- The quotient map from FiniteAdeleRing to H¹(D). -/
+/-- H¹(D) as a k-module quotient.
+This is the mathematically correct definition for dimension counting. -/
+abbrev SpaceModule (D : DivisorV2 R) : Type _ :=
+  (FiniteAdeleRing R K) ⧸ (globalPlusBoundedSubmodule k R K D)
+
+/-- The quotient map from FiniteAdeleRing to H¹(D) (additive group version). -/
 def quotientMap (D : DivisorV2 R) :
     FiniteAdeleRing R K →+ Space R K D :=
   QuotientAddGroup.mk' (globalPlusBounded R K D)
+
+/-- The quotient map from FiniteAdeleRing to H¹(D) (k-linear version). -/
+def quotientMapLinear (D : DivisorV2 R) :
+    FiniteAdeleRing R K →ₗ[k] SpaceModule k R K D :=
+  Submodule.mkQ (globalPlusBoundedSubmodule k R K D)
 
 /-- Global elements map to zero in H¹(D). -/
 lemma quotientMap_of_global (D : DivisorV2 R) (x : K) :
@@ -181,6 +314,27 @@ lemma quotientMap_of_global (D : DivisorV2 R) (x : K) :
     apply AddSubgroup.mem_sup_left
     exact ⟨x, rfl⟩
   simp only [QuotientAddGroup.mk'_apply, QuotientAddGroup.eq_zero_iff, hmem]
+
+/-- Global elements map to zero in H¹(D) (k-module version). -/
+lemma quotientMapLinear_of_global (D : DivisorV2 R) (x : K) :
+    quotientMapLinear k R K D (diagonalK R K x) = 0 := by
+  unfold quotientMapLinear
+  rw [Submodule.mkQ_apply, Submodule.Quotient.mk_eq_zero]
+  apply Submodule.mem_sup_left
+  exact ⟨x, rfl⟩
+
+/-! ## Dimension h¹(D)
+
+The dimension of H¹(D) as a k-vector space.
+-/
+
+/-- The rank of H¹(D) as a cardinal. -/
+def h1_rank (D : DivisorV2 R) : Cardinal :=
+  Module.rank k (SpaceModule k R K D)
+
+/-- The dimension h¹(D) when H¹(D) is finite-dimensional. -/
+def h1_finrank (D : DivisorV2 R) : ℕ :=
+  Module.finrank k (SpaceModule k R K D)
 
 /-! ## Key Properties (To be proved)
 
