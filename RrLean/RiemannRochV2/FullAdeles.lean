@@ -359,10 +359,90 @@ Hence q is a unit, so k is a polynomial.
 theorem finite_integral_implies_polynomial (k : RatFunc Fq)
     (hint : ∀ v : HeightOneSpectrum Fq[X], v.valuation (RatFunc Fq) k ≤ 1) :
     ∃ p : Fq[X], algebraMap Fq[X] (RatFunc Fq) p = k := by
-  -- For k = numerator/denominator in lowest terms:
-  -- If valuation ≤ 1 at all places, denominator has no prime factors
-  -- Hence denominator is a unit, so k is a polynomial
-  sorry
+  -- Strategy: Show denom(k) = 1, hence k is a polynomial
+  -- If denom(k) ≠ 1, then it has an irreducible factor p
+  -- This creates a HeightOneSpectrum v where |k|_v > 1, contradiction
+  let d := k.denom
+  let n := k.num
+  have hd_monic : d.Monic := RatFunc.monic_denom k
+  have hd_ne : d ≠ 0 := RatFunc.denom_ne_zero k
+  have hcop : IsCoprime n d := RatFunc.isCoprime_num_denom k
+  have hk_eq : algebraMap Fq[X] (RatFunc Fq) n / algebraMap Fq[X] (RatFunc Fq) d = k :=
+    RatFunc.num_div_denom k
+  -- Goal: show d = 1
+  suffices hd_one : d = 1 by
+    use n
+    rw [← hk_eq, hd_one, map_one, div_one]
+  -- Suppose d ≠ 1, derive contradiction
+  by_contra hd_ne_one
+  -- Monic polynomial ≠ 1 means it's not a unit
+  have hd_not_unit : ¬IsUnit d := by
+    intro h
+    exact hd_ne_one (hd_monic.eq_one_of_isUnit h)
+  -- In UFD (Fq[X] is a PID hence UFD), non-unit non-zero has irreducible factor
+  obtain ⟨p, hp_irr, hp_dvd⟩ := WfDvdMonoid.exists_irreducible_factor hd_not_unit hd_ne
+  -- p is prime (in UFD, irreducible ⟹ prime)
+  have hp_prime : Prime p := hp_irr.prime
+  have hp_ne : p ≠ 0 := hp_prime.ne_zero
+  -- Construct HeightOneSpectrum from p
+  have hp_ideal_prime : (Ideal.span {p}).IsPrime :=
+    (Ideal.span_singleton_prime hp_ne).mpr hp_prime
+  have hp_ideal_ne_bot : (Ideal.span {p} : Ideal Fq[X]) ≠ ⊥ := by
+    simp only [ne_eq, Ideal.span_singleton_eq_bot]
+    exact hp_ne
+  let v : HeightOneSpectrum Fq[X] := ⟨Ideal.span {p}, hp_ideal_prime, hp_ideal_ne_bot⟩
+  -- Since p | d, we have d ∈ v.asIdeal
+  have hd_in_v : d ∈ v.asIdeal := by
+    simp only [v]
+    rw [Ideal.mem_span_singleton]
+    exact hp_dvd
+  -- So v.intValuation d < 1
+  have hval_d : v.intValuation d < 1 := (intValuation_lt_one_iff_mem v d).mpr hd_in_v
+  -- By coprimality, p does not divide n
+  have hp_not_dvd_n : ¬(p ∣ n) := by
+    -- Need to show p ∤ n given IsCoprime n d and p | d
+    -- IsCoprime n d means ∃ a b, a*n + b*d = 1
+    -- If p | n and p | d, then p | (a*n + b*d) = 1, so p is a unit
+    -- But p is irreducible, hence not a unit. Contradiction.
+    intro hdvd_n
+    -- p divides both n and d, hence divides their linear combination
+    obtain ⟨a, b, hab⟩ := hcop
+    have hp_dvd_one : p ∣ 1 := by
+      calc p ∣ a * n + b * d := dvd_add (dvd_mul_of_dvd_right hdvd_n a) (dvd_mul_of_dvd_right hp_dvd b)
+           _ = 1 := hab
+    -- p | 1 means p is a unit, contradicting irreducibility
+    have hp_unit : IsUnit p := isUnit_of_dvd_one hp_dvd_one
+    exact hp_irr.1 hp_unit
+  -- So n ∉ v.asIdeal
+  have hn_not_in_v : n ∉ v.asIdeal := by
+    simp only [v]
+    rw [Ideal.mem_span_singleton]
+    exact hp_not_dvd_n
+  -- So v.intValuation n = 1
+  have hval_n : v.intValuation n = 1 := intValuation_eq_one_iff.mpr hn_not_in_v
+  -- Now compute v.valuation k
+  -- k = n / d, so v.valuation k = v.valuation n / v.valuation d
+  have hval_k : v.valuation (RatFunc Fq) k = v.intValuation n / v.intValuation d := by
+    rw [← hk_eq]
+    rw [map_div₀]
+    congr 1
+    · exact v.valuation_of_algebraMap n
+    · exact v.valuation_of_algebraMap d
+  -- v.intValuation n = 1, v.intValuation d < 1
+  -- So v.valuation k = 1 / (something < 1) > 1
+  specialize hint v
+  rw [hval_k, hval_n, one_div] at hint
+  -- hint : (v.intValuation d)⁻¹ ≤ 1
+  -- hval_d : v.intValuation d < 1
+  -- In ordered group with zero, if 0 < x < 1, then x⁻¹ > 1
+  have hd_mem : d ∈ nonZeroDivisors Fq[X] := mem_nonZeroDivisors_of_ne_zero hd_ne
+  have hval_d_ne : v.intValuation d ≠ 0 := v.intValuation_ne_zero' ⟨d, hd_mem⟩
+  have hval_d_pos : 0 < v.intValuation d := zero_lt_iff.mpr hval_d_ne
+  have hcontra : 1 < (v.intValuation d)⁻¹ := by
+    rw [one_lt_inv_iff₀]
+    exact ⟨hval_d_pos, hval_d⟩
+  -- From hint: x⁻¹ ≤ 1 and hcontra: 1 < x⁻¹, derive contradiction
+  exact (not_lt.mpr hint) hcontra
 
 /-- Consequence: For a nonzero k ∈ RatFunc Fq that is integral at all finite places,
 the infinity valuation is ≥ 1 (since k is a nonzero polynomial). -/
@@ -397,10 +477,31 @@ The proof uses that for k ∈ Fq[X], we have:
 -/
 theorem fq_discrete_in_fullAdeles :
     DiscreteTopology (Set.range (fqFullDiagonalEmbedding Fq)) := by
-  -- The key is that |k|_∞ = q^{deg k} for polynomials
-  -- So |k|_∞ < ε implies deg k < log_q(ε), which is finite
-  -- Combined with integrality at finite places, only finitely many k satisfy this
-  -- Hence every point is isolated, making the subspace discrete
+  -- Strategy: Show {0} is open in the subspace topology on range(diag)
+  -- This requires finding an open U in full adeles with U ∩ range(diag) = {0}
+  --
+  -- Key insight: For k ∈ K with diag(k) ∈ U:
+  -- 1. U_fin = {a | ∀ v, a_v ∈ O_v} (integral at all finite places) is open
+  -- 2. U_∞ = {x | Valued.v x < 1} is open (by isOpen_inftyBall_lt_one)
+  -- 3. U = U_fin × U_∞ is open in FullAdeleRing
+  -- 4. For diagonal(k) ∈ U:
+  --    - k is integral at all finite places (from U_fin)
+  --    - By finite_integral_implies_polynomial: k is a polynomial
+  --    - |k|_∞ < 1 (from U_∞)
+  --    - By polynomial_inftyVal_ge_one: nonzero polynomial has |·|_∞ ≥ 1
+  --    - Contradiction unless k = 0
+  -- 5. Hence U ∩ range(diag) = {0}, giving discrete topology
+
+  -- For a subspace, DiscreteTopology means every singleton is open
+  -- For an additive subgroup, it suffices to show {0} is open (by translation)
+  -- This requires an open U in FullAdeleRing with U ∩ range(diag) = {diag(0)}
+
+  -- The key technical challenge is showing U_fin is open in FiniteAdeleRing
+  -- This requires RestrictedProduct.isOpen_forall_mem with A_v = O_v
+
+  -- For now, we outline the proof structure but defer the topology API work
+  -- The algebraic content (finite_integral_implies_polynomial, polynomial_inftyVal_ge_one)
+  -- is already proved; the remaining work is pure topology
   sorry
 
 /-- Closedness of Fq(t) in full adeles.
@@ -409,9 +510,26 @@ Discrete subgroups of locally compact Hausdorff groups are closed.
 -/
 theorem fq_closed_in_fullAdeles :
     IsClosed (Set.range (fqFullDiagonalEmbedding Fq)) := by
-  -- Standard result: discrete + locally compact + Hausdorff → closed
-  -- The full adele ring is locally compact and Hausdorff
-  -- K is discrete by fq_discrete_in_fullAdeles
+  -- The range of the diagonal embedding is an AddSubgroup
+  -- Discrete subgroups of T2 groups are closed (AddSubgroup.isClosed_of_discrete)
+  --
+  -- Strategy:
+  -- 1. (fqFullDiagonalEmbedding Fq).range is a Subring
+  -- 2. (fqFullDiagonalEmbedding Fq).range.toAddSubgroup is an AddSubgroup
+  -- 3. By fq_discrete_in_fullAdeles, this AddSubgroup is discrete
+  -- 4. Full adeles are T2 (product of T2 spaces)
+  -- 5. By AddSubgroup.isClosed_of_discrete, the range is closed
+  --
+  -- Technical note: Set.range f = f.range as sets
+  have hrange : Set.range (fqFullDiagonalEmbedding Fq) =
+      ((fqFullDiagonalEmbedding Fq).range.toAddSubgroup : Set _) := by
+    ext x
+    simp only [Set.mem_range, RingHom.mem_range, Subring.mem_toAddSubgroup, RingHom.coe_range]
+    constructor <;> intro ⟨a, ha⟩ <;> exact ⟨a, ha⟩
+  rw [hrange]
+  -- Now we need T2Space and discreteness
+  -- Full adeles = FiniteAdeleRing × FqtInfty, both are T2 (valued rings are T2)
+  -- For now, sorry the T2 instance and discreteness-based closure
   sorry
 
 /-- Compactness of integral full adeles.
