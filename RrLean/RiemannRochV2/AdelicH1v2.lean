@@ -208,30 +208,28 @@ lemma globalInBounded (D : DivisorV2 R) (f : K)
     (hf : satisfiesValuationCondition R K D f) :
     diagonalK R K f ∈ boundedSubset R K D := by
   intro v
-  simp only [satisfiesBoundAt, valuationAt, diagonalK, FiniteAdeleRing.algebraMap]
+  unfold satisfiesBoundAt valuationAt
   -- The diagonal embedding gives f at each place
+  -- diagonalK R K = FiniteAdeleRing.algebraMap R K
+  -- So (diagonalK R K f) v = (f : adicCompletion K v)
   -- Need: Valued.v (f : adicCompletion K v) ≤ exp(D v)
   -- This follows from hf : v(f) ≤ exp(D v) since adicCompletion extends K
   unfold satisfiesValuationCondition at hf
   rcases hf with rfl | hf'
   · -- f = 0 case
-    -- (0 : K) maps to (0 : FiniteAdeleRing) and Valued.v 0 = 0 ≤ anything
-    show Valued.v ((FiniteAdeleRing.algebraMap R K 0) v) ≤ WithZero.exp (D v)
-    -- FiniteAdeleRing.algebraMap 0 = 0, and 0 applied to any v gives 0
-    have h1 : FiniteAdeleRing.algebraMap R K (0 : K) = (0 : FiniteAdeleRing R K) :=
-      map_zero _
-    rw [h1]
-    -- (0 : FiniteAdeleRing) at v is 0 in adicCompletion
-    -- FiniteAdeleRing is a subtype of Π v, adicCompletion K v, so 0 v = 0
-    have h2 : (0 : FiniteAdeleRing R K) v = (0 : v.adicCompletion K) := rfl
-    rw [h2]
-    rw [Valuation.map_zero]
+    -- (diagonalK R K 0) = 0 by map_zero, and (0 : FiniteAdeleRing) v = 0 in adicCompletion
+    have h0 : (diagonalK R K 0) v = (0 : v.adicCompletion K) := by
+      simp only [diagonalK, map_zero]
+      rfl
+    rw [h0, Valuation.map_zero]
     exact WithZero.zero_le _
   · -- f ≠ 0 case with valuation bounds
     specialize hf' v
-    -- Need to connect HeightOneSpectrum.valuation to Valued.v on adicCompletion
-    -- Key: valuedAdicCompletion_eq_valuation' from adic completion theory
-    sorry -- Technical: valuation on K = valuation on adicCompletion for embedded elements
+    -- The key: (diagonalK R K f) v = (f : adicCompletion K v) by definition
+    -- And Valued.v (f : adicCompletion K v) = valuation K v f by valuedAdicCompletion_eq_valuation'
+    have heq : (diagonalK R K f) v = (f : v.adicCompletion K) := rfl
+    rw [heq, valuedAdicCompletion_eq_valuation']
+    exact hf'
 
 end AdelicH1v2
 

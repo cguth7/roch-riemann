@@ -704,6 +704,41 @@ abbrev Space (D : DivisorV2 R) : Type _ :=
 
 ---
 
+#### Cycle 92 - globalInBounded PROVED
+
+**Goal**: Prove the valuation bridge lemma connecting L(D) to A_K(D) in AdelicH1v2.lean.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] `globalInBounded` - PROVED using `valuedAdicCompletion_eq_valuation'`
+- [x] AdelicH1v2.lean is now sorry-free!
+
+**Key Technique**: The proof uses Mathlib's `valuedAdicCompletion_eq_valuation'`:
+```lean
+valuedAdicCompletion_eq_valuation' : ∀ v k, Valued.v ↑k = (valuation K v) k
+```
+
+This says that for `k : K` coerced into `adicCompletion K v`, its valuation equals the original K-valuation. Combined with the fact that `(diagonalK R K f) v = ↑f` (definitional), the proof follows directly from the L(D) membership condition.
+
+**Proof Structure**:
+1. Zero case: `diagonalK R K 0 = 0` by `map_zero`, then `Valued.v 0 = 0 ≤ exp(D v)`
+2. Nonzero case: Use `heq : (diagonalK R K f) v = ↑f`, then `valuedAdicCompletion_eq_valuation'` converts to K-valuation, and the bound follows from L(D) membership.
+
+**Sorry Status**:
+- AdelicH1v2.lean: 0 sorries (was 1) ✅
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (`ell_canonical_minus_eq_zero_of_large_deg` - needs principal divisor theory)
+
+**Total**: 2 sorries in main path (was 3, reduced by 1)
+
+**Next Steps** (Cycle 93):
+1. Prove H¹(D) finiteness via strong approximation
+2. Or: Prove Serre duality h¹(D) = ℓ(K - D)
+3. Or: Prove FullRRData helper lemma via principal divisor theory
+
+---
+
 ## References
 
 ### Primary (Validated)

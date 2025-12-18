@@ -100,7 +100,7 @@ RrLean/RiemannRochV2/
 ├── DifferentIdealBridge.lean # ✅ Track B bridge (Cycle 89, 0 sorries)
 ├── TraceDualityProof.lean  # ⏳ Track B duality (1 sorry - not on critical path)
 ├── Adeles.lean             # ✅ Simplified H¹(D) model (Cycle 86, 0 sorries)
-├── AdelicH1v2.lean         # ✅ Track B H¹(D) via FiniteAdeleRing (Cycle 91, 1 sorry)
+├── AdelicH1v2.lean         # ✅ Track B H¹(D) via FiniteAdeleRing (Cycle 92, 0 sorries)
 └── archive/
     ├── LocalGapInstance.lean   # ARCHIVED
     └── TestBlockerProofs.lean  # ARCHIVED (Cycle 58 experiments)
@@ -244,7 +244,7 @@ Track B (Cycles 81+) - Required for full proof:
 - [x] Prove `le_iff_forall_count_ge` (Cycle 89) ✅
 - [x] Architectural analysis: adelic approach is correct path (Cycle 90)
 - [x] AdelicH1v2 with Mathlib's FiniteAdeleRing (Cycle 91) ✅
-- [ ] Prove globalInBounded valuation bridge (technical lemma)
+- [x] Prove globalInBounded valuation bridge (Cycle 92) ✅
 - [ ] Prove H¹(D) finiteness (strong approximation)
 - [ ] Prove Serre duality: h¹(D) = ℓ(K-D) via local trace residues
 - [ ] Instantiate `FullRRData` with proof
