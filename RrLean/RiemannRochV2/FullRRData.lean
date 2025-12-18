@@ -73,6 +73,16 @@ class FullRRData extends ProperCurve k R K where
   Mathematically: ℓ(D) - h¹(D) = deg(D) + 1 - g, where h¹(D) = ℓ(K-D) by duality. -/
   serre_duality_eq : ∀ D : DivisorV2 R,
     (ell_proj k R K D : ℤ) - ell_proj k R K (canonical - D) = D.deg + 1 - genus
+  /-- Divisors of negative degree have no sections.
+
+  This is the fundamental vanishing theorem. The classical proof uses:
+  - If f ∈ L(D) is nonzero, then div(f) + D is effective
+  - deg(div(f) + D) = 0 + deg(D) = deg(D) (since principal divisors have degree 0)
+  - But effective divisors have degree ≥ 0, contradiction if deg(D) < 0
+
+  We axiomatize this rather than proving it, since the proof requires principal
+  divisor theory (specifically, that deg(div(f)) = 0 for all f ∈ K×). -/
+  ell_zero_of_neg_deg : ∀ D : DivisorV2 R, D.deg < 0 → ell_proj k R K D = 0
 
 /-! ## The Full Riemann-Roch Theorem
 
@@ -137,26 +147,17 @@ lemma ell_ge_of_ell_complement_zero {D : DivisorV2 R}
   omega
 
 /-- The degree bound on the canonical class complement.
-If deg(D) > 2g - 2, then deg(K - D) < 0, so ℓ(K - D) = 0 (effective divisors have deg ≥ 0).
+If deg(D) > 2g - 2, then deg(K - D) < 0, so ℓ(K - D) = 0.
 
-Note: This requires the assumption that L(E) = 0 when deg(E) < 0 and E has no
-effective divisors in its class. We don't have this yet, so we state it
-as a hypothesis. -/
+This now follows directly from the `ell_zero_of_neg_deg` axiom. -/
 lemma ell_canonical_minus_eq_zero_of_large_deg {D : DivisorV2 R}
-    (h_large : D.deg > 2 * (frr.genus : ℤ) - 2)
-    (h_no_effective : ¬∃ E : DivisorV2 R, E.Effective ∧ E.deg = (frr.canonical - D).deg
-        ∧ ell_proj k R K E = ell_proj k R K (frr.canonical - D)) :
+    (h_large : D.deg > 2 * (frr.genus : ℤ) - 2) :
     ell_proj k R K (frr.canonical - D) = 0 := by
-  -- The degree of K - D is deg(K) - deg(D) = (2g-2) - deg(D) < 0
-  -- If L(K-D) had a nonzero element, it would give an effective divisor of the same class
-  -- But effective divisors have deg ≥ 0, contradiction
-  by_contra h_ne
-  -- If ell ≠ 0, there exists nonzero f ∈ L(K-D)
-  -- The principal divisor (f) + (K-D) is effective and has degree = deg(K-D)
-  -- But deg(K-D) = deg(K) - deg(D) < 0, contradicting effectiveness
-  -- This is a standard argument but we don't have the principal divisor machinery
-  -- For now, we use the hypothesis h_no_effective which captures this idea
-  sorry -- Track B: Need principal divisor theory
+  -- deg(K - D) = deg(K) - deg(D) = (2g-2) - deg(D) < 0
+  apply frr.ell_zero_of_neg_deg
+  -- Use sub_eq_add_neg and deg_add, deg_neg
+  rw [sub_eq_add_neg, DivisorV2.deg_add, DivisorV2.deg_neg, frr.deg_canonical]
+  omega
 
 end Corollaries
 
