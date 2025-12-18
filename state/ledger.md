@@ -1171,6 +1171,54 @@ Two levels of axiomatization:
 
 ---
 
+#### Cycle 98 - h1_anti_mono PROVED!
+
+**Goal**: Prove the `h1_anti_mono` lemma - h¹ is anti-monotone (larger divisors have smaller h¹).
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] `boundedSubmodule_mono` - PROVED (D ≤ E implies A_K(D) ⊆ A_K(E))
+- [x] `globalPlusBoundedSubmodule_mono` - PROVED (D ≤ E implies K + A_K(D) ⊆ K + A_K(E))
+- [x] `h1_anti_mono` - **PROVED!** (D ≤ E implies h¹(E) ≤ h¹(D))
+
+**Key Technique**:
+
+The proof constructs a surjective linear map between quotients using `Submodule.mapQ`:
+```lean
+let f : SpaceModule k R K D →ₗ[k] SpaceModule k R K E :=
+  Submodule.mapQ (globalPlusBoundedSubmodule k R K D) (globalPlusBoundedSubmodule k R K E)
+    LinearMap.id (by rwa [Submodule.comap_id])
+```
+
+Since `D ≤ E` implies `(K + A_K(D)) ⊆ (K + A_K(E))`, the identity map on `FiniteAdeleRing`
+descends to a surjection `M/(K + A_K(D)) → M/(K + A_K(E))`.
+
+The surjectivity combined with `LinearMap.finrank_range_le` gives:
+```
+finrank (SpaceModule E) = finrank (range f) ≤ finrank (SpaceModule D)
+```
+
+**Added Hypothesis**: The proof requires `[Module.Finite k (SpaceModule k R K D)]` since
+`finrank_range_le` needs finite dimensionality. This is reasonable because:
+- The result is only meaningful for finite-dimensional quotients
+- The hypothesis is satisfied when `AdelicRRData.h1_finite` holds
+
+**Sorry Status**:
+- AdelicH1v2.lean: **0 sorries** (was 1) ✅
+- AdelicTopology.lean: 1 sorry (`h1_module_finite` - needs Haar/Blichfeldt)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (`ell_canonical_minus_eq_zero_of_large_deg`)
+
+**Total**: 3 sorries in main path (was 4, reduced by 1)
+
+**Next Steps** (Cycle 99):
+1. Prove `h1_module_finite` using Mathlib's fundamental domain machinery
+2. Or: Focus on proving `ell_canonical_minus_eq_zero_of_large_deg` via principal divisor theory
+3. Or: Attempt to instantiate `DiscreteCocompactEmbedding` for a specific function field
+
+---
+
 ## References
 
 ### Primary (Validated)

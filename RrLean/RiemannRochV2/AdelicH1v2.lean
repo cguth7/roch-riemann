@@ -354,6 +354,16 @@ lemma boundedSubset_mono {D E : DivisorV2 R} (h : D ≤ E) :
   calc Valued.v (a v) ≤ WithZero.exp (D v) := hD
     _ ≤ WithZero.exp (E v) := WithZero.exp_le_exp.mpr hv
 
+/-- Monotonicity for boundedSubmodule: D ≤ E implies A_K(D) ⊆ A_K(E) as k-submodules. -/
+lemma boundedSubmodule_mono {D E : DivisorV2 R} (h : D ≤ E) :
+    boundedSubmodule k R K D ≤ boundedSubmodule k R K E :=
+  boundedSubset_mono R K h
+
+/-- Monotonicity for globalPlusBoundedSubmodule: D ≤ E implies K + A_K(D) ⊆ K + A_K(E). -/
+lemma globalPlusBoundedSubmodule_mono {D E : DivisorV2 R} (h : D ≤ E) :
+    globalPlusBoundedSubmodule k R K D ≤ globalPlusBoundedSubmodule k R K E :=
+  sup_le_sup_left (boundedSubmodule_mono k R K h) _
+
 /-- Elements of L(D) ⊆ K embed into A_K(D) via the diagonal.
 
 If f ∈ L(D), meaning v(f) ≤ exp(D(v)) for all v, then the diagonal
@@ -491,13 +501,37 @@ Larger divisors have smaller h¹ (anti-monotone).
 
 This follows from: D ≤ E implies A_K(D) ⊆ A_K(E) implies
 (K + A_K(D)) ⊆ (K + A_K(E)) implies the quotient gets smaller.
+
+Note: This requires the source quotient to be finite-dimensional.
+This is guaranteed by `AdelicRRData.h1_finite` when working with proper curves.
 -/
-lemma h1_anti_mono {D E : DivisorV2 R} (h : D ≤ E) :
+lemma h1_anti_mono {D E : DivisorV2 R} (h : D ≤ E)
+    [hfin : Module.Finite k (SpaceModule k R K D)] :
     h1_finrank k R K E ≤ h1_finrank k R K D := by
-  -- The proof requires showing that the quotient map induces a surjection
-  -- SpaceModule k R K D → SpaceModule k R K E
-  -- This follows from boundedSubmodule_mono
-  sorry -- Track B: Quotient dimension argument
+  -- Since D ≤ E, we have globalPlusBoundedSubmodule D ≤ globalPlusBoundedSubmodule E
+  have hmono := globalPlusBoundedSubmodule_mono k R K h
+  -- Construct the surjective map from quotient by smaller submodule to quotient by larger
+  -- Using mapQ: for M/N → M/N' when N ≤ N', we use mapQ with f = id
+  -- The condition is: N ≤ comap id N' = N'
+  let f : SpaceModule k R K D →ₗ[k] SpaceModule k R K E :=
+    Submodule.mapQ (globalPlusBoundedSubmodule k R K D) (globalPlusBoundedSubmodule k R K E)
+      LinearMap.id (by rwa [Submodule.comap_id])
+  -- f is surjective: for any [x] in the target, it equals f [x]
+  have hf_surj : Function.Surjective f := by
+    intro y
+    -- Every element of SpaceModule E is a quotient of some x ∈ FiniteAdeleRing
+    obtain ⟨x, rfl⟩ := Submodule.Quotient.mk_surjective _ y
+    -- The same x represents an element in SpaceModule D
+    use Submodule.Quotient.mk x
+    -- f sends [x] in D to [x] in E
+    rfl
+  -- Use: finrank of range ≤ finrank of domain
+  -- Since f is surjective, range f = ⊤, so finrank (target) = finrank (range f) ≤ finrank (source)
+  unfold h1_finrank
+  calc Module.finrank k (SpaceModule k R K E)
+      = Module.finrank k (LinearMap.range f) := by
+        rw [LinearMap.range_eq_top.mpr hf_surj, finrank_top]
+    _ ≤ Module.finrank k (SpaceModule k R K D) := LinearMap.finrank_range_le f
 
 end AdelicH1v2
 
