@@ -262,13 +262,12 @@ variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
 Key discrete valuation property: strict inequality with exp allows stepping down.
 This is the bridge between v(f·π^n) < 1 and v(f) ≤ exp(D v). -/
 lemma withzero_lt_exp_succ_imp_le_exp
-    (x : ℤᵐ⁰) (n : ℤ) (_hx : x ≠ 0)
+    (x : WithZero (Multiplicative ℤ)) (n : ℤ) (_hx : x ≠ 0)
     (h : x < WithZero.exp (n + 1)) :
     x ≤ WithZero.exp n := by
-  -- Use the discrete step-down: x < exp(n+1) ↔ x ≤ exp(n) * exp(1) implies x ≤ exp(n)
-  rw [← WithZero.lt_mul_exp_iff_le (WithZero.exp_ne_zero n)]
-  convert h using 2
-  rw [← WithZero.exp_add, add_comm]
+  -- Use the discrete step-down: x < exp(n+1) implies x ≤ exp(n)
+  -- TODO: Fix API issue with WithZero.lt_mul_exp_iff_le
+  sorry
 
 -- Candidate 2 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 68]
 /-- Prove extract_valuation_bound_from_maxIdeal_nonneg using discrete step-down.
@@ -299,7 +298,7 @@ lemma extract_valuation_bound_from_maxIdeal_nonneg_proof
         = v.valuation K f * 1 := (mul_one _).symm
       _ = v.valuation K f * (WithZero.exp (D v + 1) * WithZero.exp (-(D v + 1))) := by rw [hexp_inv]
       _ = (v.valuation K f * WithZero.exp (-(D v + 1))) * WithZero.exp (D v + 1) := by
-          rw [mul_right_comm]
+          rw [mul_assoc, mul_comm (WithZero.exp (D v + 1))]
       _ < 1 * WithZero.exp (D v + 1) := by
           apply mul_lt_mul_of_pos_right h2 WithZero.exp_pos
       _ = WithZero.exp (D v + 1) := one_mul _
@@ -333,12 +332,12 @@ lemma extract_valuation_bound_from_maxIdeal_neg_proof
     -- hf_bound : ∀ v', v'.valuation K f ≤ exp((D + single v 1) v')
     have hv_bound := hf_bound v
     rw [hDv_shifted] at hv_bound
-    -- v(f) ≤ exp(D v + 1) < exp(D v + 1) is not useful directly
-    -- But D v + 1 < 0 means D v < -1, so D v + 1 ≤ D v
-    have hle : D v + 1 ≤ D v := by omega
-    calc v.valuation K f
-        ≤ WithZero.exp (D v + 1) := hv_bound
-      _ ≤ WithZero.exp (D v) := WithZero.exp_le_exp.mpr hle
+    -- v(f) ≤ exp(D v + 1) and v(f) < 1 from h_maxIdeal
+    -- Since D v + 1 < 0, we have D v < -1
+    -- Need: v(f) ≤ exp(D v). But exp(D v) < exp(D v + 1) when D v < D v + 1 (always)
+    -- So we can't use monotonicity directly. Need different approach.
+    -- TODO: Fix this proof - the approach is flawed
+    sorry
 
 -- Candidate 4 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 68]
 /-- For v' ≠ v, (D + single v 1)(v') = D(v') by Finsupp.single_eq_of_ne.
