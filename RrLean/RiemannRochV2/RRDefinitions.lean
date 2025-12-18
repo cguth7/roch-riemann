@@ -168,29 +168,200 @@ lemma dvr_maximalIdeal_asIdeal_eq (v : HeightOneSpectrum R) :
     (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).asIdeal =
       IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) := rfl
 
-/-! ## Section 5: Clean Equivalence Chain (Cycle 64-65)
+/-! ## Section 5: DVR-HeightOneSpectrum Valuation Bridge
+
+This section proves that the DVR valuation from the localization agrees with
+the HeightOneSpectrum valuation. This is the key to showing valuationRingAt
+equals the range of algebraMap from the localization. -/
+
+/-- Elements not in v.asIdeal are exactly those whose image under algebraMap is a unit. -/
+lemma algebraMap_isUnit_iff_not_mem (v : HeightOneSpectrum R) (r : R) :
+    IsUnit (algebraMap R (Localization.AtPrime v.asIdeal) r) ↔ r ∉ v.asIdeal :=
+  IsLocalization.AtPrime.isUnit_to_map_iff (Localization.AtPrime v.asIdeal) v.asIdeal r
+
+/-- Units in a DVR have intValuation equal to 1. -/
+lemma dvr_intValuation_of_isUnit (v : HeightOneSpectrum R) (x : Localization.AtPrime v.asIdeal)
+    (hx : IsUnit x) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).intValuation x = 1 := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  have hx' : x ∉ IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal) :=
+    IsLocalRing.notMem_maximalIdeal.mpr hx
+  rw [HeightOneSpectrum.intValuation_eq_one_iff]
+  exact hx'
+
+/-- Ideal.map commutes with powers. -/
+lemma ideal_map_pow_eq_pow_map (v : HeightOneSpectrum R) (n : ℕ) :
+    Ideal.map (algebraMap R (Localization.AtPrime v.asIdeal)) (v.asIdeal ^ n) =
+      (Ideal.map (algebraMap R (Localization.AtPrime v.asIdeal)) v.asIdeal) ^ n :=
+  Ideal.map_pow (algebraMap R (Localization.AtPrime v.asIdeal)) v.asIdeal n
+
+/-- MaxIdeal^n = map(v.asIdeal^n). -/
+lemma maxIdeal_pow_eq_map_asIdeal_pow (v : HeightOneSpectrum R) (n : ℕ) :
+    (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n =
+      Ideal.map (algebraMap R (Localization.AtPrime v.asIdeal)) (v.asIdeal ^ n) := by
+  rw [localization_maximalIdeal_eq_map v, ideal_map_pow_eq_pow_map v n]
+
+/-- Forward: r ∈ v.asIdeal^n → algebraMap r ∈ maxIdeal^n. -/
+lemma algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow (v : HeightOneSpectrum R) (r : R) (n : ℕ)
+    (hr : r ∈ v.asIdeal ^ n) :
+    algebraMap R (Localization.AtPrime v.asIdeal) r ∈
+      (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n := by
+  rw [maxIdeal_pow_eq_map_asIdeal_pow v n]
+  exact Ideal.mem_map_of_mem _ hr
+
+/-- Coprimality in Dedekind domain: m ∉ p, m * r ∈ p^n → r ∈ p^n. -/
+lemma mem_pow_of_mul_mem_pow_of_not_mem (v : HeightOneSpectrum R) (m r : R)
+    (hm : m ∉ v.asIdeal) (n : ℕ) (hmr : m * r ∈ v.asIdeal ^ n) :
+    r ∈ v.asIdeal ^ n := by
+  haveI : v.asIdeal.IsPrime := v.isPrime
+  exact (Ideal.IsPrime.mul_mem_pow v.asIdeal hmr).resolve_left hm
+
+/-- Backward: algebraMap r ∈ maxIdeal^n → r ∈ v.asIdeal^n. -/
+lemma mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow (v : HeightOneSpectrum R) (r : R) (n : ℕ)
+    (hr : algebraMap R (Localization.AtPrime v.asIdeal) r ∈
+      (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n) :
+    r ∈ v.asIdeal ^ n := by
+  rw [maxIdeal_pow_eq_map_asIdeal_pow v n] at hr
+  rw [IsLocalization.algebraMap_mem_map_algebraMap_iff v.asIdeal.primeCompl] at hr
+  obtain ⟨m, hm, hmr⟩ := hr
+  exact mem_pow_of_mul_mem_pow_of_not_mem v m r hm n hmr
+
+/-- Complete characterization: r ∈ v.asIdeal^n ↔ algebraMap r ∈ maxIdeal^n. -/
+lemma mem_asIdeal_pow_iff_mem_maxIdeal_pow (v : HeightOneSpectrum R) (r : R) (n : ℕ) :
+    r ∈ v.asIdeal ^ n ↔
+      algebraMap R (Localization.AtPrime v.asIdeal) r ∈
+        (IsLocalRing.maximalIdeal (Localization.AtPrime v.asIdeal)) ^ n :=
+  ⟨algebraMap_mem_maxIdeal_pow_of_mem_asIdeal_pow v r n,
+   mem_asIdeal_pow_of_algebraMap_mem_maxIdeal_pow v r n⟩
+
+/-- DVR intValuation equals HeightOneSpectrum.intValuation for r ∈ R (via ideal powers). -/
+lemma dvr_intValuation_eq_via_pow_membership (v : HeightOneSpectrum R) (r : R) (hr_ne : r ≠ 0) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).intValuation
+      (algebraMap R (Localization.AtPrime v.asIdeal) r) = v.intValuation r := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  let dvrMax := IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)
+  have hbridge : ∀ n : ℕ, dvrMax.intValuation (algebraMap R _ r) ≤ WithZero.exp (-(n : ℤ)) ↔
+      v.intValuation r ≤ WithZero.exp (-(n : ℤ)) := fun n => by
+    rw [HeightOneSpectrum.intValuation_le_pow_iff_mem]
+    rw [HeightOneSpectrum.intValuation_le_pow_iff_mem]
+    rw [dvr_maximalIdeal_asIdeal_eq v]
+    exact (mem_asIdeal_pow_iff_mem_maxIdeal_pow v r n).symm
+  have hr' : algebraMap R (Localization.AtPrime v.asIdeal) r ≠ 0 := by
+    intro h
+    apply hr_ne
+    have hpc : v.asIdeal.primeCompl ≤ nonZeroDivisors R := v.asIdeal.primeCompl_le_nonZeroDivisors
+    exact (IsLocalization.to_map_eq_zero_iff (Localization.AtPrime v.asIdeal) hpc).mp h
+  classical
+  apply le_antisymm
+  · have hk : v.intValuation r = WithZero.exp
+        (-(((Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {r})).factors) : ℤ)) :=
+      v.intValuation_if_neg hr_ne
+    let k := (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {r})).factors
+    calc dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r)
+        ≤ WithZero.exp (-(k : ℤ)) := (hbridge k).mpr (le_of_eq hk)
+      _ = v.intValuation r := hk.symm
+  · have hm : dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r) = WithZero.exp
+        (-(((Associates.mk dvrMax.asIdeal).count (Associates.mk (Ideal.span {algebraMap R _ r})).factors) : ℤ)) :=
+      dvrMax.intValuation_if_neg hr'
+    let m := (Associates.mk dvrMax.asIdeal).count (Associates.mk (Ideal.span {algebraMap R _ r})).factors
+    calc v.intValuation r
+        ≤ WithZero.exp (-(m : ℤ)) := (hbridge m).mp (le_of_eq hm)
+      _ = dvrMax.intValuation (algebraMap R (Localization.AtPrime v.asIdeal) r) := hm.symm
+
+/-- DVR intValuation agreement for elements of R. -/
+lemma dvr_intValuation_of_algebraMap (v : HeightOneSpectrum R) (r : R) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).intValuation
+      (algebraMap R (Localization.AtPrime v.asIdeal) r) = v.intValuation r := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  by_cases hr0 : r = 0
+  · simp only [hr0, map_zero]
+  by_cases hr : r ∈ v.asIdeal
+  · exact dvr_intValuation_eq_via_pow_membership v r hr0
+  · have hunit := (algebraMap_isUnit_iff_not_mem v r).mpr hr
+    rw [dvr_intValuation_of_isUnit v _ hunit]
+    symm
+    rw [HeightOneSpectrum.intValuation_eq_one_iff]
+    exact hr
+
+/-- DVR valuation equals HeightOneSpectrum valuation on K. -/
+lemma dvr_valuation_eq_height_one (v : HeightOneSpectrum R) (g : K) :
+    (IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K g =
+      v.valuation K g := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  obtain ⟨r, s, hs, hg⟩ := IsFractionRing.div_surjective (A := R) g
+  rw [← hg]
+  let dvr_spec := IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)
+  -- Both sides: map_div
+  rw [Valuation.map_div (dvr_spec.valuation K), Valuation.map_div (v.valuation K)]
+  -- Use scalar tower: algebraMap R K = algebraMap Loc K ∘ algebraMap R Loc
+  have hr_eq : algebraMap R K r = algebraMap (Localization.AtPrime v.asIdeal) K
+      (algebraMap R (Localization.AtPrime v.asIdeal) r) :=
+    IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K r
+  have hs_eq : algebraMap R K (s : R) = algebraMap (Localization.AtPrime v.asIdeal) K
+      (algebraMap R (Localization.AtPrime v.asIdeal) (s : R)) :=
+    IsScalarTower.algebraMap_apply R (Localization.AtPrime v.asIdeal) K (s : R)
+  -- Simplify LHS via DVR valuation_of_algebraMap and dvr_intValuation_of_algebraMap
+  conv_lhs =>
+    rw [hr_eq, hs_eq]
+    rw [dvr_spec.valuation_of_algebraMap, dvr_spec.valuation_of_algebraMap]
+    rw [dvr_intValuation_of_algebraMap v r, dvr_intValuation_of_algebraMap v (s : R)]
+  -- Simplify RHS via HeightOneSpectrum.valuation_of_algebraMap
+  simp only [v.valuation_of_algebraMap]
+
+/-- The DVR's valuationSubring equals valuationRingAt v (as sets). -/
+lemma dvr_valuationSubring_eq_valuationRingAt (v : HeightOneSpectrum R) :
+    (((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring : Set K) =
+      (valuationRingAt (R := R) (K := K) v : Set K) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  ext g
+  simp only [SetLike.mem_coe, Valuation.mem_valuationSubring_iff, mem_valuationRingAt_iff]
+  rw [dvr_valuation_eq_height_one (K := K) v g]
+
+/-- The valuationSubring of a DVR equals the range of algebraMap from DVR to its fraction field. -/
+lemma dvr_valuationSubring_eq_range (v : HeightOneSpectrum R) :
+    Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) =
+      (((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring : Set K) := by
+  haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
+  haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
+  have h := IsDiscreteValuationRing.map_algebraMap_eq_valuationSubring
+    (A := Localization.AtPrime v.asIdeal) (K := K)
+  have hset : (Subring.map (algebraMap (Localization.AtPrime v.asIdeal) K) ⊤ : Set K) =
+      (((IsDiscreteValuationRing.maximalIdeal (Localization.AtPrime v.asIdeal)).valuation K).valuationSubring : Set K) := by
+    rw [h]; rfl
+  simp only [Subring.coe_map, Subring.coe_top] at hset
+  rw [Set.image_univ] at hset
+  exact hset
+
+/-- valuationRingAt ⊆ range(algebraMap from localization). -/
+lemma valuationRingAt_subset_range_algebraMap (v : HeightOneSpectrum R) :
+    (valuationRingAt (R := R) (K := K) v : Set K) ⊆
+      Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  rw [← dvr_valuationSubring_eq_valuationRingAt (K := K) v]
+  rw [← dvr_valuationSubring_eq_range (K := K) v]
+
+/-- Complete set equality: valuationRingAt = range(algebraMap from localization). -/
+lemma valuationSubring_eq_localization_image_complete (v : HeightOneSpectrum R) :
+    (valuationRingAt (R := R) (K := K) v : Set K) =
+      Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
+  apply Set.eq_of_subset_of_subset
+  · exact valuationRingAt_subset_range_algebraMap (K := K) v
+  · exact range_algebraMap_subset_valuationRingAt (K := K) v
+
+/-! ## Section 6: Clean Equivalence Chain
 
 This section provides the clean, cast-free equivalence between valuationRingAt
-and Localization.AtPrime. The "clean" approach avoids dependent elimination issues. -/
+and Localization.AtPrime. -/
 
-/-- For x ∈ valuationRingAt, x.val is in the range of algebraMap from localization.
-
-**PROOF STATUS**: PROVED in LocalGapInstance.lean via:
-- `dvr_intValuation_of_algebraMap_c49` (Cycle 49)
-- `dvr_valuation_eq_height_one'` (Cycle 37/49)
-- `valuationSubring_eq_localization_image_complete` (Cycle 37)
-
-The mathematical content: Both valuations measure divisibility by v.asIdeal,
-so agree on K. Elements with v(x) ≤ 1 lift to the DVR.
-
-This is the ONLY sorry in RRDefinitions.lean - the proof exists in LocalGapInstance.lean
-but requires ~200 lines of prerequisites that aren't worth duplicating. -/
+/-- For x ∈ valuationRingAt, x.val is in the range of algebraMap from localization. -/
 lemma valuationRingAt_val_mem_range (v : HeightOneSpectrum R)
     (x : valuationRingAt (R := R) (K := K) v) :
     x.val ∈ Set.range (algebraMap (Localization.AtPrime v.asIdeal) K) := by
   haveI : IsDiscreteValuationRing (Localization.AtPrime v.asIdeal) := localizationAtPrime_isDVR v
   haveI : IsFractionRing (Localization.AtPrime v.asIdeal) K := localization_isFractionRing v
-  sorry -- Proof: See LocalGapInstance.lean line 3098-3104
+  rw [← valuationSubring_eq_localization_image_complete (K := K) v]
+  exact x.property
 
 /-- The clean map from valuationRingAt to Localization.AtPrime using .choose. -/
 noncomputable def valuationRingAt_to_localization (v : HeightOneSpectrum R)

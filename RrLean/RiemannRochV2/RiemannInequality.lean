@@ -213,12 +213,4 @@ lemma riemann_inequality_affine [bd : BaseDim R K] {D : DivisorV2 R} (hD : D.Eff
       _ = (n + 1) + bd.basedim := by ring
       _ = (D' + DivisorV2.single v 1).deg + bd.basedim := by rw [hdeg_total, hdeg_D']
 
-/-! ## Original placeholder (superseded by riemann_inequality_real) -/
-
-/-- The Riemann inequality (stated): ℓ(D) ≤ deg(D) + 1 for effective D.
-DEPRECATED: Use riemann_inequality_real with SinglePointBound typeclass instead. -/
-lemma riemann_inequality {D : DivisorV2 R} (hD : D.Effective) :
-    (ellV2 R K D : ℤ) ≤ D.deg + 1 := by
-  sorry
-
 end RiemannRochV2

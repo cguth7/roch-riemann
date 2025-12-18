@@ -8,163 +8,41 @@ using definitions from RRDefinitions.lean (the clean, minimal extraction).
 
 ## Contents
 
-- Cycle 66: kernel_evaluationMapAt candidates
-- Cycle 67: Helper lemmas for kernel proof
-- Cycle 68: Complete kernel proof chain
+- Cycle 67: Helper lemmas for kernel proof (arithmetic with WithZero.exp)
+- Cycle 68: Complete kernel proof chain (all lemmas PROVED)
 
-## Victory Path
+## Key Results
 
-```
-extract_valuation_bound (PROVED in Cycle 68)
-    |
-LD_element_maps_to_zero (SORRY - needs sub-lemmas)
-    |
-kernel_evaluationMapAt_complete (SORRY)
-    |
-LocalGapBound instance -> VICTORY
-```
+- `LD_element_maps_to_zero`: L(D) ⊆ ker(evaluationMapAt)
+- `kernel_element_satisfies_all_bounds`: ker(evaluationMapAt) ⊆ L(D)
+- `kernel_evaluationMapAt_complete_proof`: ker = range (the main theorem)
 -/
 
 namespace RiemannRochV2
 
 open IsDedekindDomain
 
-/-! ## Cycle 66 Candidates: Proving kernel_evaluationMapAt
+/-! ### Cycle 67: Helper lemmas for kernel proof
 
-Goal: Prove ker(evaluationMapAt) = range(Submodule.inclusion : L(D) -> L(D+v))
-
-Strategy:
-- L(D) ⊆ ker: If f ∈ L(D), then v(f) ≤ exp(D(v)), so v(f·π^{D(v)+1}) ≤ exp(-1) < 1,
-  meaning shifted element is in maximalIdeal, so residue is 0.
-- ker ⊆ L(D): If f maps to 0, then shifted element is in maximalIdeal,
-  so v(f·π^{D(v)+1}) < 1, hence v(f) ≤ exp(D(v)), meaning f ∈ L(D).
-
-Key mathlib lemma: `IsLocalRing.residue_eq_zero_iff`: residue x = 0 ↔ x ∈ maximalIdeal
+Arithmetic lemmas for WithZero.exp valuations used in kernel characterization.
 -/
 
-section Cycle66Candidates
+section Cycle67Helpers
 
 variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
 variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
 
--- Candidate 1 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- Helper for L(D) ⊆ ker direction: elements of L(D) have shifted valuation < 1.
-If f ∈ L(D) ⊆ L(D+v), then v(f) ≤ exp(D(v)), so v(f·π^{D(v)+1}) ≤ exp(-1) < 1.
-This means the shifted element lies in the maximal ideal, so residue is zero. -/
-lemma LD_element_shifted_in_maximalIdeal (v : HeightOneSpectrum R) (D : DivisorV2 R)
-    (f : RRModuleV2_real R K D) :
-    (⟨shiftedElement v D (Submodule.inclusion
-      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v)) f).val,
-      shiftedElement_mem_valuationRingAt v D
-        (Submodule.inclusion (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v)) f)⟩ :
-      valuationRingAt (R := R) (K := K) v) ∈
-    IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := sorry
-
--- Candidate 2 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- The valuation bound for elements of L(D): if f ∈ L(D), then v(f·π^{D(v)+1}) < 1.
-This uses that f ∈ L(D) means v(f) ≤ exp(D(v)), so
-v(f·π^{D(v)+1}) = v(f) · exp(-(D(v)+1)) ≤ exp(D(v)) · exp(-(D(v)+1)) = exp(-1) < 1. -/
-lemma LD_element_valuation_strict_bound (v : HeightOneSpectrum R) (D : DivisorV2 R)
-    (f : K) (hf : f ∈ RRModuleV2_real R K D) (hf_ne : f ≠ 0) :
-    v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) <
-      WithZero.exp (0 : ℤ) := sorry
-
--- Candidate 3 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- L(D) ⊆ ker direction: elements of L(D) map to zero under evaluationMapAt.
-Uses that shifted element is in maximal ideal, hence residue_eq_zero_iff. -/
-lemma LD_inclusion_in_kernel (v : HeightOneSpectrum R) (D : DivisorV2 R) :
-    LinearMap.range (Submodule.inclusion
-      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) ≤
-    LinearMap.ker (evaluationMapAt_complete v D) := sorry
-
--- Candidate 4 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- Helper for ker ⊆ L(D) direction: if evaluationFun maps f to 0, then shifted element
-is in the maximal ideal of the valuation ring.
-Uses that the bridge is an isomorphism and residue_eq_zero_iff. -/
-lemma kernel_element_shifted_in_maximalIdeal (v : HeightOneSpectrum R) (D : DivisorV2 R)
-    (f : RRModuleV2_real R K (D + DivisorV2.single v 1))
-    (hf : evaluationFun_via_bridge v D f = 0) :
-    (⟨shiftedElement v D f.val, shiftedElement_mem_valuationRingAt v D f⟩ :
-      valuationRingAt (R := R) (K := K) v) ∈
-    IsLocalRing.maximalIdeal (valuationRingAt (R := R) (K := K) v) := sorry
-
--- Candidate 5 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- ker ⊆ L(D) direction: if f maps to 0, then v(f) ≤ exp(D(v)).
-If evaluationFun f = 0, then f·π^{D(v)+1} ∈ maximalIdeal, so v(f·π^{D(v)+1}) < 1.
-This means v(f) · exp(-(D(v)+1)) < 1, hence v(f) < exp(D(v)+1), so v(f) ≤ exp(D(v)). -/
-lemma kernel_element_satisfies_LD_bound (v : HeightOneSpectrum R) (D : DivisorV2 R)
-    (f : K) (hf_mem : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1)) (hf_ne : f ≠ 0)
-    (hf_zero : evaluationFun_via_bridge v D ⟨f, hf_mem⟩ = 0) :
-    v.valuation K f ≤ WithZero.exp (D v) := sorry
-
--- Candidate 6 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- ker ⊆ L(D) direction: kernel elements belong to L(D).
-If f ∈ ker(evaluationMapAt), then f satisfies the L(D) valuation condition. -/
-lemma kernel_element_in_LD (v : HeightOneSpectrum R) (D : DivisorV2 R)
-    (f : RRModuleV2_real R K (D + DivisorV2.single v 1))
-    (hf : evaluationFun_via_bridge v D f = 0) :
-    f.val ∈ RRModuleV2_real R K D := sorry
-
--- Candidate 7 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- ker ⊆ L(D) direction: the kernel is contained in the range of the inclusion.
-This is the set-theoretic containment needed for the equality. -/
-lemma kernel_subset_LD_range (v : HeightOneSpectrum R) (D : DivisorV2 R) :
-    LinearMap.ker (evaluationMapAt_complete v D) ≤
-    LinearMap.range (Submodule.inclusion
-      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) := sorry
-
--- Candidate 8 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 66]
-/-- Main lemma: kernel equals range of inclusion from L(D).
-Combines both directions to establish the kernel characterization.
-Uses evaluationMapAt_complete as the definition of evaluationMapAt. -/
-lemma kernel_evaluationMapAt_complete (v : HeightOneSpectrum R) (D : DivisorV2 R) :
-    LinearMap.ker (evaluationMapAt_complete v D) = LinearMap.range (Submodule.inclusion
-      (RRModuleV2_mono_inclusion R K (divisor_le_add_single D v))) := sorry
-
-end Cycle66Candidates
-
-/-! ### Cycle 67 Candidates: Helper lemmas for kernel proof
-
-Goal: Prove helpers for kernel_evaluationMapAt_complete
-
-Key achievements:
-- exp_neg_one_lt_one: PROVED (trivial via exp_lt_exp)
-- exp_mul_exp_neg: PROVED (exp_add + add_neg_cancel)
-- valuation_product_strict_bound_nonneg: PROVED (forward direction arithmetic)
-- valuation_lt_one_of_neg: PROVED (negative case arithmetic)
-- RingEquiv.apply_eq_zero_iff': PROVED (trivial via map_eq_zero_iff)
-
-Remaining sorries:
-- extract_valuation_bound_from_maxIdeal_nonneg: Key inversion lemma (needs WithZero.log)
-- extract_valuation_bound_from_maxIdeal_neg: Negative case inversion
-- valuation_bound_at_other_prime: Multi-prime condition
--/
-
-section Cycle67Candidates
-
-variable {R : Type*} [CommRing R] [IsDomain R] [IsDedekindDomain R]
-variable {K : Type*} [Field K] [Algebra R K] [IsFractionRing R K]
-
--- Candidate 1 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 67]
-/-- Helper: exp(-1) < exp(0) = 1 for WithZero valuations.
-This is the key strict inequality needed for LD_element_valuation_strict_bound.
-Uses WithZero.exp_lt_exp to reduce to -1 < 0. -/
+/-- Helper: exp(-1) < exp(0) = 1 for WithZero valuations. -/
 lemma exp_neg_one_lt_one :
     WithZero.exp (-1 : ℤ) < WithZero.exp (0 : ℤ) :=
   WithZero.exp_lt_exp.mpr (by omega)
 
--- Candidate 2 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 67]
-/-- Helper: exp(a) * exp(-a) = 1 for any integer a.
-Needed for cancellation in valuation arithmetic.
-This is exp_add with b = -a: exp(a + (-a)) = exp(0) = 1. -/
+/-- Helper: exp(a) * exp(-a) = 1 for any integer a. -/
 lemma exp_mul_exp_neg (a : ℤ) :
     WithZero.exp a * WithZero.exp (-a) = 1 := by
   rw [← WithZero.exp_add, add_neg_cancel, WithZero.exp_zero]
 
--- Candidate 3 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 67]
-/-- If v(f) ≤ exp(D(v)) and n = D(v)+1, then v(f·π^n) ≤ exp(-1).
-Key calculation for the forward direction showing strict inequality.
-Uses that v(f) ≤ exp(D(v)) and v(π^{D(v)+1}) = exp(-(D(v)+1)). -/
+/-- If v(f) ≤ exp(D(v)) and n = D(v)+1, then v(f·π^n) ≤ exp(-1). -/
 lemma valuation_product_strict_bound_nonneg
     (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K)
     (hn : 0 ≤ D v + 1)
@@ -178,9 +56,7 @@ lemma valuation_product_strict_bound_nonneg
     _ = WithZero.exp (D v + (-(D v + 1))) := by rw [← WithZero.exp_add]
     _ = WithZero.exp (-1) := by ring_nf
 
--- Candidate 4 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 67]
-/-- When D(v)+1 < 0, v(f) ≤ exp(D(v)) implies v(f) < 1.
-Key for showing the strict bound in the negative exponent case. -/
+/-- When D(v)+1 < 0, v(f) ≤ exp(D(v)) implies v(f) < 1. -/
 lemma valuation_lt_one_of_neg
     (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K)
     (hn : D v + 1 < 0)
@@ -190,52 +66,12 @@ lemma valuation_lt_one_of_neg
       ≤ WithZero.exp (D v) := hfv
     _ < WithZero.exp 0 := WithZero.exp_lt_exp.mpr (by omega : D v < 0)
 
--- Candidate 5 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 67]
-/-- If shifted element is in maxIdeal and D(v)+1 ≥ 0, extract the v(f) bound.
-Inverts the valuation multiplication to get v(f) from v(f·π^n) < 1.
-Key: v(f) · exp(-(D(v)+1)) < 1, so v(f) < exp(D(v)+1).
-In WithZero ℤᵐ, strict inequality with exp means we can get ≤ for the previous value. -/
-lemma extract_valuation_bound_from_maxIdeal_nonneg
-    (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) (hf_ne : f ≠ 0)
-    (hn : 0 ≤ D v + 1)
-    (h_maxIdeal : v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) < 1) :
-    v.valuation K f ≤ WithZero.exp (D v) := by
-  -- This is the key inversion lemma. Proof strategy:
-  -- v(f·π^n) < 1 where n = D(v)+1 ≥ 0
-  -- v(f) · exp(-n) < 1
-  -- v(f) < exp(n) = exp(D(v)+1)
-  -- Since valuation is discrete (values in ℤᵐ₀), v(f) < exp(D(v)+1) ⟹ v(f) ≤ exp(D(v))
-  sorry
-
--- Candidate 6 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 67]
-/-- If shifted element is in maxIdeal and D(v)+1 < 0, extract the v(f) bound.
-When (D(v)+1).toNat = 0, we have v(f·1) = v(f) < 1.
-Need to show v(f) < 1 implies v(f) ≤ exp(D(v)) when D(v) < -1. -/
-lemma extract_valuation_bound_from_maxIdeal_neg
-    (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) (hf_ne : f ≠ 0)
-    (hn : D v + 1 < 0)
-    (h_maxIdeal : v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) < 1) :
-    v.valuation K f ≤ WithZero.exp (D v) := sorry
-
--- Candidate 7 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 67]
-/-- RingEquiv preserves zero: if f(x) = 0 for a RingEquiv f, then x = 0.
-Specialization of RingEquiv.map_eq_zero_iff for use with residueFieldBridge_explicit.
-This is the key to working backward through the bridge in Candidate 4 of Cycle 66. -/
+/-- RingEquiv preserves zero: if f(x) = 0 for a RingEquiv f, then x = 0. -/
 lemma RingEquiv_apply_eq_zero_iff' {A B : Type*} [Ring A] [Ring B]
     (f : A ≃+* B) (x : A) :
     f x = 0 ↔ x = 0 := map_eq_zero_iff f f.injective
 
--- Candidate 8 [tag: rr_bundle_bridge] [status: SORRY] [cycle: 67]
-/-- For v' ≠ v, if f ∈ L(D+v) then f ∈ L(D) at v' (by monotonicity).
-This is needed for kernel_element_in_LD to show the valuation condition holds at all primes.
-Uses that D ≤ D + single v 1, and v' ≠ v means (D + single v 1)(v') = D(v'). -/
-lemma valuation_bound_at_other_prime
-    (v v' : HeightOneSpectrum R) (D : DivisorV2 R) (f : K)
-    (hf : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1))
-    (hne : v' ≠ v) :
-    f = 0 ∨ v'.valuation K f ≤ WithZero.exp (D v') := sorry
-
-end Cycle67Candidates
+end Cycle67Helpers
 
 /-! ### Cycle 68 Candidates: Complete kernel proof chain
 
@@ -306,24 +142,7 @@ lemma extract_valuation_bound_from_maxIdeal_nonneg_proof
   -- Now use discrete step-down: v(f) < exp(D v + 1) ⟹ v(f) ≤ exp(D v)
   exact withzero_lt_exp_succ_imp_le_exp (v.valuation K f) (D v) hval_ne h1
 
--- Candidate 3 [tag: rr_bundle_bridge] [status: OBSOLETE] [cycle: 68/70]
-/-- OBSOLETE (Cycle 70): This toNat-based lemma is REPLACED by extract_valuation_bound_zpow.
-
-The old .toNat approach was broken for D(v)+1 < 0 because toNat clamped to 0.
-The new zpow-based shiftedElement handles all cases uniformly.
-
-See extract_valuation_bound_zpow for the correct, unified approach. -/
-lemma extract_valuation_bound_from_maxIdeal_neg_proof
-    (v : HeightOneSpectrum R) (D : DivisorV2 R) (f : K) (hf_ne : f ≠ 0)
-    (hf_mem : f ∈ RRModuleV2_real R K (D + DivisorV2.single v 1))
-    (hn : D v + 1 < 0)
-    (h_maxIdeal : v.valuation K (f * algebraMap R K ((uniformizerAt v) ^ (D v + 1).toNat)) < 1) :
-    v.valuation K f ≤ WithZero.exp (D v) := by
-  -- OBSOLETE: This lemma with .toNat hypothesis is no longer needed.
-  -- Use extract_valuation_bound_zpow with the zpow-based hypothesis instead.
-  sorry
-
--- Candidate 3.5 [tag: rr_bundle_bridge] [status: PROVED] [cycle: 70]
+-- [status: PROVED] [cycle: 70]
 /-- UNIFIED zpow-based extraction: From v(f·π^(D v+1)) < 1, extract v(f) ≤ exp(D v).
 
 CYCLE 70 KEY INSIGHT: Using zpow instead of toNat makes this work for ALL integers.
