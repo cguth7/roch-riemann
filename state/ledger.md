@@ -6,7 +6,7 @@
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 117)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 118)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -16,8 +16,8 @@
 ### Axiom Classes (still need instantiation for concrete types)
 | File | Class | Status | Notes |
 |------|-------|--------|-------|
-| `AllIntegersCompactProof.lean` | `FiniteCompletionResidueFields` | 🔶 CLASS | Constructor needs `Finite (R ⧸ v.asIdeal)` |
-| `AdelicTopology.lean` | `AllIntegersCompact` | 🔶 CLASS | Follows from `FiniteCompletionResidueFields` |
+| `AllIntegersCompactProof.lean` | `FiniteCompletionResidueFields` | ✅ INSTANTIATED | For Fq[X] in FqPolynomialInstance.lean |
+| `AdelicTopology.lean` | `AllIntegersCompact` | ✅ INSTANTIATED | For Fq[X] in FqPolynomialInstance.lean |
 | `AdelicTopology.lean` | `DiscreteCocompactEmbedding` | ⏳ CLASS | TODO - needs class group finiteness |
 | `AdelicH1v2.lean` | `AdelicRRData` | ⏳ CLASS | Full adelic RR axioms |
 | `FullRRData.lean` | `FullRRData` | 🔗 CLASS | Derived from `AdelicRRData` |
@@ -28,14 +28,17 @@
 | `ResidueFieldIso.lean` | `residueFieldIso` | ✅ PROVED | R/v.asIdeal ≃ ResidueField(completion) |
 | `ResidueFieldIso.lean` | `toResidueField_surjective` | ✅ PROVED | Via localization approach |
 | `AllIntegersCompactProof.lean` | `allIntegersCompact_of_axioms` | ✅ PROVED | Needs `FiniteCompletionResidueFields` |
+| `FqPolynomialInstance.lean` | `finite_quotient_polynomial` | ✅ PROVED | Fq[X]/v finite for all v |
+| `FqPolynomialInstance.lean` | `instFiniteCompletionResidueFields` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
+| `FqPolynomialInstance.lean` | `instAllIntegersCompact` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
 
 **Build Status**: ✅ Compiles with 1 sorry (NOT on critical path!)
 
 **Key Distinction**:
 - **Sorries**: Holes in existing proofs → 1 remaining (non-critical)
-- **Axiom Classes**: Assumptions that need instances for concrete R, K → 3+ remaining
+- **Axiom Classes**: `AllIntegersCompact` now has concrete instance for Fq[X]!
 
-**Next Priority**: Create concrete Fq[X] instance to validate pipeline (Option A from Cycle 117)
+**Next Priority**: Work on `DiscreteCocompactEmbedding` for Fq[X] using PID + product formula
 
 ---
 
@@ -1286,6 +1289,82 @@ DiscreteCocompactEmbedding if we're careful about what we're proving.
 
 **Recommendation**: Option A (concrete instance first) to validate the pipeline before
 generalizing. This follows ChatGPT's advice and avoids abstract machinery bugs.
+
+---
+
+#### Cycle 118 - Concrete Fq[X] Instance: AllIntegersCompact INSTANTIATED!
+
+**Goal**: Create concrete instance of `AllIntegersCompact` for Fq[X] / RatFunc(Fq).
+
+**Status**: ✅ COMPLETE - First concrete instance!
+
+**Results**:
+- [x] Created `FqPolynomialInstance.lean` (~145 lines)
+- [x] `finite_quotient_polynomial`: Proved `Finite (Fq[X] ⧸ v.asIdeal)` for all v
+- [x] `instFiniteCompletionResidueFields`: Instance for Fq[X] / RatFunc(Fq)
+- [x] `instAllIntegersCompact`: Instance for Fq[X] / RatFunc(Fq)
+- [x] Full pipeline validated: finite quotients → residue field iso → compactness!
+
+**Key Proof Strategy** (for `finite_quotient_polynomial`):
+
+```lean
+instance finite_quotient_polynomial (v : HeightOneSpectrum Fq[X]) :
+    Finite (Fq[X] ⧸ v.asIdeal) := by
+  classical
+  -- In PID, all ideals are principal
+  have hprinc := IsPrincipalIdealRing.principal v.asIdeal
+  let p := hprinc.generator
+  have hp : v.asIdeal = Ideal.span {p} := hprinc.span_singleton_generator.symm
+  -- p ≠ 0 since v ≠ ⊥
+  have hp_ne : p ≠ 0 := ...
+  -- Normalize p to make it monic
+  have hmonic : Polynomial.Monic (normalize p) := Polynomial.monic_normalize hp_ne
+  -- Associated elements generate same ideal
+  have hnorm : Ideal.span {normalize p} = Ideal.span {p} :=
+    Ideal.span_singleton_eq_span_singleton.mpr (associated_normalize p).symm
+  -- Quotient by monic polynomial is finite dimensional over Fq
+  haveI : Module.Finite Fq (Fq[X] ⧸ Ideal.span {normalize p}) := hmonic.finite_quotient
+  -- Transfer via ideal equality
+  haveI : Module.Finite Fq (Fq[X] ⧸ v.asIdeal) := by rw [hp, ← hnorm]; infer_instance
+  -- Finite Fq + Module.Finite Fq M → Finite M
+  exact Module.finite_of_finite Fq
+```
+
+**Key Mathlib Lemmas Used**:
+- `IsPrincipalIdealRing.principal` - Every ideal in PID is principal
+- `Polynomial.monic_normalize` - Normalizing nonzero polynomial gives monic
+- `Ideal.span_singleton_eq_span_singleton` - Associated elements generate same ideal
+- `associated_normalize` - x and normalize(x) are associated
+- `Polynomial.Monic.finite_quotient` - Quotient by monic is finite dimensional
+- `Module.finite_of_finite` - Finite module over finite ring is finite type
+
+**Instance Chain** (now complete for Fq[X]):
+```
+Fintype Fq + DecidableEq Fq
+       ↓
+finite_quotient_polynomial (Fq[X]/v finite for all v)
+       ↓
+instFiniteCompletionResidueFields (via ResidueFieldIso)
+       ↓
+instAllIntegersCompact (via allIntegersCompact_of_axioms)
+```
+
+**Significance**: This is the FIRST concrete instantiation of our axiom classes!
+- Validates the entire pipeline from finite field to adelic compactness
+- Proves the axiom classes are not vacuously satisfiable
+- Establishes the pattern for other Dedekind domains
+
+**Sorry Status** (unchanged from Cycle 117):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 119+):
+1. **Option A**: Work on `DiscreteCocompactEmbedding` for Fq[X] (PID case is simpler)
+2. **Option B**: Generalize to other function fields (ringOfIntegers Fq F)
+3. **Option C**: Tag milestone for AllIntegersCompact concrete instance
 
 ---
 
