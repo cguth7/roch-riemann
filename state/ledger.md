@@ -27,7 +27,7 @@
 - ⚪ `fq_closed_in_fullAdeles` - SORRY: needs T2Space instance + discreteness
 - ⚪ 2 more sorries in FullAdeles.lean (compactness, weak approx)
 
-### Discreteness Proof Strategy (All Lemmas Now Proved!)
+### Discreteness Proof Strategy (All Algebraic Lemmas Proved!)
 
 To prove `fq_discrete_in_fullAdeles`:
 1. Take U = U_fin × U_∞ where U_∞ = {x | |x|_∞ < 1} (open ball)
@@ -39,7 +39,7 @@ To prove `fq_discrete_in_fullAdeles`:
 5. Contradiction with |k|_∞ < 1 unless k = 0
 6. Hence U ∩ range(diagonal) = {0}, so {0} is open, and K is discrete
 
-**Remaining technical challenge**: Show "integral at all finite places" is an open condition in restricted product.
+**Remaining technical challenge**: Show U_fin is open using `RestrictedProduct.isOpen_forall_mem`.
 
 ### Key Mathlib Lemma for Discreteness (Found Cycle 126)
 
@@ -50,9 +50,10 @@ To prove `fq_discrete_in_fullAdeles`:
 ### Concrete Next Steps (Cycle 127+)
 
 **PRIORITY 1: Complete `fq_discrete_in_fullAdeles`**
-- All helper lemmas are proved
-- Need to show ∏_v O_v is open in restricted product (or find alternate formulation)
-- Use `discreteTopology_iff_isOpen_singleton_zero` with appropriate neighborhood
+- Use `RestrictedProduct.isOpen_forall_mem` to show U_fin is open
+- Use `isDiscrete_iff_forall_exists_isOpen` from `Mathlib.Topology.DiscreteSubset`
+- **IMPORTANT**: Keep the proof spine! If stuck on a step, extract it as a helper lemma with sorry.
+- Don't replace the whole proof with a comment + sorry.
 
 **PRIORITY 2: Complete `fq_closed_in_fullAdeles`**
 - Need T2Space instance for full adeles (product of T2 spaces)
