@@ -6,7 +6,7 @@
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 116)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 117)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -35,7 +35,7 @@
 - **Sorries**: Holes in existing proofs → 1 remaining (non-critical)
 - **Axiom Classes**: Assumptions that need instances for concrete R, K → 3+ remaining
 
-**Next Priority**: Either instantiate axiom classes for concrete function fields, or work on `DiscreteCocompactEmbedding`
+**Next Priority**: Create concrete Fq[X] instance to validate pipeline (Option A from Cycle 117)
 
 ---
 
@@ -1195,14 +1195,122 @@ FiniteCompletionResidueFields R K
 AllIntegersCompact R K      (via DVR + RankOne, both already proved)
 ```
 
-**Next Steps** (Cycle 117+):
-1. Focus on `DiscreteCocompactEmbedding` - the remaining axiom for full adelic theory
-2. This requires class group finiteness / fundamental domain arguments
-3. Or: Tag a milestone for the sorry-free `AllIntegersCompact` achievement
+---
+
+#### Cycle 117 - DiscreteCocompactEmbedding Research + Mathlib Class Group Discovery
+
+**Goal**: Research mathlib for DiscreteCocompactEmbedding and establish non-circularity contract.
+
+**Status**: ✅ COMPLETE (research done, strategy established)
+
+**Results**:
+- [x] Found `ClassGroup.fintypeOfAdmissibleOfFinite` in mathlib - class group finiteness WITHOUT RR!
+- [x] Found `FunctionField.RingOfIntegers.instFintypeClassGroup` - pre-built instance for function fields
+- [x] Found `NumberField.prod_abs_eq_one` - product formula for number fields
+- [x] Established non-circularity contract for DiscreteCocompactEmbedding
+- [x] Identified concrete instance strategy for Fq[X] / RatFunc(Fq)
+
+**Key Mathlib Resources Discovered**:
+
+| Resource | Location | What it Provides |
+|----------|----------|------------------|
+| `ClassGroup.fintypeOfAdmissibleOfFinite` | `NumberTheory/ClassNumber/Finite.lean:349` | Class group finiteness via admissible abs value |
+| `FunctionField.RingOfIntegers.instFintypeClassGroup` | `NumberTheory/ClassNumber/FunctionField.lean:41` | `Fintype (ClassGroup (ringOfIntegers Fq F))` |
+| `Polynomial.cardPowDegreeIsAdmissible` | `NumberTheory/ClassNumber/AdmissibleCardPowDegree.lean` | Admissible abs value for Fq[X] |
+| `NumberField.prod_abs_eq_one` | `NumberTheory/NumberField/ProductFormula.lean:97` | Product formula for number fields |
+| `FunctionField.inftyValuation` | `NumberTheory/FunctionField.lean:192` | Place at infinity on Fq(t) |
+
+**Non-Circularity Contract for DiscreteCocompactEmbedding**:
+
+```
+✅ CAN USE (non-circular):
+- Class group finiteness (proved via admissible absolute values, NOT RR)
+- Product formula for valuations
+- Strong approximation theorem
+- Purely ideal-theoretic / valuation-theoretic arguments
+
+❌ CANNOT USE (would be circular):
+- ℓ(D) dimension counts
+- "exist f with prescribed poles of degree d"
+- Riemann inequality ℓ(D) ≤ deg(D) + 1 - g
+- Any dimension bounds on spaces of functions
+```
+
+**Why Mathlib's Class Group Finiteness is Non-Circular**:
+
+The proof in `ClassGroup.fintypeOfAdmissibleOfFinite` uses:
+1. Norm bounds from the admissible absolute value
+2. Pigeonhole-type arguments (finitely many ideals with bounded norm)
+3. No dimension counting on function spaces
+
+This is fundamentally different from proving finiteness via RR/dimension counts.
+
+**Structure for DiscreteCocompactEmbedding Proof**:
+
+```
+DiscreteCocompactEmbedding requires:
+1. discrete: K is discrete in A_K
+   → Follows from: product formula (each x ∈ K* has v(x) = 1 for cofinitely many v)
+
+2. closed: K is closed in A_K
+   → Follows from: discrete + locally compact → closed
+
+3. compact_fundamental_domain: ∃ compact F, ∀ a, ∃ x ∈ K, a - x ∈ F
+   → Follows from: class group finiteness + unit group structure
+   → Key insight: cosets of K in A_K correspond to ideal classes
+```
+
+**Concrete Instance Strategy (Fq[X] / RatFunc(Fq))**:
+
+For the simplest case F = RatFunc(Fq), R = Fq[X]:
+- This is the "P¹ case" (genus 0)
+- Class group is trivial: Fq[X] is a PID
+- The fundamental domain should be explicitly constructible
+
+**Caveat**: The current `FiniteAdeleRing R K` uses only `HeightOneSpectrum R`, which gives
+finite places. For function fields, the place at infinity is NOT a HeightOneSpectrum prime.
+Full adelic theory would need to include infinity, but this may not be needed for
+DiscreteCocompactEmbedding if we're careful about what we're proving.
+
+**Sorry Status** (unchanged from Cycle 116):
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+
+**Total**: 1 sorry in main path (unchanged)
+
+**Next Steps** (Cycle 118+):
+1. **Option A**: Create `FqPolynomialInstance.lean` for concrete Fq[X] instance
+   - Instantiate `AllIntegersCompact` using `Finite (Fq[X] / p)` for primes p
+   - Instantiate `DiscreteCocompactEmbedding` using PID + product formula
+2. **Option B**: Work on general `DiscreteCocompactEmbedding` using class group finiteness
+3. **Option C**: Tag milestone for sorry-free `AllIntegersCompact` achievement
+
+**Recommendation**: Option A (concrete instance first) to validate the pipeline before
+generalizing. This follows ChatGPT's advice and avoids abstract machinery bugs.
 
 ---
 
 ## Key Discoveries for Future Cycles
+
+### NEW: Class Group Finiteness in Mathlib (Cycle 117)
+
+**Key Theorem**: `ClassGroup.fintypeOfAdmissibleOfFinite`
+- Location: `Mathlib/NumberTheory/ClassNumber/Finite.lean:349`
+- Proves `Fintype (ClassGroup S)` for integral closures
+- Uses admissible absolute values (NOT Riemann-Roch)
+
+**Pre-built Function Field Instance**:
+```lean
+-- In Mathlib/NumberTheory/ClassNumber/FunctionField.lean
+noncomputable instance : Fintype (ClassGroup (ringOfIntegers Fq F)) :=
+  ClassGroup.fintypeOfAdmissibleOfFinite (RatFunc Fq) F
+    (Polynomial.cardPowDegreeIsAdmissible : AbsoluteValue.IsAdmissible ...)
+```
+
+**This is non-circular** - the proof uses norm bounds and pigeonhole arguments, not dimension counting.
+
+**For DiscreteCocompactEmbedding**: The cocompact fundamental domain follows from class group finiteness, not RR.
+
+---
 
 ### CRITICAL: `evalOneₐ_surjective` in Mathlib (Found Cycle 110)
 
