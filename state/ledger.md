@@ -565,6 +565,46 @@ lemma le_iff_forall_count_ge {I J : FractionalIdeal R⁰ K} (hI : I ≠ 0) (hJ :
 
 ---
 
+#### Cycle 89 - le_iff_forall_count_ge Reverse Direction PROVED
+
+**Goal**: Prove the reverse direction of `le_iff_forall_count_ge` - if counts satisfy inequality, then fractional ideal inequality holds.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] `le_iff_forall_count_ge` reverse direction - PROVED!
+- [x] Sorry eliminated from DifferentIdealBridge.lean
+
+**Key Technique**: Factorization uniqueness + finprod induction
+
+The proof uses the strategy:
+1. Define `K := I * J⁻¹`
+2. Show `count v K = count v I - count v J ≥ 0` for all v (by hypothesis)
+3. Show `K ≤ 1` by using factorization:
+   - `K = ∏ᶠ v, v^{count v K}` (Mathlib's `finprod_heightOneSpectrum_factorization'`)
+   - Each factor `v^n` with n ≥ 0 is an ideal power, hence ≤ 1 (`coeIdeal_le_one`)
+   - Use `finprod_induction` to show product of things ≤ 1 is ≤ 1
+4. Conclude `I = K * J ≤ 1 * J = J`
+
+**Technical Details**:
+- Used `finprod_induction (p := (· ≤ 1))` with explicit predicate naming
+- For step (3): proved `∀ A B, A ≤ 1 → B ≤ 1 → A * B ≤ 1` via `gcongr`
+- For each factor: extracted `n : ℕ` from `Int.eq_ofNat_of_zero_le`, then `zpow_natCast` + `coeIdeal_pow`
+
+**Sorry Status**:
+- DifferentIdealBridge.lean: 0 sorries (was 1) ✅
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq`)
+- FullRRData.lean: 1 sorry (unchanged)
+
+**Total**: 2 sorries in main path (was 3, reduced by 1)
+
+**Next Steps** (Cycle 90):
+1. Prove `finrank_dual_eq` via trace form nondegeneracy
+2. Or: Focus on H¹(D) finiteness for Serre duality
+3. Or: Prove the FullRRData helper lemma
+
+---
+
 ## References
 
 ### Primary (Validated)

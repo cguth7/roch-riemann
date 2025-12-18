@@ -156,14 +156,40 @@ lemma le_iff_forall_count_ge {I J : FractionalIdeal R⁰ K} (hI : I ≠ 0) (hJ :
   · intro h v
     exact count_mono K v hI h
   · intro h
-    -- Both ideals are determined by their counts
-    -- If count v J ≤ count v I for all v, then I ≤ J
-    -- The key is: two nonzero fractional ideals are equal iff they have the same counts at all v
-    -- Use factorization uniqueness: I = ∏_v v^{count v I}, J = ∏_v v^{count v J}
-    -- Since count v J ≤ count v I, we have v^{count v I} ≤ v^{count v J} (recall negative exponents)
-    -- Actually for fractional ideals: higher exponent = smaller ideal
-    -- So count v J ≤ count v I means J ≤ I for this prime, and the product inequality follows
-    sorry -- Reverse direction: if counts satisfy inequality, then ideal inequality holds
+    -- Strategy: show I * J⁻¹ ≤ 1, then I ≤ J
+    -- Step 1: I * J⁻¹ has non-negative counts at all primes
+    have hK : I * J⁻¹ ≠ 0 := mul_ne_zero hI (inv_ne_zero hJ)
+    have h_counts_nonneg : ∀ v, 0 ≤ count K v (I * J⁻¹) := by
+      intro v
+      rw [count_mul K v hI (inv_ne_zero hJ), count_inv]
+      linarith [h v]
+    -- Step 2: A fractional ideal with all nonneg counts is ≤ 1
+    -- Key: use factorization I * J⁻¹ = ∏ v^{count v (I*J⁻¹)} where all exponents ≥ 0
+    have h_le_one : I * J⁻¹ ≤ 1 := by
+      -- Use the factorization: I * J⁻¹ = ∏ᶠ v, v^{count K v (I * J⁻¹)}
+      rw [← @FractionalIdeal.finprod_heightOneSpectrum_factorization' R _ K _ _ _ _ (I * J⁻¹) hK]
+      -- Each factor v^n with n ≥ 0 is ≤ 1 (it's an ideal)
+      -- The product of things ≤ 1 is ≤ 1
+      -- For fractional ideals: if A ≤ 1 and B ≤ 1, then A * B ≤ 1 * B = B ≤ 1
+      refine finprod_induction (p := (· ≤ 1)) le_rfl ?_ ?_
+      · intro A B hA hB
+        calc A * B ≤ 1 * B := by gcongr
+          _ = B := one_mul B
+          _ ≤ 1 := hB
+      · intro v
+        -- Show v^{count K v (I * J⁻¹)} ≤ 1 when the count is ≥ 0
+        have h_nonneg := h_counts_nonneg v
+        obtain ⟨n, hn⟩ := Int.eq_ofNat_of_zero_le h_nonneg
+        rw [hn, zpow_natCast]
+        -- (v.asIdeal)^n as an ideal, coerced to FractionalIdeal, is ≤ 1
+        have : ((v.asIdeal ^ n : Ideal R) : FractionalIdeal R⁰ K) ≤ 1 := coeIdeal_le_one
+        rwa [coeIdeal_pow] at this
+    -- Step 3: Conclude I ≤ J
+    calc I = I * 1 := (mul_one I).symm
+      _ = I * (J⁻¹ * J) := by rw [inv_mul_cancel₀ hJ]
+      _ = (I * J⁻¹) * J := by ring
+      _ ≤ 1 * J := by gcongr
+      _ = J := one_mul J
 
 /-- Membership in divisorToFractionalIdeal is characterized by valuation bounds.
 
