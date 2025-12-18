@@ -193,14 +193,38 @@ H¹ Quotient (Cycle 85+)
     ↓ This discharges serre_duality_eq axiom → FULL RR PROVED
 ```
 
-**Mathematical Roadmap for Track B**:
-1. **Define adeles**: `A_K = restricted product of K_v` (local completions)
-2. **Adelic exact sequence**: `0 → K → A_K → A_K/K → 0`
-3. **H¹(D) definition**: `h¹(D) = dim_k(A_K / (K + A_K(D)))` where A_K(D) = adeles with poles bounded by D
-4. **Serre duality**: `h¹(D) = ℓ(K-D)` via trace pairing at each place
-5. **Instantiate FullRRData**: Discharge axiom with concrete proof
+**Mathematical Roadmap for Track B** (Updated Cycle 84):
 
-**Estimated effort**: ~5-10 cycles for full proof
+✅ **DONE**:
+1. Define adeles: `A_K = FiniteAdeleRing R K` (Mathlib)
+2. Define A_K(D): `AdeleBoundedByDivisor R K D` with correct sign
+3. Prove L(D) ⊆ A_K(D): `RRSpace_subset_AdeleBounded`
+
+**NEXT** (Cycle 85):
+4. **Define H¹(D) as quotient**: Need `A_K / (K + A_K(D))` as a k-module
+   - Challenge: K + A_K(D) is not obviously a submodule (K acts by diagonal)
+   - Option A: Define as AddSubgroup quotient, then add k-module structure
+   - Option B: Use Mathlib's quotient module machinery
+   - Key: `adelicSubspace R K D` already defined as a Set
+
+5. **Prove finiteness of H¹(D)** (THE KEY STEP):
+   - For large deg(D), show H¹(D) = 0 (strong approximation)
+   - Use compactness of A_K / K (adele class group)
+   - This is where the restricted product structure pays off
+
+**THEN** (Cycles 86-88):
+6. **Serre duality**: h¹(D) = ℓ(K-D)
+   - Local duality at each place v via trace residue pairing
+   - Global piecing via product formula
+   - Alternative: Use `FractionalIdeal.dual` from DifferentIdealBridge
+
+7. **Instantiate FullRRData**: Discharge `serre_duality_eq` axiom
+
+**Alternative faster path** (if adelic gets stuck):
+- Prove TraceDualityProof.lean sorries directly using fractional ideal duality
+- The 3 sorries there might be easier than full adelic machinery
+
+**Estimated effort**: 4-6 cycles for full proof
 
 **Phase 3 Checklist**:
 

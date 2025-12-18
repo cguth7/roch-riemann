@@ -328,10 +328,24 @@ def adelicSubspace (D : DivisorV2 R) : Set (FiniteAdele R K) :=
 
 **Total**: 4 sorries in main path (unchanged)
 
-**Next Steps** (Cycle 85+):
-1. Define H¹(D) = dim_k(A_K / (K + A_K(D))) more formally as a quotient
-2. Prove finiteness of H¹(D) using compactness/restricted product structure
-3. Prove Serre duality: h¹(D) = ℓ(K - D) via local trace pairings
+**Next Steps** (Cycle 85):
+
+**Primary Goal**: Define H¹(D) as a proper k-module quotient
+
+**Concrete Tasks**:
+1. Make `adelicSubspace R K D` into an AddSubgroup of FiniteAdele R K
+2. Define `AdelicH1 k R K D := (FiniteAdele R K) ⧸ (adelicSubspace R K D)`
+3. Give it k-module structure (diagonal scalar action)
+4. Define `h1 k R K D := Module.finrank k (AdelicH1 k R K D)`
+
+**Key Technical Challenges**:
+- Proving `adelicSubspace` is closed under addition (need: if a = f + x, b = g + y, then a + b = (f+g) + (x+y))
+- The k-action: k acts on K diagonally, need to show this descends to quotient
+- Finiteness: For large deg(D), H¹(D) = 0 (strong approximation theorem)
+
+**Decision Point**:
+- If quotient machinery is painful, consider proving TraceDualityProof.lean sorries instead
+- Those 3 sorries use FractionalIdeal.dual which is already connected to our divisors
 
 ---
 
