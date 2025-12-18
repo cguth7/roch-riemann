@@ -97,6 +97,7 @@ RrLean/RiemannRochV2/
 ├── DimensionCounting.lean  # Gap bound ✅
 ├── Projective.lean         # Projective layer ✅
 ├── FullRRData.lean         # ✅ Full RR typeclass + theorem (Cycle 80)
+├── DifferentIdealBridge.lean # ⏳ Track B bridge (Cycle 81, 2 sorries)
 ├── TestBlockerProofs.lean  # Experimental proofs
 └── archive/
     └── LocalGapInstance.lean  # ARCHIVED
@@ -177,8 +178,8 @@ riemann_roch_full (Cycle 80) ✅
 
 **Track B (Discharge Axioms)**:
 ```
-DifferentIdealBridge.lean (Cycle 81+)
-    ↓ Connect differentIdeal to DivisorV2
+DifferentIdealBridge.lean (Cycle 81) ⏳ IN PROGRESS
+    ↓ Connect differentIdeal to DivisorV2 via FractionalIdeal.count
 TraceDualityProof.lean (Cycle 82+)
     ↓ Prove ell(K-D) = dim(traceDual L(D))
 FullRRData instance (Cycle 83+)
@@ -193,7 +194,7 @@ Track A (Cycle 80): ✅ COMPLETE
 - [x] Verify imports: `Different.lean`, `Kaehler/Basic.lean`
 
 Track B (Cycles 81+):
-- [ ] Bridge `differentIdeal` → `DivisorV2 R`
+- [~] Bridge `differentIdeal` → `DivisorV2 R` (Cycle 81 - partial, 2 sorries)
 - [ ] Prove duality via `Submodule.traceDual`
 - [ ] Instantiate `FullRRData` for Dedekind domains
 

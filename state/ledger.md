@@ -143,6 +143,66 @@ theorem riemann_roch_full [frr : FullRRData k R K] {D : DivisorV2 R} :
 
 ---
 
+#### Cycle 81 - DifferentIdealBridge (Track B, partial)
+
+**Goal**: Create bridge between Mathlib's `differentIdeal`/`FractionalIdeal` and our `DivisorV2`.
+
+**Key Mathlib APIs Identified**:
+1. `FractionalIdeal.count K v I : ℤ` - valuation of ideal I at prime v
+2. `FractionalIdeal.dual A K_A I` - trace dual of fractional ideal
+3. `FractionalIdeal.dual_dual` - involution property (crucial for duality!)
+4. `differentIdeal A R : Ideal R` - the different ideal
+5. `coeIdeal_differentIdeal`: `↑(differentIdeal A R) = (dual A K_A 1)⁻¹`
+
+**Created**: `RrLean/RiemannRochV2/DifferentIdealBridge.lean`
+
+**Definitions (compiling with sorries)**:
+```lean
+-- Convert fractional ideal to divisor via count
+noncomputable def fractionalIdealToDivisor (I : FractionalIdeal R⁰ K) : DivisorV2 R
+
+-- Convert divisor back to fractional ideal
+noncomputable def divisorToFractionalIdeal (D : DivisorV2 R) : FractionalIdeal R⁰ K
+
+-- Canonical divisor from different ideal
+noncomputable def canonicalDivisorFrom : DivisorV2 R :=
+  -fractionalIdealToDivisor R K (↑(differentIdeal A R))
+```
+
+**Lemmas (compiling with sorries)**:
+```lean
+-- Key: div(I⁻¹) = -div(I)
+lemma fractionalIdealToDivisor_inv {I} (hI : I ≠ 0) :
+    fractionalIdealToDivisor R K I⁻¹ = -fractionalIdealToDivisor R K I
+
+-- Key: div(I * J) = div(I) + div(J)
+lemma fractionalIdealToDivisor_mul {I J} (hI : I ≠ 0) (hJ : J ≠ 0) :
+    fractionalIdealToDivisor R K (I * J) = ... + ...
+
+-- Main duality result: div(dual I) = K - div(I)
+lemma fractionalIdealToDivisor_dual {I} (hI : I ≠ 0) :
+    fractionalIdealToDivisor R K (dual A K_A I) =
+      canonicalDivisorFrom A - fractionalIdealToDivisor R K I
+```
+
+**Status**: ⏳ IN PROGRESS - file compiles with 2 sorries
+
+**Remaining Sorries**:
+1. `fractionalIdealToDivisor_apply` - need to verify API for `Set.Finite.mem_toFinset`
+2. `fractionalIdealToDivisor_dual` - need `differentIdeal A R ≠ ⊥` (requires `Module.Finite A R`)
+
+**Technical Issues Encountered**:
+- Lean 4 section variable scoping: parameters only included if actually used
+- `inv_inv` lemma needs explicit application for `FractionalIdeal`
+- Some mathlib API changes (mem_toFinset)
+
+**Next Steps** (Cycle 82+):
+1. Fix remaining API issues in bridge
+2. Prove `differentIdeal_ne_bot` under finiteness assumptions
+3. Connect to `FullRRData` typeclass instantiation
+
+---
+
 ## References
 
 ### Primary (Validated)
