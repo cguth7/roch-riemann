@@ -998,6 +998,76 @@ at v to the quotient R/v.asIdeal. This avoids manual unit-inverse bridge constru
 
 ---
 
+### 🎯 CYCLE 113 BRIEFING: How to Clear the 2 Sorries
+
+**File**: `RrLean/RiemannRochV2/ResidueFieldIso.lean`
+**Function**: `residue_of_K_element` (lines 310-360)
+
+#### Sorry 1: Case `s ∈ v.asIdeal` (line 324) - SIMPLER THAN IT LOOKS
+
+**Key Insight**: If `s ∈ v.asIdeal` and `v(a/s) ≤ 1`, then either:
+- The residue is 0 → just `use 0`
+- After canceling uniformizers, we reduce to the `s ∉ v.asIdeal` case
+
+**Proof sketch**:
+```
+Given: k = a/s, v(k) ≤ 1, s ∈ v.asIdeal
+- v(s) < 1 (since s ∈ v.asIdeal)
+- v(k) = v(a)/v(s) ≤ 1 implies v(a) ≤ v(s) < 1
+- So a ∈ v.asIdeal too
+
+Write a = π^m · a', s = π^n · s' where a', s' ∉ v.asIdeal, m,n ≥ 1
+Then k = π^(m-n) · (a'/s')
+
+Case m > n: k ∈ maximalIdeal, so residue(k) = 0. Use r = 0.
+Case m = n: k = a'/s' with s' ∉ v.asIdeal. This is the other case!
+Case m < n: Impossible since v(k) ≤ 1 requires m ≥ n.
+```
+
+**Lean approach**: Don't actually factor - just show residue = 0 when possible:
+```lean
+-- If v(a/s) < 1 (not just ≤ 1), then residue = 0
+-- Use: mem_maximalIdeal_iff_val_lt_one
+-- Then: use 0; simp [toResidueField_mem_asIdeal]
+```
+
+#### Sorry 2: Case `s ∉ v.asIdeal` (line 359) - COERCION ISSUE
+
+**The math is trivial**:
+```
+residue(a*t) = residue(a) · residue(t)           -- by map_mul
+            = residue(a) · residue(s)⁻¹          -- since st ≡ 1 mod v.asIdeal
+            = residue(a/s)                        -- since s is a unit
+```
+
+**What went wrong in Cycle 112**: Tried to prove `⟨a/s, hk⟩ = algebraMap(a) * s_unit⁻¹` as subtypes. The coercion management was painful.
+
+**Better approach**: Work in the residue field directly, not at the integer ring level.
+```lean
+-- We have: hst_residue : residue(s) * residue(t) = 1
+-- We have: hat : toResidueField v (a * t) = residue(a) * residue(t)  (by map_mul)
+-- Goal: toResidueField v (a * t) = residue(⟨a/s, hk⟩)
+
+-- Key: Don't decompose ⟨a/s, hk⟩. Instead show both sides equal residue(a) * residue(s)⁻¹
+-- LHS: residue(a) * residue(t) = residue(a) * residue(s)⁻¹ (from hst_residue)
+-- RHS: residue(a/s) = residue(a) * residue(s)⁻¹ (since s is unit, use map_div₀ at residue level)
+```
+
+**Key lemma to find/prove**: `IsLocalRing.residue` respects division by units.
+Look for something like `map_div₀` or prove:
+```lean
+lemma residue_div_unit (a : O_v) (u : O_vˣ) :
+    residue (a * ↑u⁻¹) = residue a * (residue u)⁻¹
+```
+
+#### Available Infrastructure (already in file):
+- `hs_unit : IsUnit (algebraMap R (v.adicCompletionIntegers K) s)`
+- `hst_residue : residue(s) * residue(t) = 1`
+- `exists_mul_eq_one_mod v s hs` gives the `t` with `st ≡ 1`
+- `toResidueField_mem_asIdeal` for showing residue = 0
+
+---
+
 ## Key Discoveries for Future Cycles
 
 ### CRITICAL: `evalOneₐ_surjective` in Mathlib (Found Cycle 110)
