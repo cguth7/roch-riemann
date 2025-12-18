@@ -400,6 +400,51 @@ The quotient `Space k R K D` has automatic `Module k` and `AddCommGroup` instanc
 
 ---
 
+#### Cycle 86 - Adeles.lean Sorry-Free!
+
+**Goal**: Prove the 2 remaining sorries in Adeles.lean for `adelicSubspace` submodule properties.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] `adelicSubspace.add_mem'` - PROVED using ultrametric inequality
+- [x] `adelicSubspace.smul_mem'` - PROVED using IsScalarTower k R K
+
+**Technical Details**:
+
+1. **`add_mem'` proof**: Uses `Valuation.map_add_le_max'` for the ultrametric inequality
+   ```lean
+   v.valuation K (a v + b v) ≤ max (v.valuation K (a v)) (v.valuation K (b v))
+   ```
+   Combined with `max_le` when both components satisfy the divisor bound.
+
+2. **`smul_mem'` proof**: Uses `IsScalarTower k R K` to factor the scalar action:
+   ```lean
+   algebraMap k K c = algebraMap R K (algebraMap k R c)
+   ```
+   Then `HeightOneSpectrum.valuation_le_one` gives `v(algebraMap R K r) ≤ 1` for `r ∈ R`.
+
+3. **Added variable**: `[IsScalarTower k R K]` to relate the algebra structures.
+
+**Key Insight**: The "constant field" property (that k-scalars have valuation ≤ 1) follows automatically from:
+- `Algebra k R` (k embeds in R)
+- `IsScalarTower k R K` (algebras are compatible)
+- `valuation_le_one` (R-elements have no poles in K)
+
+**Sorry Status**:
+- Adeles.lean: 0 sorries (was 2) ✅
+- FullRRData.lean: 1 sorry (unchanged)
+- TraceDualityProof.lean: 3 sorries (unchanged)
+
+**Total**: 4 sorries in main path (was 6, reduced by 2)
+
+**Next Steps** (Cycle 87):
+1. Prove finiteness of H¹(D) for deg(D) >> 0
+2. Or: tackle TraceDualityProof.lean sorries via fractional ideal machinery
+3. Or: prove strong approximation for vanishing
+
+---
+
 ## References
 
 ### Primary (Validated)

@@ -39,6 +39,7 @@ open IsDedekindDomain IsDedekindDomain.HeightOneSpectrum
 variable (k : Type*) [Field k]
 variable (R : Type*) [CommRing R] [IsDomain R] [IsDedekindDomain R] [Algebra k R]
 variable (K : Type*) [Field K] [Algebra k K] [Algebra R K] [IsFractionRing R K]
+variable [IsScalarTower k R K]
 
 namespace AdelicH1
 
@@ -79,8 +80,24 @@ def adelicSubspace (D : DivisorV2 R) : Submodule k (HeightOneSpectrum R → K) w
     intro a b ha hb v
     -- Need: (a+b)_v = 0 ∨ v((a+b)_v) ≤ exp(D(v))
     -- Uses ultrametric: v(a+b) ≤ max(v(a), v(b)) ≤ exp(D(v))
-    -- TODO: Complete using Valuation.map_add_le_max' and max_le
-    sorry
+    by_cases h : (a + b) v = 0
+    · left; exact h
+    · right
+      -- Get bounds for a v and b v from hypotheses
+      have hav : v.valuation K (a v) ≤ WithZero.exp (D v) := by
+        cases ha v with
+        | inl h => simp only [h, Valuation.map_zero]; exact WithZero.zero_le _
+        | inr h => exact h
+      have hbv : v.valuation K (b v) ≤ WithZero.exp (D v) := by
+        cases hb v with
+        | inl h => simp only [h, Valuation.map_zero]; exact WithZero.zero_le _
+        | inr h => exact h
+      -- Ultrametric inequality + max_le
+      calc v.valuation K ((a + b) v)
+          = v.valuation K (a v + b v) := by rfl
+        _ ≤ max (v.valuation K (a v)) (v.valuation K (b v)) :=
+            Valuation.map_add_le_max' (v.valuation K) (a v) (b v)
+        _ ≤ WithZero.exp (D v) := max_le hav hbv
   zero_mem' := by
     intro v
     left
@@ -88,10 +105,29 @@ def adelicSubspace (D : DivisorV2 R) : Submodule k (HeightOneSpectrum R → K) w
   smul_mem' := by
     intro c x hx v
     -- Need: c • x v = 0 ∨ v(c • x v) ≤ exp(D(v))
-    -- For c ∈ k (constant field), v(c) ≤ 1
+    -- Strategy: c • x v = algebraMap k K c * (x v)
+    -- For c ∈ k, v(algebraMap k K c) ≤ 1 (constants have no poles)
     -- So v(c • x) = v(c) * v(x) ≤ v(x) ≤ exp(D(v))
-    -- TODO: Need hypothesis that k is the constant field
-    sorry
+    by_cases h : c • x v = 0
+    · left; exact h
+    · right
+      -- c • (x v) = algebraMap k K c * (x v)
+      simp only [Pi.smul_apply, Algebra.smul_def]
+      -- Use multiplicativity of valuation
+      rw [Valuation.map_mul]
+      -- Key: algebraMap k K c = algebraMap R K (algebraMap k R c) by IsScalarTower
+      have hc : v.valuation K (algebraMap k K c) ≤ 1 := by
+        rw [IsScalarTower.algebraMap_apply k R K]
+        exact HeightOneSpectrum.valuation_le_one v (algebraMap k R c)
+      -- Get bound on x v
+      have hxv : v.valuation K (x v) ≤ WithZero.exp (D v) := by
+        cases hx v with
+        | inl h' => simp only [h', Valuation.map_zero]; exact WithZero.zero_le _
+        | inr h' => exact h'
+      -- Combine: v(c * x) = v(c) * v(x) ≤ 1 * exp(D v)
+      calc v.valuation K (algebraMap k K c) * v.valuation K (x v)
+          ≤ 1 * WithZero.exp (D v) := mul_le_mul' hc hxv
+        _ = WithZero.exp (D v) := one_mul _
 
 /-! ## H¹(D) as Quotient
 

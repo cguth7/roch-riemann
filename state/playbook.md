@@ -99,7 +99,7 @@ RrLean/RiemannRochV2/
 ├── FullRRData.lean         # ✅ Full RR typeclass + theorem (Cycle 80, 1 sorry)
 ├── DifferentIdealBridge.lean # ✅ Track B bridge (Cycle 82, 0 sorries)
 ├── TraceDualityProof.lean  # ⏳ Track B duality (Cycle 83, 3 sorries)
-├── Adeles.lean             # ✅ Track B H¹(D) (Cycle 85, 2 sorries)
+├── Adeles.lean             # ✅ Track B H¹(D) (Cycle 86, 0 sorries)
 └── archive/
     ├── LocalGapInstance.lean   # ARCHIVED
     └── TestBlockerProofs.lean  # ARCHIVED (Cycle 58 experiments)
@@ -237,8 +237,8 @@ Track B (Cycles 81+) - Required for full proof:
 - [x] Bridge `differentIdeal` → `DivisorV2 R` (Cycle 82)
 - [x] TraceDualityProof infrastructure (Cycle 83)
 - [x] Define adeles A_K (Cycle 84, revised in 85) ✅
-- [x] Define H¹(D) via adelic quotient (Cycle 85) ✅ (2 sorries)
-- [ ] Prove valuation sorries in adelicSubspace (Cycle 86)
+- [x] Define H¹(D) via adelic quotient (Cycle 85) ✅
+- [x] Prove valuation sorries in adelicSubspace (Cycle 86) ✅
 - [ ] Prove Serre duality: h¹(D) = ℓ(K-D) (Cycles 87-89)
 - [ ] Instantiate `FullRRData` with proof (Cycle 90+)
 
