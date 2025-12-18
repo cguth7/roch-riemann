@@ -6,13 +6,12 @@
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 119)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 120)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
 |------|------|--------|-------|
 | `TraceDualityProof.lean` | `finrank_dual_eq` | ⚪ 1 sorry | NOT on critical path |
-| `FqPolynomialInstance.lean` | `valuation_eq_one_almost_all` | ⚪ 1 sorry | Finiteness of divisors |
 | `FqPolynomialInstance.lean` | `discrete_diagonal_embedding` | ⚪ 1 sorry | Discreteness of K |
 | `FqPolynomialInstance.lean` | `closed_diagonal_embedding` | ⚪ 1 sorry | Closedness from discrete |
 | `FqPolynomialInstance.lean` | `isCompact_integralAdeles` | ⚪ 1 sorry | Product compactness |
@@ -36,15 +35,16 @@
 | `FqPolynomialInstance.lean` | `finite_quotient_polynomial` | ✅ PROVED | Fq[X]/v finite for all v |
 | `FqPolynomialInstance.lean` | `instFiniteCompletionResidueFields` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
 | `FqPolynomialInstance.lean` | `instAllIntegersCompact` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
+| `FqPolynomialInstance.lean` | `valuation_eq_one_almost_all` | ✅ PROVED | Finiteness of valuations ≠ 1 |
 | `FqPolynomialInstance.lean` | `instDiscreteCocompactEmbedding` | ✅ INSTANCE | For Fq[X] (sorries in proofs) |
 
-**Build Status**: ✅ Compiles with 6 sorries (1 non-critical, 5 for DiscreteCocompact)
+**Build Status**: ✅ Compiles with 5 sorries (1 non-critical, 4 for DiscreteCocompact)
 
 **Key Distinction**:
-- **Sorries**: Holes in existing proofs → 6 remaining (5 are for DiscreteCocompactEmbedding)
+- **Sorries**: Holes in existing proofs → 5 remaining (4 are for DiscreteCocompactEmbedding)
 - **Axiom Classes**: BOTH `AllIntegersCompact` AND `DiscreteCocompactEmbedding` now have instances for Fq[X]!
 
-**Next Priority**: Fill sorries in DiscreteCocompactEmbedding proofs (weak approximation, discreteness)
+**Next Priority**: Fill remaining DiscreteCocompactEmbedding sorries (discreteness, closedness, compactness, weak approximation)
 
 ---
 
@@ -1474,6 +1474,74 @@ instance instDiscreteCocompactEmbedding [AllIntegersCompact Fq[X] (RatFunc Fq)] 
 3. Fill discreteness/closedness from the above
 4. Fill weak approximation using PID structure
 5. Or: Move to other axioms (`AdelicRRData`)
+
+---
+
+#### Cycle 120 - First DiscreteCocompactEmbedding Sorry Filled!
+
+**Goal**: Fill sorries in DiscreteCocompactEmbedding proofs for Fq[X].
+
+**Status**: 🔶 PARTIAL (1 of 5 sorries filled!)
+
+**Results**:
+- [x] `valuation_eq_one_almost_all` - PROVED! Key lemma for discreteness
+- [ ] `discrete_diagonal_embedding` - Pending (requires restricted product topology work)
+- [ ] `closed_diagonal_embedding` - Pending (follows from discrete)
+- [ ] `isCompact_integralAdeles` - Pending (product compactness)
+- [ ] `exists_K_translate_in_integralAdeles` - Pending (weak approximation)
+
+**Key Proof Strategy** (for `valuation_eq_one_almost_all`):
+
+Used Mathlib's `HeightOneSpectrum.Support.finite` which proves that for any `k : K`,
+the set `{v | 1 < v.valuation K k}` is finite. For nonzero `f`:
+
+```lean
+{v | v.valuation f ≠ 1} = {v | v.valuation f > 1} ∪ {v | v.valuation f < 1}
+                        = Support(f) ∪ Support(f⁻¹)
+```
+
+Both are finite by `Support.finite`, so their union is finite.
+
+**Key Mathlib Lemma Used**:
+```lean
+-- In Mathlib/RingTheory/DedekindDomain/FiniteAdeleRing.lean
+lemma HeightOneSpectrum.Support.finite (k : K) : (Support R k).Finite
+```
+
+**Remaining Sorries Analysis**:
+
+1. **`discrete_diagonal_embedding`**: Requires showing {0} is open in subspace topology
+   - Needs: Basic neighborhood characterization in restricted product
+   - Approach: Use `valuation_eq_one_almost_all` to show nonzero elements are bounded away from 0
+
+2. **`closed_diagonal_embedding`**: Standard result for discrete subgroups
+   - Needs: `Subgroup.isClosed_of_discrete` or equivalent
+   - Approach: Discrete + locally compact → closed
+
+3. **`isCompact_integralAdeles`**: Product of compact sets
+   - Needs: Tychonoff for restricted products, or embedding lemma
+   - Approach: Show ∏_v O_v embeds as compact subset
+
+4. **`exists_K_translate_in_integralAdeles`**: Weak approximation for PIDs
+   - Needs: Strong approximation theorem machinery
+   - Approach: Use PID structure to clear denominators
+
+**Sorry Status**:
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FqPolynomialInstance.lean: 4 sorries (DiscreteCocompactEmbedding proofs)
+
+**Total**: 5 sorries in proof path (down from 6!)
+
+**Build**: ✅ Compiles successfully
+
+**Significance**: The `valuation_eq_one_almost_all` proof demonstrates that Mathlib's adelic
+infrastructure (specifically `Support.finite`) can be leveraged for our concrete instances.
+The remaining proofs require deeper work with restricted product topology.
+
+**Next Steps** (Cycle 121+):
+1. Research restricted product neighborhood basis for discreteness proof
+2. Find/prove Tychonoff-like theorem for restricted products
+3. Or: Accept remaining sorries with clear mathematical justification and move to AdelicRRData
 
 ---
 

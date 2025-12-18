@@ -173,10 +173,32 @@ divide f (i.e., have v(f) ≠ 0). This makes K discrete in the restricted produc
 This is the "almost all valuations are 1" property. -/
 lemma valuation_eq_one_almost_all (f : RatFunc Fq) (hf : f ≠ 0) :
     {v : HeightOneSpectrum Fq[X] | v.valuation (RatFunc Fq) f ≠ 1}.Finite := by
-  -- Elements of RatFunc Fq are quotients a/b of polynomials
-  -- Only finitely many irreducible polynomials divide a or b
-  -- Those are exactly the places where valuation ≠ 1
-  sorry
+  -- The set {v | val(f) ≠ 1} = {v | val(f) > 1} ∪ {v | val(f) < 1}
+  -- = Support(f) ∪ Support(f⁻¹)
+  -- Both are finite by HeightOneSpectrum.Support.finite
+  have h_lt : {v : HeightOneSpectrum Fq[X] | v.valuation (RatFunc Fq) f < 1} =
+              {v : HeightOneSpectrum Fq[X] | 1 < v.valuation (RatFunc Fq) f⁻¹} := by
+    ext v
+    simp only [Set.mem_setOf_eq]
+    rw [map_inv₀]
+    -- Use one_lt_inv₀: For 0 < a, we have 1 < a⁻¹ ↔ a < 1
+    have hpos : 0 < v.valuation (RatFunc Fq) f := by
+      simp only [Valuation.pos_iff]
+      exact hf
+    exact (one_lt_inv₀ hpos).symm
+  have h_split : {v : HeightOneSpectrum Fq[X] | v.valuation (RatFunc Fq) f ≠ 1} ⊆
+                 {v | 1 < v.valuation (RatFunc Fq) f} ∪ {v | v.valuation (RatFunc Fq) f < 1} := by
+    intro v hv
+    simp only [Set.mem_setOf_eq, Set.mem_union] at hv ⊢
+    rcases lt_trichotomy (v.valuation (RatFunc Fq) f) 1 with hlt | heq | hgt
+    · exact Or.inr hlt
+    · exact absurd heq hv
+    · exact Or.inl hgt
+  apply Set.Finite.subset _ h_split
+  apply Set.Finite.union
+  · exact HeightOneSpectrum.Support.finite Fq[X] f
+  · rw [h_lt]
+    exact HeightOneSpectrum.Support.finite Fq[X] f⁻¹
 
 /-
 **Neighborhood basis at 0** (informal description):
