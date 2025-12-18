@@ -7,47 +7,45 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 122)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 123)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
+**Cycle 123 implemented the concrete instance** for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`.
 
 ### Current State
-- ✅ `FullAdeles.lean` created with general definitions (SORRY-FREE)
-- ✅ `FullAdeleRing R K K_infty := FiniteAdeleRing R K × K_infty`
-- ✅ `fullDiagonalEmbedding : K →+* FullAdeleRing R K K_infty`
-- ✅ `fullDiagonalEmbedding_injective` proved
-- ✅ `FullDiscreteCocompactEmbedding` class defined
-- ⏳ Concrete instance for `Polynomial Fq / RatFunc Fq / FqtInfty Fq` needs Mathlib API work
+- ✅ `FullAdeles.lean` extended with concrete Fq[X] instance
+- ✅ `FqFullAdeleRing Fq` type alias defined
+- ✅ `inftyRingHom : RatFunc Fq →+* FqtInfty Fq` (via coeRingHom)
+- ✅ `instAlgebraRatFuncFqtInfty` Algebra instance
+- ✅ `fqFullDiagonalEmbedding : RatFunc Fq →+* FqFullAdeleRing Fq`
+- ✅ `integralFullAdeles` using `Valued.v` for infinity valuation
+- ✅ `instFullDiscreteCocompactEmbedding` for Fq[X] (with sorries in proofs)
+- ⏳ 5 sorries in FullAdeles.lean (down from open question to concrete gaps)
 
-### Concrete Next Steps (Cycle 123+)
+### Concrete Next Steps (Cycle 124+)
 
-**PRIORITY: Complete the concrete instance for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`**
+**PRIORITY: Fill remaining sorries in FullAdeles.lean**
 
-The general framework is done. Now wire up the concrete instance using these Mathlib APIs:
+The instance structure is complete. Now fill the proof sorries:
 
-**Step 1**: Add imports and set up embeddings
-```lean
-import Mathlib.Topology.Algebra.UniformRing  -- For completion ring hom/algebra
+1. **`algebraMap_FqtInfty_injective`** - Show `coeRingHom` equals `Completion.coe'`
+   - Should be straightforward definitional equality
 
--- The ring hom RatFunc Fq →+* FqtInfty Fq
-def diag_infty : RatFunc Fq →+* FunctionField.FqtInfty Fq :=
-  UniformSpace.Completion.coeRingHom
+2. **`fq_discrete_in_fullAdeles`** - The KEY property
+   - Use `|k|_∞ = q^{deg k}` for polynomials
+   - Bounded infinity valuation ⟹ bounded degree ⟹ finite set
 
--- For diagonal embedding into full adeles:
-def fullDiag : RatFunc Fq →+* FqFullAdeleRing Fq :=
-  RingHom.prod (FiniteAdeleRing.algebraMap (Polynomial Fq) (RatFunc Fq)) diag_infty
-```
+3. **`fq_closed_in_fullAdeles`** - Follows from discreteness
+   - Standard: discrete + locally compact + Hausdorff → closed
 
-**Step 2**: Fix `integralFullAdeles` to use correct valuation API
-```lean
--- WRONG: FunctionField.inftyValuation Fq a.2  (inftyValuation is for RatFunc, not FqtInfty)
--- RIGHT: Use Valued.v for completion elements
-def integralFullAdeles : Set (FqFullAdeleRing Fq) :=
-  {a | (∀ v, a.1.val v ∈ v.adicCompletionIntegers (RatFunc Fq)) ∧
-       Valued.v a.2 ≤ 1 }  -- Valued.v extends inftyValuation to completion
-```
+4. **`isCompact_integralFullAdeles`** - Product of compacts
+   - Finite adeles: AllIntegersCompact
+   - Infinity: valuation ring of local field is compact
+
+5. **`exists_translate_in_integralFullAdeles`** - Weak approximation
+   - Use PID structure to clear denominators
 
 **Step 3**: Prove discrete/closed/compact for full adeles
 - `fq_discrete_in_fullAdeles` - TRUE, uses product formula
@@ -74,7 +72,7 @@ def integralFullAdeles : Set (FqFullAdeleRing Fq) :=
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 122)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 123)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -84,14 +82,19 @@ def integralFullAdeles : Set (FqFullAdeleRing Fq) :=
 | `FqPolynomialInstance.lean` | `closed_diagonal_embedding` | ⚪ 1 sorry | Needs different approach (not from discreteness) |
 | `FqPolynomialInstance.lean` | `isCompact_integralAdeles` | ⚪ 1 sorry | Product compactness - may still work |
 | `FqPolynomialInstance.lean` | `exists_K_translate_in_integralAdeles` | ⚪ 1 sorry | Weak approximation - may still work |
-| `FullAdeles.lean` | (none) | ✅ SORRY-FREE | General definitions complete |
+| `FullAdeles.lean` | `algebraMap_FqtInfty_injective` | ⚪ 1 sorry | coeRingHom = Completion.coe' |
+| `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ⚪ 1 sorry | KEY: |k|_∞ bounds degree |
+| `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ⚪ 1 sorry | Follows from discrete |
+| `FullAdeles.lean` | `isCompact_integralFullAdeles` | ⚪ 1 sorry | Product of compacts |
+| `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ 1 sorry | Weak approximation |
 
-### Axiom Classes (still need instantiation for concrete types)
+### Axiom Classes (instantiation status)
 | File | Class | Status | Notes |
 |------|-------|--------|-------|
 | `AllIntegersCompactProof.lean` | `FiniteCompletionResidueFields` | ✅ INSTANTIATED | For Fq[X] in FqPolynomialInstance.lean |
 | `AdelicTopology.lean` | `AllIntegersCompact` | ✅ INSTANTIATED | For Fq[X] in FqPolynomialInstance.lean |
-| `AdelicTopology.lean` | `DiscreteCocompactEmbedding` | ✅ INSTANTIATED | For Fq[X] (with sorries) |
+| `AdelicTopology.lean` | `DiscreteCocompactEmbedding` | ⚠️ FALSE | K NOT discrete in finite adeles |
+| `FullAdeles.lean` | `FullDiscreteCocompactEmbedding` | ✅ INSTANTIATED | For Fq[X] (with sorries) - CORRECT class |
 | `AdelicH1v2.lean` | `AdelicRRData` | ⏳ CLASS | Full adelic RR axioms |
 | `FullRRData.lean` | `FullRRData` | 🔗 CLASS | Derived from `AdelicRRData` |
 
@@ -105,19 +108,19 @@ def integralFullAdeles : Set (FqFullAdeleRing Fq) :=
 | `FqPolynomialInstance.lean` | `instFiniteCompletionResidueFields` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
 | `FqPolynomialInstance.lean` | `instAllIntegersCompact` | ✅ INSTANCE | For Fq[X] / RatFunc(Fq) |
 | `FqPolynomialInstance.lean` | `valuation_eq_one_almost_all` | ✅ PROVED | Finiteness of valuations ≠ 1 |
-| `FqPolynomialInstance.lean` | `instDiscreteCocompactEmbedding` | ✅ INSTANCE | For Fq[X] (sorries in proofs) |
+| `FullAdeles.lean` | `Nonempty HeightOneSpectrum Fq[X]` | ✅ PROVED | X is irreducible |
+| `FullAdeles.lean` | `inftyRingHom` | ✅ DEFINED | RatFunc Fq →+* FqtInfty Fq |
+| `FullAdeles.lean` | `fqFullDiagonalEmbedding_injective` | ✅ PROVED | Uses infinity injection |
 
-**Build Status**: ✅ Compiles with 5 sorries (1 non-critical, 1 **mathematically false**, 3 under investigation)
+**Build Status**: ✅ Compiles with 10 sorries total
+- TraceDualityProof.lean: 1 sorry (non-critical)
+- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles)
+- FullAdeles.lean: 5 sorries (concrete instance proofs)
 
-**Key Distinction**:
-- **Sorries**: Holes in existing proofs → 5 remaining
-- **CRITICAL (Cycle 121)**: `discrete_diagonal_embedding` is **FALSE** - K is NOT discrete in finite adeles!
-- **Axiom Classes**: `AllIntegersCompact` has valid instance; `DiscreteCocompactEmbedding` has specification issue
-
-**Next Priority**: Decide on resolution path for discreteness issue:
-1. Add infinite place (full adeles) - most correct but requires refactoring
-2. Weaken DiscreteCocompactEmbedding - if applications don't need discreteness
-3. Alternative adelic framework
+**Key Progress (Cycle 123)**:
+- ✅ Full adeles concrete instance structure complete
+- ✅ `FullDiscreteCocompactEmbedding` replaces broken `DiscreteCocompactEmbedding`
+- ⏳ 5 sorries in FullAdeles.lean are mathematically provable (not false like finite adeles discreteness)
 
 ---
 
@@ -527,6 +530,66 @@ decide on which resolution option to pursue. The most robust approach is Option 
 - Implementation strategy: Define `FullAdeleRing := FiniteAdeleRing × K_∞` (product approach)
 - Don't rework HeightOneSpectrum; build on top of existing finite adeles
 - See "NEXT CLAUDE: Start Here" section at top of ledger for detailed next steps
+
+---
+
+#### Cycle 123 - Concrete Fq[X] Instance for Full Adeles
+
+**Goal**: Implement the concrete instance of `FullDiscreteCocompactEmbedding` for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`.
+
+**Status**: ✅ COMPLETE (instance structure with sorries for deep proofs)
+
+**Results**:
+- [x] Added `Nonempty (HeightOneSpectrum Fq[X])` instance (X is irreducible)
+- [x] Defined `FqFullAdeleRing Fq` type alias
+- [x] Defined `inftyRingHom : RatFunc Fq →+* FqtInfty Fq` via `coeRingHom`
+- [x] Created `instAlgebraRatFuncFqtInfty` from ring hom
+- [x] Defined `fqFullDiagonalEmbedding` into full adeles
+- [x] Proved `fqFullDiagonalEmbedding_injective`
+- [x] Defined `integralFullAdeles` using `Valued.v` for infinity valuation
+- [x] Created `instFullDiscreteCocompactEmbedding` for Fq[X]
+
+**Key Technical Challenges Resolved**:
+
+1. **Algebra Instance**: Mathlib doesn't directly provide `Algebra (RatFunc Fq) (FqtInfty Fq)`.
+   Constructed via `inftyRingHom.toAlgebra` where `inftyRingHom` uses `coeRingHom` with
+   explicit valued structure: `letI : Valued (RatFunc Fq) (WithZero (Multiplicative ℤ)) := FunctionField.inftyValuedFqt Fq`
+
+2. **Height-One Primes**: Proved `Nonempty (HeightOneSpectrum Fq[X])` by showing `X` is irreducible,
+   hence `(X)` is a height-one prime.
+
+3. **Valuation on Completion**: Used `Valued.v` (not `inftyValuation` directly) for elements of `FqtInfty Fq`.
+
+**Remaining Sorries** (5 in FullAdeles.lean):
+
+| Sorry | Mathematical Content | Difficulty |
+|-------|---------------------|------------|
+| `algebraMap_FqtInfty_injective` | `coeRingHom` = `Completion.coe'` | Easy (definitional) |
+| `fq_discrete_in_fullAdeles` | `|k|_∞ = q^{deg k}` bounds degree | Medium (KEY) |
+| `fq_closed_in_fullAdeles` | Discrete + LCH → closed | Easy (standard) |
+| `isCompact_integralFullAdeles` | Product of compacts | Medium |
+| `exists_translate_in_integralFullAdeles` | Weak approximation for PIDs | Medium |
+
+**Key Insight for Discreteness Proof**:
+- For polynomials: `|k|_∞ = q^{deg k}` (infinity valuation = negated degree)
+- If `|k|_∞ ≤ ε` (small), then `deg k ≤ -log_q(ε)` (bounded)
+- Finitely many polynomials over finite field with bounded degree
+- Combined with integrality at finite places → finite intersection with neighborhoods
+
+**Sorry Status**:
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles related)
+- FullAdeles.lean: 5 sorries (concrete proofs)
+
+**Total**: 10 sorries in proof path
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 124+):
+1. Fill `algebraMap_FqtInfty_injective` (should be definitional equality)
+2. Fill `fq_discrete_in_fullAdeles` using degree bound argument
+3. Fill remaining compactness/approximation sorries
+4. Audit `AdelicH1v2.lean` for migration to full adeles
 
 ---
 
