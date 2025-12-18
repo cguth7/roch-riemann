@@ -1091,6 +1091,86 @@ h1_module_finite                           ← TODO (combines above)
 
 ---
 
+#### Cycle 97 - DiscreteCocompactEmbedding Axiomatization
+
+**Goal**: Clean up AdelicTopology.lean by axiomatizing the deep topological properties.
+
+**Status**: ✅ COMPLETE
+
+**Results**:
+- [x] Created `DiscreteCocompactEmbedding` typeclass - packages discrete + closed + cocompact axioms
+- [x] `closed_diagonal` - NOW PROVED (trivial from axiom)
+- [x] `discrete_diagonal` - NOW PROVED (trivial from axiom)
+- [x] `compact_adelic_quotient` - NOW PROVED (trivial from axiom)
+- [ ] `h1_module_finite` - 1 sorry remaining (needs Haar measure / Blichfeldt)
+
+**Key Insight**: Following the Track A approach, we axiomatize what's mathematically true
+but would require substantial infrastructure to prove:
+
+```lean
+/-- Hypothesis: The diagonal embedding of K is discrete and cocompact. -/
+class DiscreteCocompactEmbedding : Prop where
+  /-- K is discrete in the adele ring. -/
+  discrete : DiscreteTopology (Set.range (diagonalEmbedding R K))
+  /-- K is closed in the adele ring. -/
+  closed : IsClosed (Set.range (diagonalEmbedding R K))
+  /-- There exists a compact fundamental domain for K in A_K. -/
+  compact_fundamental_domain : ∃ (F : Set (FiniteAdeleRing R K)), IsCompact F ∧
+      ∀ a, ∃ x : K, a - diagonalEmbedding R K x ∈ F
+```
+
+**Mathematical Background**:
+For function fields K / k with finite k, these properties follow from:
+1. Strong approximation theorem
+2. Product formula for valuations
+3. Finiteness of class group
+
+**Mathlib Infrastructure Identified**:
+- `MeasureTheory.IsAddFundamentalDomain` - fundamental domain machinery
+- `MeasureTheory.exists_pair_mem_lattice_not_disjoint_vadd` - Blichfeldt's theorem
+- `AddSubgroup.isClosed_of_discrete` - closedness of discrete subgroups
+- `RestrictedProduct.instLocallyCompactSpace` - local compactness of adeles
+
+**Sorry Status**:
+- AdelicTopology.lean: 1 sorry (was 4, reduced by 3) ✅
+- AdelicH1v2.lean: 1 sorry (`h1_anti_mono`)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (`ell_canonical_minus_eq_zero_of_large_deg`)
+
+**Total**: 4 sorries in main path (was 7, reduced by 3)
+
+**Architecture Summary**:
+```
+AllIntegersCompact R K           DiscreteCocompactEmbedding R K
+        |                                    |
+        v                                    v
+LocallyCompactSpace             discrete, closed, compact_fundamental_domain
+(FiniteAdeleRing R K)                        |
+        |                                    |
+        +---------------+--------------------+
+                        |
+                        v
+             h1_module_finite (1 sorry - needs Haar/Blichfeldt)
+```
+
+**Track B Status**:
+
+Two levels of axiomatization:
+1. **AllIntegersCompact** (Cycle 95): Each adicCompletionIntegers is compact
+   - Implies `LocallyCompactSpace (FiniteAdeleRing R K)`
+   - True for function fields over finite fields
+
+2. **DiscreteCocompactEmbedding** (Cycle 97): K is discrete + cocompact in A_K
+   - Implies `closed_diagonal`, `discrete_diagonal`, `compact_adelic_quotient`
+   - True for function fields (product formula + strong approximation)
+
+**Next Steps** (Cycle 98):
+1. Attempt to prove `h1_module_finite` using Mathlib's fundamental domain machinery
+2. Or: Focus on proving the helper lemmas in FullRRData.lean
+3. Or: Attempt to instantiate `DiscreteCocompactEmbedding` for a specific function field
+
+---
+
 ## References
 
 ### Primary (Validated)

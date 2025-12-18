@@ -132,6 +132,16 @@ end FiniteAdeleRingTopology
 /-! ## Discreteness of K in Adeles
 
 For H¹(D) to be finite-dimensional, we need K to embed discretely into the adeles.
+
+**Mathematical Background**:
+
+For a function field K over finite field k:
+1. K embeds diagonally into the finite adele ring A_K
+2. K ∩ (∏_v O_v) = R (the ring of integers)
+3. K is discrete in A_K (strong approximation)
+4. A_K / K has finite covolume (adelic Minkowski)
+
+We axiomatize these deep properties, following the Track A approach.
 -/
 
 section DiscreteEmbedding
@@ -176,30 +186,54 @@ theorem diagonalEmbedding_injective [Nonempty (HeightOneSpectrum R)] :
     exact hab'
   exact hinj (heq v)
 
-/-- The image of K under the diagonal embedding is closed.
+/-! ### Axiomatization of Discrete Cocompact Embedding
 
-This is a key property for the adelic theory. Combined with discreteness,
-it ensures K is a discrete closed subgroup.
+The following properties are deep results about function fields.
+We axiomatize them to enable the H¹(D) finiteness proof, following the
+Track A approach (axiomatize first, discharge for specific curves later).
+
+**Mathematical Statement**: For a function field K / k with ring of integers R:
+1. K is discrete in A_K (the diagonal image has discrete topology)
+2. K is closed in A_K (the diagonal image is closed)
+3. A_K / K has a compact fundamental domain (cocompact embedding)
+
+These follow from:
+- Strong approximation theorem
+- Product formula for valuations
+- Finiteness of class group (for compactness)
+
+**References**:
+- Cassels-Fröhlich "Algebraic Number Theory" Ch. II
+- Weil "Basic Number Theory" Ch. IV
 -/
-theorem closed_diagonal [AllIntegersCompact R K] :
-    IsClosed (Set.range (diagonalEmbedding R K)) := by
-  -- The proof uses the strong approximation theorem flavor:
-  -- K ∩ (∏_v O_v) = R, and R is closed (actually discrete)
-  sorry
 
-/-- The image of K under the diagonal embedding is discrete.
+/-- Hypothesis: The diagonal embedding of K is discrete and cocompact.
 
-This is a fundamental result: the global field K sits discretely
-inside the adele ring. Combined with closedness, K is a discrete
-closed subgroup.
--/
-theorem discrete_diagonal [AllIntegersCompact R K] :
-    DiscreteTopology (Set.range (diagonalEmbedding R K)) := by
-  -- The discreteness follows from:
-  -- 1. The "integral adeles" ∏_v O_v form an open subgroup
-  -- 2. K ∩ (∏_v O_v) = R (elements integral at all places)
-  -- 3. R is discrete in ∏_v O_v (in fact, finite inside any bounded region)
-  sorry
+This typeclass packages the key topological properties of the diagonal embedding
+K → FiniteAdeleRing R K needed for finiteness of H¹(D).
+
+For function fields over finite fields, these are theorems (Track B).
+For now, we axiomatize them (Track A). -/
+class DiscreteCocompactEmbedding : Prop where
+  /-- K is discrete in the adele ring. -/
+  discrete : DiscreteTopology (Set.range (diagonalEmbedding R K))
+  /-- K is closed in the adele ring. -/
+  closed : IsClosed (Set.range (diagonalEmbedding R K))
+  /-- There exists a compact fundamental domain for K in A_K.
+  This is the adelic Minkowski theorem: the quotient A_K / K is compact
+  (or more precisely, has a compact fundamental domain). -/
+  compact_fundamental_domain : ∃ (F : Set (FiniteAdeleRing R K)), IsCompact F ∧
+      ∀ a, ∃ x : K, a - diagonalEmbedding R K x ∈ F
+
+/-- The image of K under the diagonal embedding is closed. -/
+theorem closed_diagonal [DiscreteCocompactEmbedding R K] :
+    IsClosed (Set.range (diagonalEmbedding R K)) :=
+  DiscreteCocompactEmbedding.closed
+
+/-- The image of K under the diagonal embedding is discrete. -/
+theorem discrete_diagonal [DiscreteCocompactEmbedding R K] :
+    DiscreteTopology (Set.range (diagonalEmbedding R K)) :=
+  DiscreteCocompactEmbedding.discrete
 
 end DiscreteEmbedding
 
@@ -221,16 +255,12 @@ action of K on the adele ring.
 
 For our application to H¹(D), we use a relative version:
 A_K / (K + A_K(D)) is compact (and finite-dimensional as k-space).
--/
-theorem compact_adelic_quotient [AllIntegersCompact R K] :
+
+This follows from `DiscreteCocompactEmbedding.compact_fundamental_domain`. -/
+theorem compact_adelic_quotient [DiscreteCocompactEmbedding R K] :
     ∃ (F : Set (FiniteAdeleRing R K)), IsCompact F ∧
-      ∀ a, ∃ x : K, a - diagonalEmbedding R K x ∈ F := by
-  -- This is the adelic version of Minkowski's theorem
-  -- For function fields, it follows from:
-  -- 1. The adele ring is a locally compact topological ring
-  -- 2. K embeds discretely with compact quotient
-  -- 3. The proof uses reduction theory / fundamental domains
-  sorry
+      ∀ a, ∃ x : K, a - diagonalEmbedding R K x ∈ F :=
+  DiscreteCocompactEmbedding.compact_fundamental_domain
 
 end Cocompactness
 
@@ -252,21 +282,60 @@ open RiemannRochV2 in
 
 The proof uses:
 1. The finite adele ring is locally compact (from `locallyCompactSpace_finiteAdeleRing`)
-2. K embeds discretely and cocompactly
+2. K embeds discretely and cocompactly (from `DiscreteCocompactEmbedding`)
 3. A_K(D) is an open subset containing the "integral" adeles for effective D
 4. The quotient inherits compactness, hence finite-dimensionality as a k-space
+
+**Mathematical Sketch**:
+- The fundamental domain F from `compact_adelic_quotient` is compact
+- For effective D, A_K(D) ⊇ ∏_v O_v (integral adeles)
+- So the quotient A_K / (K + A_K(D)) is a quotient of F / ((K + A_K(D)) ∩ F)
+- Since F is compact and K is discrete, the intersection is finite
+- A compact space with finite equivalence classes gives finite quotient (over k)
+
+**Status**: This lemma requires measure-theoretic machinery (Haar measure, fundamental
+domains) to prove rigorously. The statement is correct mathematically, but the
+full proof requires infrastructure that combines:
+- `MeasureTheory.IsAddFundamentalDomain` from Mathlib
+- Haar measure on locally compact groups
+- Finiteness of lattice points in compact sets (Blichfeldt's theorem)
 -/
-theorem h1_module_finite [AllIntegersCompact R K]
+theorem h1_module_finite [AllIntegersCompact R K] [DiscreteCocompactEmbedding R K]
     (D : DivisorV2 R) (hD : DivisorV2.Effective D) :
     Module.Finite k (AdelicH1v2.SpaceModule k R K D) := by
-  -- Strategy:
-  -- 1. A_K(D) contains ∏_v O_v for effective D (bounded by 1 at each place)
-  -- 2. The quotient A_K / (K + A_K(D)) is a quotient of A_K / (K + ∏_v O_v)
-  -- 3. The latter is compact (adelic Minkowski)
-  -- 4. A quotient of a compact space is compact
-  -- 5. A compact quotient module over k is finite-dimensional
+  -- The proof strategy is outlined above.
+  -- The key ingredients are:
+  -- 1. LocallyCompactSpace (FiniteAdeleRing R K) from AllIntegersCompact
+  -- 2. Compact fundamental domain F from DiscreteCocompactEmbedding
+  -- 3. For effective D: integral adeles ⊆ A_K(D), so the quotient is bounded by F
+  -- 4. Discrete subgroup in compact set = finite
+  -- 5. Module over finite set is finite-dimensional
+  --
+  -- This is correct mathematically but requires Haar measure / Blichfeldt infrastructure
+  -- that would be substantial to develop from scratch.
   sorry
 
 end MainTheorem
+
+/-! ## Summary of Axiomatization
+
+This module provides two levels of axiomatization:
+
+1. **AllIntegersCompact**: Each `adicCompletionIntegers K v` is compact.
+   - This is true for function fields over finite fields
+   - Implies `LocallyCompactSpace (FiniteAdeleRing R K)`
+
+2. **DiscreteCocompactEmbedding**: K embeds discretely and cocompactly into A_K.
+   - This captures the "adelic Minkowski theorem"
+   - Implies closed_diagonal, discrete_diagonal, compact_adelic_quotient
+
+**Track B Goal**: Prove these axioms for specific function fields.
+For a function field K = k(C) where k is finite:
+- AllIntegersCompact follows from: finite residue field + complete DVR
+- DiscreteCocompactEmbedding follows from: product formula + strong approximation
+
+The `AdelicRRData` typeclass in `AdelicH1v2.lean` packages the consequences of
+these topological properties together with the Serre duality axiom.
+-/
 
 end RiemannRochV2.AdelicTopology
