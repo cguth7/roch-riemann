@@ -385,6 +385,120 @@ lemma globalInBounded (D : DivisorV2 R) (f : K)
     rw [heq, valuedAdicCompletion_eq_valuation']
     exact hf'
 
+/-! ## Adelic Riemann-Roch Data
+
+The adelic approach to Riemann-Roch axiomatizes:
+1. Finiteness of h¹(D)
+2. Vanishing: h¹(D) = 0 for deg(D) >> 0
+3. Serre duality: h¹(D) = ℓ(K - D)
+
+Combined with the Riemann inequality, this gives full Riemann-Roch.
+-/
+
+/-- Adelic Riemann-Roch data for a proper curve.
+
+This typeclass packages the key properties of h¹(D) needed for full Riemann-Roch:
+- `h1_finite`: H¹(D) is finite-dimensional as a k-vector space
+- `h1_vanishing`: h¹(D) = 0 when deg(D) is large enough
+- `adelic_rr`: ℓ(D) - h¹(D) = deg(D) + 1 - g (the "raw" adelic RR)
+- `serre_duality`: h¹(D) = ℓ(K - D) for all D
+- `deg_canonical`: deg(K) = 2g - 2
+
+The combination of adelic_rr and serre_duality gives the full Riemann-Roch equation.
+-/
+class AdelicRRData (canonical : DivisorV2 R) (genus : ℕ) where
+  /-- H¹(D) is always finite-dimensional. -/
+  h1_finite : ∀ D : DivisorV2 R, Module.Finite k (SpaceModule k R K D)
+  /-- L(D) is finite-dimensional (needed for ℓ(D)). -/
+  ell_finite : ∀ D : DivisorV2 R, Module.Finite k (RRSpace_proj k R K D)
+  /-- h¹(D) = 0 when deg(D) > 2g - 2.
+  This follows from strong approximation: for large D, K + A_K(D) = FiniteAdeleRing. -/
+  h1_vanishing : ∀ D : DivisorV2 R, D.deg > 2 * (genus : ℤ) - 2 → h1_finrank k R K D = 0
+  /-- The adelic Riemann-Roch equation (Euler characteristic).
+  This is the fundamental relation between h⁰ and h¹. -/
+  adelic_rr : ∀ D : DivisorV2 R,
+    (ell_proj k R K D : ℤ) - h1_finrank k R K D = D.deg + 1 - genus
+  /-- Serre duality: h¹(D) = ℓ(K - D).
+  This is the key theorem connecting adelic cohomology to Riemann-Roch spaces. -/
+  serre_duality : ∀ D : DivisorV2 R, h1_finrank k R K D = ell_proj k R K (canonical - D)
+  /-- The canonical divisor has degree 2g - 2. -/
+  deg_canonical : canonical.deg = 2 * (genus : ℤ) - 2
+
+/-- Bridge: AdelicRRData implies FullRRData.
+
+This shows that proving the adelic axioms is sufficient to discharge
+the FullRRData axioms, completing Track B.
+
+The key derivation:
+1. By Serre duality: h¹(D) = ℓ(K - D)
+2. By adelic RR: ℓ(D) - h¹(D) = deg(D) + 1 - g
+3. Substituting: ℓ(D) - ℓ(K - D) = deg(D) + 1 - g ✓
+-/
+def adelicRRData_to_FullRRData [arr : AdelicRRData k R K canonical genus]
+    [pc : ProperCurve k R K] : FullRRData k R K where
+  toProperCurve := pc
+  canonical := canonical
+  genus := genus
+  deg_canonical := arr.deg_canonical
+  serre_duality_eq := fun D => by
+    -- Use Serre duality: h¹(D) = ℓ(K - D)
+    -- So ℓ(D) - ℓ(K - D) = ℓ(D) - h¹(D)
+    -- And by adelic RR: ℓ(D) - h¹(D) = deg(D) + 1 - g
+    calc (ell_proj k R K D : ℤ) - ell_proj k R K (canonical - D)
+        = (ell_proj k R K D : ℤ) - h1_finrank k R K D := by rw [arr.serre_duality D]
+      _ = D.deg + 1 - genus := arr.adelic_rr D
+
+/-- The full Riemann-Roch theorem from adelic data. -/
+theorem riemann_roch_from_adelic [arr : AdelicRRData k R K canonical genus]
+    [pc : ProperCurve k R K] {D : DivisorV2 R} :
+    (ell_proj k R K D : ℤ) - ell_proj k R K (canonical - D) = D.deg + 1 - genus :=
+  (adelicRRData_to_FullRRData k R K).serre_duality_eq D
+
+/-! ## Corollaries from Adelic RR
+
+These are stated with explicit parameters to avoid instance scoping issues.
+-/
+
+/-- For deg(D) > 2g - 2, we have ℓ(D) = deg(D) + 1 - g.
+This follows from h¹(D) = 0 and the adelic RR equation. -/
+theorem ell_eq_deg_plus_one_minus_g_of_large_deg
+    (canonical : DivisorV2 R) (genus : ℕ)
+    (arr : AdelicRRData k R K canonical genus)
+    {D : DivisorV2 R} (h : D.deg > 2 * (genus : ℤ) - 2) :
+    (ell_proj k R K D : ℤ) = D.deg + 1 - genus := by
+  have h_vanish := arr.h1_vanishing D h
+  have h_rr := arr.adelic_rr D
+  simp only [h_vanish, CharP.cast_eq_zero, sub_zero] at h_rr
+  exact h_rr
+
+/-- h¹(K) = 1 for the canonical divisor.
+This follows from Serre duality: h¹(K) = ℓ(K - K) = ℓ(0) = 1. -/
+theorem h1_canonical_eq_one
+    (canonical : DivisorV2 R) (genus : ℕ)
+    (arr : AdelicRRData k R K canonical genus)
+    (pc : ProperCurve k R K) :
+    h1_finrank k R K canonical = 1 := by
+  rw [arr.serre_duality canonical]
+  simp only [sub_self]
+  exact pc.ell_zero_eq_one
+
+/-! ## Monotonicity for h¹
+
+Larger divisors have smaller h¹ (anti-monotone).
+-/
+
+/-- h¹ is anti-monotone: D ≤ E implies h¹(E) ≤ h¹(D).
+
+This follows from: D ≤ E implies A_K(D) ⊆ A_K(E) implies
+(K + A_K(D)) ⊆ (K + A_K(E)) implies the quotient gets smaller.
+-/
+lemma h1_anti_mono {D E : DivisorV2 R} (h : D ≤ E) :
+    h1_finrank k R K E ≤ h1_finrank k R K D := by
+  -- The proof requires showing that the quotient map induces a surjection
+  -- SpaceModule k R K D → SpaceModule k R K E
+  -- This follows from boundedSubmodule_mono
+  sorry -- Track B: Quotient dimension argument
+
 end AdelicH1v2
 
 /-! ## Connection to Previous Infrastructure
