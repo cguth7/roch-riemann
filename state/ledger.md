@@ -6,85 +6,50 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 121)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 122)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
-This is not a proof difficulty - the statement is mathematically false.
-The fix is architectural: **add the infinite place**.
+**Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
 
-### Architectural Decision (Confirmed)
-**Option 1: Add Infinity** - This is the correct path for adelic Riemann-Roch.
+### Current State
+- ✅ `FullAdeles.lean` created with general definitions (SORRY-FREE)
+- ✅ `FullAdeleRing R K K_infty := FiniteAdeleRing R K × K_infty`
+- ✅ `fullDiagonalEmbedding : K →+* FullAdeleRing R K K_infty`
+- ✅ `fullDiagonalEmbedding_injective` proved
+- ✅ `FullDiscreteCocompactEmbedding` class defined
+- ⏳ Concrete instance for `Polynomial Fq / RatFunc Fq / FqtInfty Fq` needs Mathlib API work
 
-### Recommended Implementation Strategy
+### Concrete Next Steps (Cycle 123+)
 
-**Don't rework HeightOneSpectrum plumbing.** Instead, build full adeles as a product:
+**Step 1**: Instantiate for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`
+- Navigate Mathlib's `FunctionField.FqtInfty Fq` completion API
+- Use `Valued.v` for valuation on completion elements (not `inftyValuation` directly)
+- Need `Algebra (RatFunc Fq) (FqtInfty Fq)` instance (from UniformSpace.Completion)
 
-```lean
--- New file: RrLean/RiemannRochV2/FullAdeles.lean
+**Step 2**: Prove discrete/closed/compact for full adeles
+- `fq_discrete_in_fullAdeles` - TRUE, uses product formula
+- `fq_closed_in_fullAdeles` - follows from discrete + locally compact
+- `isCompact_integralFullAdeles` - product of compacts
 
-/-- The completion at infinity for Fq(X) is Fq((1/X)) -/
-def completionAtInfinity (Fq : Type*) [Field Fq] := LaurentSeries Fq
--- Or use FunctionField.inftyValuation machinery from Mathlib
-
-/-- Integers at infinity: Fq[[1/X]] (power series) -/
-def integersAtInfinity (Fq : Type*) [Field Fq] := PowerSeries Fq
-
-/-- Full adeles = finite adeles × completion at infinity -/
-def FullAdeleRing (R K : Type*) [CommRing R] [IsDedekindDomain R]
-    [Field K] [Algebra R K] [IsFractionRing R K] (K_infty : Type*) :=
-  FiniteAdeleRing R K × K_infty
-
-/-- Diagonal embedding into full adeles -/
-def fullDiagonalEmbedding (k : K) : FullAdeleRing R K K_infty :=
-  (diagonalEmbedding R K k, algebraMap K K_infty k)
-```
-
-### Concrete Next Steps (Cycle 122+)
-
-**Step 1**: Create `FullAdeles.lean` with the product definition
-- Use `LaurentSeries Fq` or `FunctionField.inftyValuation` for K_∞
-- Define `FullAdeleRing := FiniteAdeleRing R K × K_∞`
-- Define diagonal embedding
-
-**Step 2**: Define `FullDiscreteCocompactEmbedding` for full adeles
-- K discrete in A (now TRUE with infinity included)
-- K closed in A (follows from discrete + locally compact)
-- A/K compact (standard cocompactness)
-
-**Step 3**: Migrate `DiscreteCocompactEmbedding` usages
-- Audit `AdelicH1v2.lean` - does it use discreteness?
-- Audit `AdelicTopology.lean` - update to use full adeles where needed
+**Step 3**: Audit usages of `DiscreteCocompactEmbedding`
+- `AdelicH1v2.lean` - does it use discreteness?
 - Keep finite adeles for properties that don't need infinity
-
-**Step 4**: Prove the properties for Fq[X]
-- `valuation_eq_one_almost_all` already proved (finite places)
-- Need analogous statement including infinity
-- Compactness of integral adeles should work
+- Migrate to full adeles where needed
 
 ### What NOT To Do
 - ❌ Don't try to prove `discrete_diagonal_embedding` for finite adeles (it's false)
 - ❌ Don't try alternative proofs for closedness without infinity (same issue)
-- ❌ Don't weaken axioms unless abandoning adelic RR entirely
 
 ### Mathlib Resources for Infinity
 ```
-Mathlib/NumberTheory/FunctionField.lean:192 - FunctionField.inftyValuation
-Mathlib/RingTheory/LaurentSeries.lean - LaurentSeries type
-Mathlib/RingTheory/PowerSeries/Basic.lean - PowerSeries type
+Mathlib/NumberTheory/FunctionField.lean - FqtInfty Fq, inftyValuation, valuedFqtInfty
+Valued.v - valuation on completion elements
 ```
-
-### Files to Modify/Create
-| File | Action |
-|------|--------|
-| `FullAdeles.lean` | **CREATE** - Product definition A = A_f × K_∞ |
-| `FqPolynomialInstance.lean` | Keep AllIntegersCompact, retire discrete goal |
-| `AdelicTopology.lean` | Add FullDiscreteCocompactEmbedding class |
-| `AdelicH1v2.lean` | Audit for full adele requirements |
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 121)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 122)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -94,6 +59,7 @@ Mathlib/RingTheory/PowerSeries/Basic.lean - PowerSeries type
 | `FqPolynomialInstance.lean` | `closed_diagonal_embedding` | ⚪ 1 sorry | Needs different approach (not from discreteness) |
 | `FqPolynomialInstance.lean` | `isCompact_integralAdeles` | ⚪ 1 sorry | Product compactness - may still work |
 | `FqPolynomialInstance.lean` | `exists_K_translate_in_integralAdeles` | ⚪ 1 sorry | Weak approximation - may still work |
+| `FullAdeles.lean` | (none) | ✅ SORRY-FREE | General definitions complete |
 
 ### Axiom Classes (still need instantiation for concrete types)
 | File | Class | Status | Notes |
@@ -1705,6 +1671,67 @@ decide on which resolution option to pursue. The most robust approach is Option 
 - Implementation strategy: Define `FullAdeleRing := FiniteAdeleRing × K_∞` (product approach)
 - Don't rework HeightOneSpectrum; build on top of existing finite adeles
 - See "NEXT CLAUDE: Start Here" section at top of ledger for detailed next steps
+
+---
+
+#### Cycle 122 - FullAdeles.lean Created (Product Definition)
+
+**Goal**: Implement Step 1 of the full adeles plan - create `FullAdeles.lean` with the product definition.
+
+**Status**: ✅ COMPLETE (SORRY-FREE!)
+
+**Results**:
+- [x] Created `RrLean/RiemannRochV2/FullAdeles.lean` (~245 lines)
+- [x] `FullAdeleRing R K K_infty := FiniteAdeleRing R K × K_infty` - general definition
+- [x] `fullDiagonalEmbedding : K →+* FullAdeleRing R K K_infty` - ring homomorphism
+- [x] `fullDiagonalEmbedding_injective` - PROVED (uses injectivity at infinity)
+- [x] `FullDiscreteCocompactEmbedding` class - corrected axioms for full adeles
+- [x] Build compiles successfully with NO SORRIES
+
+**Key Definitions**:
+```lean
+def FullAdeleRing := FiniteAdeleRing R K × K_infty
+
+def fullDiagonalEmbedding : K →+* FullAdeleRing R K K_infty :=
+  RingHom.prod (FiniteAdeleRing.algebraMap R K) (algebraMap K K_infty)
+
+class FullDiscreteCocompactEmbedding : Prop where
+  discrete : DiscreteTopology (Set.range (fullDiagonalEmbedding R K K_infty))
+  closed : IsClosed (Set.range (fullDiagonalEmbedding R K K_infty))
+  compact_fundamental_domain : ∃ F, IsCompact F ∧ ∀ a, ∃ x : K, a - fullDiagonalEmbedding R K K_infty x ∈ F
+```
+
+**Mathematical Insight** (why K IS discrete in full adeles):
+- In finite adeles: neighborhoods constrain only finitely many finite places
+- For any finite set S of primes, infinitely many polynomials are divisible by all of them
+- Hence K ∩ U is infinite for every neighborhood U in finite adeles
+
+- In full adeles: neighborhoods constrain ALL places including infinity
+- Product formula: ∏_v |k|_v = 1 enforces global constraint
+- If |k|_p ≤ 1 for all finite p AND |k|_∞ < ε, then k is bounded by Riemann-Roch
+- Only finitely many k ∈ K satisfy such bounds → K is discrete
+
+**Concrete Instance Status**:
+The concrete instance for `Polynomial Fq / RatFunc Fq / FqtInfty Fq` requires navigating
+Mathlib's completion API more carefully:
+- `FunctionField.FqtInfty Fq` is the completion at infinity
+- `Algebra (RatFunc Fq) (FqtInfty Fq)` comes from `UniformSpace.Completion`
+- Valuation on completion elements uses `Valued.v` (not `inftyValuation` directly)
+This is deferred to Cycle 123.
+
+**Sorry Status**:
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 for finite adeles)
+- FullAdeles.lean: 0 sorries (SORRY-FREE!)
+
+**Total**: 5 sorries in proof path (unchanged, FullAdeles adds no new sorries)
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 123+):
+1. Instantiate `FullDiscreteCocompactEmbedding` for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`
+2. Prove `fq_discrete_in_fullAdeles` using product formula
+3. Audit `AdelicH1v2.lean` for full adele requirements
 
 ---
 
