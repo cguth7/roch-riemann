@@ -278,15 +278,18 @@ dense subspace, and hence injectively (for separated spaces).
 theorem algebraMap_FqtInfty_injective :
     Function.Injective (algebraMap (RatFunc Fq) (FqtInfty Fq)) := by
   -- The algebraMap is inftyRingHom, which is the completion embedding
-  -- Completion embeddings are injective for separated spaces (T0 spaces)
-  -- coeRingHom is defined in terms of Completion.coe', which is injective
-  -- Technical gap: need to show coeRingHom.toFun = Completion.coe'
   show Function.Injective (inftyRingHom Fq)
+  -- Strategy: Use the fact that coeRingHom is injective for T0 spaces
   intro x y hxy
-  -- inftyRingHom is defined as coeRingHom, which maps x to (x : Completion)
-  -- Since Completion.coe is injective for T0 spaces, this follows
-  -- The types match via the definition of FqtInfty as a completion
-  sorry
+  -- inftyRingHom Fq = coeRingHom with the valued uniform space from inftyValuedFqt
+  -- FqtInfty Fq = Completion of (RatFunc Fq) with this uniform space
+  -- hxy : (↑x : FqtInfty Fq) = (↑y : FqtInfty Fq)
+  simp only [inftyRingHom] at hxy
+  -- Need Valued instance for T0Space (ValuedRing.separated)
+  letI : Valued (RatFunc Fq) (WithZero (Multiplicative ℤ)) := FunctionField.inftyValuedFqt Fq
+  -- RatFunc Fq is T0 (Valued rings are T0 by ValuedRing.separated)
+  -- Use coe_inj: (↑x : Completion α) = ↑y ↔ x = y
+  exact UniformSpace.Completion.coe_inj.mp hxy
 
 /-- The diagonal embedding for Fq(t) into full adeles.
 
@@ -321,6 +324,58 @@ An element (a_f, a_∞) is integral if:
 def integralFullAdeles : Set (FqFullAdeleRing Fq) :=
   {a | (∀ v, a.1.val v ∈ v.adicCompletionIntegers (RatFunc Fq)) ∧
        Valued.v a.2 ≤ 1}
+
+/-! ### Key Helper Lemmas for Discreteness
+
+These lemmas establish the core algebraic facts needed for discreteness.
+-/
+
+/-- For a nonzero polynomial, the infinity valuation is ≥ 1.
+
+This is because inftyValuation(p) = exp(deg p) and exp(n) ≥ 1 for n ≥ 0.
+-/
+theorem polynomial_inftyVal_ge_one {p : Fq[X]} (hp : p ≠ 0) :
+    1 ≤ FunctionField.inftyValuationDef Fq (algebraMap Fq[X] (RatFunc Fq) p) := by
+  rw [FunctionField.inftyValuation.polynomial (Fq := Fq) hp]
+  -- exp(natDegree) ≥ 1 since natDegree ≥ 0 and 1 = exp 0
+  rw [← WithZero.exp_zero, WithZero.exp_le_exp]
+  exact Int.ofNat_nonneg _
+
+/-- The open ball {x | Valued.v x < 1} in FqtInfty is open.
+
+This follows from the general fact that balls in valued rings are clopen.
+-/
+theorem isOpen_inftyBall_lt_one :
+    IsOpen {x : FqtInfty Fq | Valued.v x < (1 : WithZero (Multiplicative ℤ))} :=
+  (Valued.isClopen_ball (R := FqtInfty Fq) (1 : WithZero (Multiplicative ℤ))).isOpen
+
+/-- Key algebraic lemma: an element of RatFunc Fq that is integral at all finite places
+is in the image of Polynomial Fq.
+
+Proof sketch: If k = p/q with gcd(p,q) = 1, and |k|_v ≤ 1 for all finite v, then q has
+no prime factors (since at any prime dividing q but not p, we'd have |k|_v > 1).
+Hence q is a unit, so k is a polynomial.
+-/
+theorem finite_integral_implies_polynomial (k : RatFunc Fq)
+    (hint : ∀ v : HeightOneSpectrum Fq[X], v.valuation (RatFunc Fq) k ≤ 1) :
+    ∃ p : Fq[X], algebraMap Fq[X] (RatFunc Fq) p = k := by
+  -- For k = numerator/denominator in lowest terms:
+  -- If valuation ≤ 1 at all places, denominator has no prime factors
+  -- Hence denominator is a unit, so k is a polynomial
+  sorry
+
+/-- Consequence: For a nonzero k ∈ RatFunc Fq that is integral at all finite places,
+the infinity valuation is ≥ 1 (since k is a nonzero polynomial). -/
+theorem finite_integral_inftyVal_ge_one (k : RatFunc Fq) (hk : k ≠ 0)
+    (hint : ∀ v : HeightOneSpectrum Fq[X], v.valuation (RatFunc Fq) k ≤ 1) :
+    1 ≤ FunctionField.inftyValuationDef Fq k := by
+  obtain ⟨p, hp⟩ := finite_integral_implies_polynomial Fq k hint
+  have hp_ne : p ≠ 0 := by
+    intro h
+    simp only [h, map_zero] at hp
+    exact hk hp.symm
+  rw [← hp]
+  exact polynomial_inftyVal_ge_one (Fq := Fq) hp_ne
 
 /-! ### Key Properties
 

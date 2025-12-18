@@ -7,72 +7,66 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 123)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 124)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
 **Cycle 123 implemented the concrete instance** for `Polynomial Fq / RatFunc Fq / FqtInfty Fq`.
+**Cycle 124 proved helper lemmas** and established the discreteness proof structure.
 
 ### Current State
-- ✅ `FullAdeles.lean` extended with concrete Fq[X] instance
-- ✅ `FqFullAdeleRing Fq` type alias defined
-- ✅ `inftyRingHom : RatFunc Fq →+* FqtInfty Fq` (via coeRingHom)
-- ✅ `instAlgebraRatFuncFqtInfty` Algebra instance
-- ✅ `fqFullDiagonalEmbedding : RatFunc Fq →+* FqFullAdeleRing Fq`
-- ✅ `integralFullAdeles` using `Valued.v` for infinity valuation
-- ✅ `instFullDiscreteCocompactEmbedding` for Fq[X] (with sorries in proofs)
-- ⏳ 5 sorries in FullAdeles.lean (down from open question to concrete gaps)
+- ✅ `algebraMap_FqtInfty_injective` - PROVED (using `coe_inj` for T0 spaces)
+- ✅ `polynomial_inftyVal_ge_one` - NEW helper: nonzero polynomials have |·|_∞ ≥ 1
+- ✅ `isOpen_inftyBall_lt_one` - NEW helper: {x | |x|_∞ < 1} is open (via `Valued.isClopen_ball`)
+- ✅ `finite_integral_inftyVal_ge_one` - NEW: integral at all finite places + k ≠ 0 ⟹ |k|_∞ ≥ 1
+- ⚪ `finite_integral_implies_polynomial` - SORRY: key algebraic lemma needed
+- ⚪ 4 more sorries in FullAdeles.lean (discreteness, closedness, compactness, weak approx)
 
-### Concrete Next Steps (Cycle 124+)
+### Discreteness Proof Strategy (Validated by Cycle 124)
 
-**PRIORITY: Fill remaining sorries in FullAdeles.lean**
+To prove `fq_discrete_in_fullAdeles`:
+1. Take U = U_fin × U_∞ where U_∞ = {x | |x|_∞ < 1} (open ball)
+2. If diagonal(k) ∈ U for k ∈ K:
+   - From U_fin: k is integral at all finite places
+   - From U_∞: |k|_∞ < 1
+3. By `finite_integral_implies_polynomial`: k is a polynomial
+4. By `polynomial_inftyVal_ge_one`: nonzero polynomial has |·|_∞ ≥ 1
+5. Contradiction with |k|_∞ < 1 unless k = 0
+6. Hence U ∩ range(diagonal) = {0}, so {0} is open, and K is discrete
 
-The instance structure is complete. Now fill the proof sorries:
+### Concrete Next Steps (Cycle 125+)
 
-1. **`algebraMap_FqtInfty_injective`** - Show `coeRingHom` equals `Completion.coe'`
-   - Should be straightforward definitional equality
+**PRIORITY 1: Prove `finite_integral_implies_polynomial`**
+- For k = p/q with gcd(p,q) = 1: if |k|_v ≤ 1 for all finite v, then q is a unit
+- Proof: At any prime v dividing q but not p, we'd have |k|_v > 1 (contradiction)
+- Hence q has no prime factors, so q ∈ Fq× and k is a polynomial
 
-2. **`fq_discrete_in_fullAdeles`** - The KEY property
-   - Use `|k|_∞ = q^{deg k}` for polynomials
-   - Bounded infinity valuation ⟹ bounded degree ⟹ finite set
+**PRIORITY 2: Complete `fq_discrete_in_fullAdeles` using the structure above**
 
-3. **`fq_closed_in_fullAdeles`** - Follows from discreteness
-   - Standard: discrete + locally compact + Hausdorff → closed
+**PRIORITY 3: Derive `fq_closed_in_fullAdeles` from discreteness**
+- Use `AddSubgroup.isClosed_of_discrete` (discrete subgroup of T2 group is closed)
+- Full adeles are T2 (uniform space → RegularSpace → R1Space, and T0Space → T2Space)
 
-4. **`isCompact_integralFullAdeles`** - Product of compacts
-   - Finite adeles: AllIntegersCompact
-   - Infinity: valuation ring of local field is compact
-
-5. **`exists_translate_in_integralFullAdeles`** - Weak approximation
-   - Use PID structure to clear denominators
-
-**Step 3**: Prove discrete/closed/compact for full adeles
-- `fq_discrete_in_fullAdeles` - TRUE, uses product formula
-- `fq_closed_in_fullAdeles` - follows from discrete + locally compact
-- `isCompact_integralFullAdeles` - product of compacts
-
-**Step 4**: Audit usages of `DiscreteCocompactEmbedding`
-- `AdelicH1v2.lean` - does it use discreteness?
-- Migrate to full adeles where needed
-
-### Key Mathlib APIs for FqtInfty
+### Key Mathlib APIs
 
 | What you need | How to get it |
 |---------------|---------------|
 | Ring hom `RatFunc Fq →+* FqtInfty Fq` | `UniformSpace.Completion.coeRingHom` |
-| Algebra instance | Import `Mathlib.Topology.Algebra.UniformRing` |
-| Valuation on `FqtInfty` elements | `Valued.v : FqtInfty Fq → ℤᵐ⁰` |
-| Valued instance on FqtInfty | `FunctionField.valuedFqtInfty` (automatic) |
+| Completion is T0 | `UniformSpace.Completion.t0Space` |
+| Valued ring is T0 | `ValuedRing.separated` |
+| Completion coe is injective | `UniformSpace.Completion.coe_inj` |
+| Balls are clopen | `Valued.isClopen_ball` |
+| Polynomial has inftyVal = exp(deg) | `FunctionField.inftyValuation.polynomial` |
 
 ### What NOT To Do
 - ❌ Don't try to prove `discrete_diagonal_embedding` for finite adeles (it's false)
 - ❌ Don't use `inftyValuation` directly on `FqtInfty` elements (use `Valued.v`)
-- ❌ Don't defer the concrete instance further - the pieces are ready
+- ❌ Don't skip the `finite_integral_implies_polynomial` step - it's essential
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 123)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 124)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -82,11 +76,19 @@ The instance structure is complete. Now fill the proof sorries:
 | `FqPolynomialInstance.lean` | `closed_diagonal_embedding` | ⚪ 1 sorry | Needs different approach (not from discreteness) |
 | `FqPolynomialInstance.lean` | `isCompact_integralAdeles` | ⚪ 1 sorry | Product compactness - may still work |
 | `FqPolynomialInstance.lean` | `exists_K_translate_in_integralAdeles` | ⚪ 1 sorry | Weak approximation - may still work |
-| `FullAdeles.lean` | `algebraMap_FqtInfty_injective` | ⚪ 1 sorry | coeRingHom = Completion.coe' |
-| `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ⚪ 1 sorry | KEY: |k|_∞ bounds degree |
+| `FullAdeles.lean` | `algebraMap_FqtInfty_injective` | ✅ PROVED | Cycle 124: uses `coe_inj` for T0 spaces |
+| `FullAdeles.lean` | `finite_integral_implies_polynomial` | ⚪ 1 sorry | NEW: key algebraic lemma |
+| `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ⚪ 1 sorry | KEY: uses helper lemmas |
 | `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ⚪ 1 sorry | Follows from discrete |
 | `FullAdeles.lean` | `isCompact_integralFullAdeles` | ⚪ 1 sorry | Product of compacts |
 | `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ 1 sorry | Weak approximation |
+
+### New Helper Lemmas (Cycle 124)
+| File | Item | Status | Notes |
+|------|------|--------|-------|
+| `FullAdeles.lean` | `polynomial_inftyVal_ge_one` | ✅ PROVED | Nonzero poly has |·|_∞ ≥ 1 |
+| `FullAdeles.lean` | `isOpen_inftyBall_lt_one` | ✅ PROVED | {x \| |x|_∞ < 1} is open |
+| `FullAdeles.lean` | `finite_integral_inftyVal_ge_one` | ✅ PROVED | Uses `finite_integral_implies_polynomial` |
 
 ### Axiom Classes (instantiation status)
 | File | Class | Status | Notes |
@@ -530,6 +532,63 @@ decide on which resolution option to pursue. The most robust approach is Option 
 - Implementation strategy: Define `FullAdeleRing := FiniteAdeleRing × K_∞` (product approach)
 - Don't rework HeightOneSpectrum; build on top of existing finite adeles
 - See "NEXT CLAUDE: Start Here" section at top of ledger for detailed next steps
+
+---
+
+#### Cycle 124 - Discreteness Proof Structure & Helper Lemmas
+
+**Goal**: Prove helper lemmas and establish the structure for `fq_discrete_in_fullAdeles`.
+
+**Status**: 🔶 PARTIAL - Key helper lemmas proved, one algebraic lemma remains
+
+**Results**:
+- [x] `algebraMap_FqtInfty_injective` - PROVED using `coe_inj` for T0 spaces
+- [x] `polynomial_inftyVal_ge_one` - PROVED: nonzero poly p has |p|_∞ ≥ 1
+- [x] `isOpen_inftyBall_lt_one` - PROVED: {x | |x|_∞ < 1} is open via `Valued.isClopen_ball`
+- [x] `finite_integral_inftyVal_ge_one` - PROVED: integral at all finite + k ≠ 0 ⟹ |k|_∞ ≥ 1
+- [ ] `finite_integral_implies_polynomial` - SORRY: key algebraic lemma
+
+**Key Proof Techniques**:
+
+1. **T0Space for completions**: `Valued` rings are T0 via `ValuedRing.separated`, and
+   `UniformSpace.Completion.coe_inj` uses T0Space to prove injectivity.
+
+2. **Polynomial valuation**: Used `FunctionField.inftyValuation.polynomial` which gives
+   `inftyValuationDef(p) = exp(deg p)`. Combined with `WithZero.exp_le_exp` and `exp_zero`
+   to show `1 ≤ exp(deg p)` for deg p ≥ 0.
+
+3. **Open balls in valued spaces**: `Valued.isClopen_ball` directly gives that
+   `{x | Valued.v x < r}` is clopen (hence open).
+
+**Discreteness Proof Strategy** (now concrete):
+```
+For k ∈ K with diagonal(k) ∈ U = U_fin × {x | |x|_∞ < 1}:
+1. From U_fin: k is integral at all finite places
+2. By finite_integral_implies_polynomial: k ∈ Fq[X]
+3. By polynomial_inftyVal_ge_one: nonzero k has |k|_∞ ≥ 1
+4. But |k|_∞ < 1 from U_∞ ⟹ k = 0
+5. Hence U ∩ range(diagonal) = {0}, so K is discrete
+```
+
+**Remaining Sorry** (`finite_integral_implies_polynomial`):
+For k = p/q with gcd(p,q) = 1:
+- If |k|_v ≤ 1 for all finite v, then at any prime v dividing q but not p,
+  we'd have |k|_v = |p|_v / |q|_v > 1 (contradiction)
+- Hence q has no prime factors, so q ∈ Fq× and k is a polynomial
+
+**Sorry Status**:
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles related)
+- FullAdeles.lean: 5 sorries (1 new algebraic, 4 existing)
+
+**Total**: 10 sorries in proof path (replaced `algebraMap_FqtInfty_injective` with `finite_integral_implies_polynomial`)
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 125+):
+1. Prove `finite_integral_implies_polynomial` using UFD/PID properties
+2. Complete `fq_discrete_in_fullAdeles` using the established structure
+3. Derive `fq_closed_in_fullAdeles` from discreteness via `AddSubgroup.isClosed_of_discrete`
 
 ---
 
