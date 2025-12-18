@@ -875,6 +875,222 @@ adelic theory must provide.
 
 ---
 
+#### Cycle 95 - Adelic Topology Infrastructure for h1_finite
+
+**Goal**: Begin proving `h1_finite` axiom by establishing topological infrastructure for adeles.
+
+**Status**: ✅ COMPLETE (infrastructure laid with 6 sorries)
+
+**Results**:
+- [x] Created `AdelicTopology.lean` with topological machinery
+- [x] Searched Mathlib for `LocallyCompactSpace` instances for adeles
+- [x] Found key Mathlib results:
+  - `Valued.isOpen_valuationSubring`: valuation subrings are open
+  - `RestrictedProduct.locallyCompactSpace_of_group`: restricted product local compactness
+  - `compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField`
+
+**Mathlib Findings**:
+
+| Result | Location | Status |
+|--------|----------|--------|
+| `InfiniteAdeleRing.locallyCompactSpace` | AdeleRing.lean:79 | ✅ EXISTS |
+| `RestrictedProduct.locallyCompactSpace_of_group` | RestrictedProduct/TopologicalSpace.lean:619 | ✅ EXISTS |
+| `Valued.isOpen_valuationSubring` | ValuationTopology.lean:281 | ✅ EXISTS |
+| `IsNonarchimedeanLocalField` implies `LocallyCompactSpace` | LocalField/Basic.lean:47 | ✅ EXISTS |
+| `CompactSpace (valuation integers)` characterization | Valued/LocallyCompact.lean:307 | ✅ EXISTS |
+| **Cocompact lattice theorem** | NOT FOUND | ❌ MISSING |
+| **Adelic Minkowski theorem** | NOT FOUND | ❌ MISSING |
+
+**Key Insight**: Mathlib has the building blocks but NOT the "adelic Minkowski theorem"
+(that K is a discrete cocompact lattice in adeles). We need to prove this ourselves or
+axiomatize it.
+
+**New File**: `RrLean/RiemannRochV2/AdelicTopology.lean` (~250 lines)
+
+**New Definitions & Theorems**:
+```lean
+-- Hypothesis class: all adic completions have compact integers
+class AllIntegersCompact (R K : Type*) ... : Prop where
+  compact : ∀ v : HeightOneSpectrum R, CompactSpace (v.adicCompletionIntegers K)
+
+-- Openness of valuation integers
+theorem isOpen_adicCompletionIntegers :
+    IsOpen (v.adicCompletionIntegers K : Set (v.adicCompletion K))
+
+-- Local compactness from compact integers
+theorem locallyCompactSpace_adicCompletion_of_compact
+    [CompactSpace (v.adicCompletionIntegers K)] :
+    LocallyCompactSpace (v.adicCompletion K)
+
+-- Local compactness of finite adele ring (with sorry for RestrictedProduct application)
+instance locallyCompactSpace_finiteAdeleRing [AllIntegersCompact R K] :
+    LocallyCompactSpace (FiniteAdeleRing R K)
+
+-- Diagonal embedding and its properties
+def diagonalEmbedding : K →+* FiniteAdeleRing R K
+theorem diagonalEmbedding_injective : Function.Injective (diagonalEmbedding R K)
+theorem closed_diagonal [AllIntegersCompact R K] : IsClosed (Set.range (diagonalEmbedding R K))
+theorem discrete_diagonal [AllIntegersCompact R K] : DiscreteTopology (...)
+
+-- Adelic Minkowski (fundamental domain)
+theorem compact_adelic_quotient [AllIntegersCompact R K] :
+    ∃ F, IsCompact F ∧ ∀ a, ∃ x : K, a - diagonalEmbedding R K x ∈ F
+
+-- Main theorem
+theorem h1_module_finite [AllIntegersCompact R K]
+    (D : DivisorV2 R) (hD : DivisorV2.Effective D) :
+    Module.Finite k (AdelicH1v2.SpaceModule k R K D)
+```
+
+**Sorry Status** (new file):
+1. `locallyCompactSpace_finiteAdeleRing` - RestrictedProduct instance application
+2. `diagonalEmbedding_injective` - need completion embedding injectivity
+3. `closed_diagonal` - strong approximation argument
+4. `discrete_diagonal` - product formula argument
+5. `compact_adelic_quotient` - adelic Minkowski theorem
+6. `h1_module_finite` - main finiteness theorem
+
+**Total Sorries in Project**:
+- AdelicTopology.lean: 6 sorries (NEW)
+- AdelicH1v2.lean: 1 sorry (`h1_anti_mono`)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (helper lemma)
+
+**Strategy for Discharging Sorries**:
+
+The path to `h1_finite` now has clear steps:
+
+1. **`locallyCompactSpace_finiteAdeleRing`**: Need to verify RestrictedProduct instance applies.
+   The theorem requires `[∀ i, CompactSpace (B i)]` which is our `AllIntegersCompact` hypothesis.
+
+2. **`diagonalEmbedding_injective`**: K → adicCompletion K v is injective because completions
+   preserve the field structure.
+
+3. **`discrete_diagonal`**: K ∩ (∏_v O_v) = R, and R is discrete in the compact product.
+
+4. **`compact_adelic_quotient`**: The key adelic Minkowski theorem. For function fields,
+   this follows from the genus formula and the fact that deg(D) = 0 divisors form a
+   bounded set.
+
+5. **`h1_module_finite`**: Combines local compactness + discrete cocompact embedding.
+
+**Architecture**:
+```
+                 AllIntegersCompact R K
+                         |
+         +---------------+---------------+
+         |                               |
+  LocallyCompactSpace            CompactSpace (O_v)
+  (FiniteAdeleRing R K)                  |
+         |                      (from finite residue
+         |                       field + completeness)
+         |
+         v
+  +------+------+
+  |             |
+Discrete    Cocompact
+K → A_K      A_K/K
+  |             |
+  +------+------+
+         |
+         v
+   H¹(D) finite-dimensional
+```
+
+**Next Steps** (Cycle 96):
+1. Try to prove `locallyCompactSpace_finiteAdeleRing` using the RestrictedProduct instance
+2. Prove `diagonalEmbedding_injective` via completion properties
+3. Or: Research adelic Minkowski theorem proofs for function fields
+
+**Recommended Direction**: Start with (1) `locallyCompactSpace_finiteAdeleRing`. This is the
+foundation - the RestrictedProduct instance at line 629-636 should apply automatically given
+our `AllIntegersCompact` hypothesis. If we can get this working, then (2) the diagonal
+embedding injectivity is straightforward (K embeds into completions). The hard part is (3)
+the adelic Minkowski theorem, but we may be able to axiomatize this as `AllIntegersCompact`
+already axiomatizes the finite residue field condition. The key insight is that for function
+fields over finite k, both conditions (finite residue + Minkowski) are theorems, but proving
+them in full generality requires significant infrastructure. A pragmatic approach: prove
+what we can, axiomatize what we must, and instantiate for specific curves later.
+
+---
+
+#### Cycle 96 - LocallyCompactSpace + diagonalEmbedding_injective PROVED
+
+**Goal**: Prove foundational topological lemmas for adelic infrastructure.
+
+**Status**: ✅ COMPLETE (2 key lemmas proved!)
+
+**Results**:
+- [x] `locallyCompactSpace_finiteAdeleRing` - PROVED
+- [x] `diagonalEmbedding_injective` - PROVED
+- [ ] `closed_diagonal` - 1 sorry (needs strong approximation)
+- [ ] `discrete_diagonal` - 1 sorry (needs K ∩ integral adeles = R)
+- [ ] `compact_adelic_quotient` - 1 sorry (adelic Minkowski theorem)
+- [ ] `h1_module_finite` - 1 sorry (main finiteness theorem)
+
+**Key Techniques**:
+
+1. **`locallyCompactSpace_finiteAdeleRing`**: Used `inferInstanceAs` to explicitly
+   match `FiniteAdeleRing R K` with its definition as a restricted product:
+   ```lean
+   exact inferInstanceAs (LocallyCompactSpace
+     (Πʳ v : HeightOneSpectrum R, [v.adicCompletion K, v.adicCompletionIntegers K]))
+   ```
+   This triggers Mathlib's `RestrictedProduct.instLocallyCompactSpace` instance which
+   requires:
+   - `Fact (∀ v, IsOpen (adicCompletionIntegers K v))` - from `Valued.isOpen_valuationSubring`
+   - `∀ v, CompactSpace (adicCompletionIntegers K v)` - from `AllIntegersCompact` hypothesis
+
+2. **`diagonalEmbedding_injective`**: The coercion `K → adicCompletion K v` factors as:
+   ```
+   K ≃ WithVal (v.valuation K) → Completion (WithVal ...)
+   ```
+   - `WithVal` is a type synonym with `Valued` instance giving `T0Space`
+   - `UniformSpace.Completion.coe_injective` applies to T0 spaces
+   - Added `[Nonempty (HeightOneSpectrum R)]` hypothesis to pick a place
+
+**Technical Issue Resolved**: The naive approach `UniformSpace.Completion.coe_injective K`
+failed because K doesn't have a `UniformSpace` instance directly. The uniform space is on
+`WithVal (v.valuation K)`. Solution: explicitly cast elements to `WithVal` and use
+`coe_injective` on that type.
+
+**Sorry Status**:
+- AdelicTopology.lean: 4 sorries (was 6, reduced by 2)
+- AdelicH1v2.lean: 1 sorry (`h1_anti_mono`)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq` - NOT on critical path)
+- FullRRData.lean: 1 sorry (helper lemma)
+
+**Total**: 7 sorries in project (was 9 at start of cycle, reduced by 2)
+
+**Architecture Summary**:
+```
+AllIntegersCompact R K
+        |
+        v
+LocallyCompactSpace (FiniteAdeleRing R K)  ← PROVED (Cycle 96)
+        |
+        v
+diagonalEmbedding_injective                 ← PROVED (Cycle 96)
+        |
+        v
++-------+-------+
+|               |
+closed_diagonal discrete_diagonal          ← TODO (strong approximation)
+        |
+        v
+compact_adelic_quotient                    ← TODO (adelic Minkowski)
+        |
+        v
+h1_module_finite                           ← TODO (combines above)
+```
+
+**Next Steps** (Cycle 97):
+1. Prove `closed_diagonal` using K ∩ (∏_v O_v) = R and compactness
+2. Prove `discrete_diagonal` using the same intersection property
+3. Or: Axiomatize the remaining properties and focus on instantiation
+
+---
+
 ## References
 
 ### Primary (Validated)
