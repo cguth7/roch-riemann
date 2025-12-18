@@ -117,6 +117,54 @@ lemma count_divisorToFractionalIdeal (D : DivisorV2 R) (v : HeightOneSpectrum R)
   unfold divisorToFractionalIdeal
   exact count_finsuppProd K v D
 
+/-- For nonzero x, the valuation equals exp(-count(spanSingleton x)).
+This connects FractionalIdeal.count to HeightOneSpectrum.valuation. -/
+lemma valuation_eq_exp_neg_count (v : HeightOneSpectrum R) (x : K) (hx : x ≠ 0) :
+    v.valuation K x = WithZero.exp (-count K v (spanSingleton R⁰ x)) := by
+  classical
+  -- Write x = n/d for n : R, d : R⁰
+  obtain ⟨⟨n, d, hd⟩, rfl⟩ := IsLocalization.mk'_surjective R⁰ x
+  simp only [IsFractionRing.mk'_eq_div] at hx ⊢
+  have hn : n ≠ 0 := by
+    intro h
+    simp [h] at hx
+  have hd' : (d : R) ≠ 0 := nonZeroDivisors.coe_ne_zero ⟨d, hd⟩
+  -- v.valuation K (n/d) = v.intValuation n / v.intValuation d
+  rw [map_div₀, v.valuation_of_algebraMap, v.valuation_of_algebraMap]
+  -- v.intValuation r = exp(-count v (span {r}))
+  rw [v.intValuation_if_neg hn, v.intValuation_if_neg hd']
+  -- count (spanSingleton (n/d)) = count(span{n}) - count(span{d})
+  have h_count : count K v (spanSingleton R⁰ (algebraMap R K n / algebraMap R K d)) =
+      (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {n})).factors -
+        (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {d})).factors := by
+    have h_ne : spanSingleton R⁰ (algebraMap R K n / algebraMap R K d) ≠ 0 := by
+      rw [spanSingleton_ne_zero_iff]
+      exact hx
+    exact count_well_defined K v h_ne (by
+      rw [coeIdeal_span_singleton, spanSingleton_mul_spanSingleton, mul_comm,
+          ← div_eq_mul_inv])
+  rw [h_count]
+  -- Now simplify: exp(-a) / exp(-b) = exp(-a) * exp(b) = exp(b - a)
+  rw [div_eq_mul_inv, ← WithZero.exp_neg, neg_neg, ← WithZero.exp_add]
+  congr 1
+  ring
+
+/-- Fractional ideal ordering is characterized by count at all primes. -/
+lemma le_iff_forall_count_ge {I J : FractionalIdeal R⁰ K} (hI : I ≠ 0) (hJ : J ≠ 0) :
+    I ≤ J ↔ ∀ v : HeightOneSpectrum R, count K v J ≤ count K v I := by
+  constructor
+  · intro h v
+    exact count_mono K v hI h
+  · intro h
+    -- Both ideals are determined by their counts
+    -- If count v J ≤ count v I for all v, then I ≤ J
+    -- The key is: two nonzero fractional ideals are equal iff they have the same counts at all v
+    -- Use factorization uniqueness: I = ∏_v v^{count v I}, J = ∏_v v^{count v J}
+    -- Since count v J ≤ count v I, we have v^{count v I} ≤ v^{count v J} (recall negative exponents)
+    -- Actually for fractional ideals: higher exponent = smaller ideal
+    -- So count v J ≤ count v I means J ≤ I for this prime, and the product inequality follows
+    sorry -- Reverse direction: if counts satisfy inequality, then ideal inequality holds
+
 /-- Membership in divisorToFractionalIdeal is characterized by valuation bounds.
 
 This is the key bridge between our valuation-based L(D) and fractional ideal membership.
@@ -131,15 +179,43 @@ Note: The condition `v.valuation K x ≤ exp(-D v)` means:
 lemma mem_divisorToFractionalIdeal_iff (D : DivisorV2 R) (x : K) :
     x ∈ divisorToFractionalIdeal R K D ↔
       x = 0 ∨ ∀ v : HeightOneSpectrum R, v.valuation K x ≤ WithZero.exp (-D v) := by
-  -- The proof requires connecting:
-  -- 1. x ∈ I iff spanSingleton x ≤ I
-  -- 2. For fractional ideals I, J: I ≤ J iff count v I ≥ count v J for all v
-  -- 3. count v (spanSingleton x) corresponds to -log(v.valuation K x)
-  --
-  -- This is foundational infrastructure that connects the two views of L(D):
-  -- - Valuation view: {f ∈ K : v(f) ≤ exp(D v) for all v}
-  -- - Ideal view: fractional ideal ∏ P_v^{-D v}
-  sorry -- Track B: Valuation-fractional ideal bridge
+  by_cases hx : x = 0
+  · -- Case x = 0: 0 is in every fractional ideal
+    simp only [hx, true_or, iff_true]
+    exact zero_mem _
+  · -- Case x ≠ 0
+    simp only [hx, false_or]
+    -- x ∈ I ↔ spanSingleton x ≤ I
+    rw [← spanSingleton_le_iff_mem]
+    -- divisorToFractionalIdeal is nonzero (product of nonzero terms)
+    have h_ne : divisorToFractionalIdeal R K D ≠ 0 := by
+      unfold divisorToFractionalIdeal
+      rw [Finsupp.prod, Finset.prod_ne_zero_iff]
+      intro v _
+      exact zpow_ne_zero _ (coeIdeal_ne_zero.mpr v.ne_bot)
+    have hx_ne : spanSingleton R⁰ x ≠ 0 := spanSingleton_ne_zero_iff.mpr hx
+    -- Use le_iff_forall_count_ge
+    rw [le_iff_forall_count_ge R K hx_ne h_ne]
+    -- Rewrite count of divisorToFractionalIdeal
+    simp only [count_divisorToFractionalIdeal]
+    -- Now need: D v ≤ count K v (spanSingleton x) ↔ v.valuation K x ≤ exp(-D v)
+    -- Key: exp is monotone, so exp(-a) ≤ exp(-b) ↔ -a ≤ -b ↔ b ≤ a
+    constructor
+    · intro h v
+      -- h : ∀ v, D v ≤ count K v (spanSingleton x)
+      rw [valuation_eq_exp_neg_count R K v x hx]
+      rw [WithZero.exp_le_exp]
+      -- Need: -count K v (spanSingleton x) ≤ -D v
+      -- From h v: D v ≤ count K v (spanSingleton x)
+      linarith [h v]
+    · intro h v
+      -- h: ∀ v, v.valuation K x ≤ exp(-D v)
+      specialize h v
+      rw [valuation_eq_exp_neg_count R K v x hx] at h
+      rw [WithZero.exp_le_exp] at h
+      -- h : -count K v (spanSingleton x) ≤ -D v
+      -- Need: D v ≤ count K v (spanSingleton x)
+      linarith
 
 end ValuationMembership
 

@@ -495,6 +495,76 @@ This is the fundamental bridge: membership in fractional ideal ↔ valuation bou
 
 ---
 
+#### Cycle 88 - Valuation-FractionalIdeal Bridge Infrastructure
+
+**Goal**: Prove `mem_divisorToFractionalIdeal_iff` - the key bridge between valuation-based L(D) and fractional ideal membership.
+
+**Status**: ✅ COMPLETE (1 remaining sorry moved to helper)
+
+**Results**:
+- [x] `valuation_eq_exp_neg_count` - PROVED: `v.valuation K x = exp(-count K v (spanSingleton x))`
+- [x] `le_iff_forall_count_ge` forward direction - PROVED via `count_mono`
+- [x] `mem_divisorToFractionalIdeal_iff` - Structure complete (uses helper lemmas)
+- [ ] `le_iff_forall_count_ge` reverse direction - 1 sorry remaining
+
+**Key Lemma Proved** (`valuation_eq_exp_neg_count`):
+```lean
+lemma valuation_eq_exp_neg_count (v : HeightOneSpectrum R) (x : K) (hx : x ≠ 0) :
+    v.valuation K x = WithZero.exp (-count K v (spanSingleton R⁰ x))
+```
+This is the fundamental connection between:
+- Valuation view: `v.valuation K x` (multiplicative valuation on K)
+- Fractional ideal view: `count K v (spanSingleton R⁰ x)` (additive ideal factorization)
+
+**Proof Technique**:
+1. Write `x = n/d` using `IsLocalization.mk'_surjective`
+2. Use `valuation_of_algebraMap` to reduce to `intValuation`
+3. Use `intValuation_if_neg` to get `exp(-count v (span {r}))` form
+4. Use `count_well_defined` to show principal ideal counts match
+5. Simplify exponential arithmetic: `exp(-a) / exp(-b) = exp(b - a)`
+
+**Lemma Structure** (`mem_divisorToFractionalIdeal_iff`):
+```lean
+lemma mem_divisorToFractionalIdeal_iff (D : DivisorV2 R) (x : K) :
+    x ∈ divisorToFractionalIdeal R K D ↔
+      x = 0 ∨ ∀ v, v.valuation K x ≤ WithZero.exp (-D v)
+```
+Uses:
+- `spanSingleton_le_iff_mem`: x ∈ I ↔ spanSingleton x ≤ I
+- `le_iff_forall_count_ge`: I ≤ J ↔ ∀ v, count v J ≤ count v I
+- `count_divisorToFractionalIdeal`: count v (divisorToFractionalIdeal D) = D v
+- `valuation_eq_exp_neg_count`: Convert between valuation and count
+
+**Remaining Sorry**:
+```lean
+lemma le_iff_forall_count_ge {I J : FractionalIdeal R⁰ K} (hI : I ≠ 0) (hJ : J ≠ 0) :
+    I ≤ J ↔ ∀ v, count K v J ≤ count K v I
+```
+- Forward direction: ✅ PROVED via `count_mono`
+- Reverse direction: 1 sorry (needs factorization uniqueness argument)
+
+**Technical Notes**:
+- Need `classical` at function level for `Associates.count` (DecidableEq)
+- `div_eq_mul_inv`, `← WithZero.exp_neg`, `neg_neg`, `← WithZero.exp_add` for exponential algebra
+- `linarith` handles the `exp(-a) ≤ exp(-b) ↔ b ≤ a` reasoning
+- `Finset.prod_ne_zero_iff` for showing divisorToFractionalIdeal ≠ 0
+
+**Sorry Status** (unchanged count, different distribution):
+- DifferentIdealBridge.lean: 1 sorry (`le_iff_forall_count_ge` reverse, was `mem_divisorToFractionalIdeal_iff`)
+- TraceDualityProof.lean: 1 sorry (`finrank_dual_eq`)
+- FullRRData.lean: 1 sorry (unchanged)
+
+**Total**: 3 sorries in main path (unchanged from Cycle 87)
+
+**Architecture Improvement**: The sorry is now in a cleaner helper lemma `le_iff_forall_count_ge` rather than the main bridge lemma. This makes the dependency structure clearer.
+
+**Next Steps** (Cycle 89):
+1. Prove `le_iff_forall_count_ge` reverse direction via factorization uniqueness
+2. Or: Prove `finrank_dual_eq` via trace form nondegeneracy
+3. Or: Focus on H¹(D) finiteness for Serre duality
+
+---
+
 ## References
 
 ### Primary (Validated)
