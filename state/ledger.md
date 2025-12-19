@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 138)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 139)
 
 ### Current State
 Build: ✅ Compiles with 2 sorries in FullAdeles.lean
@@ -23,24 +23,62 @@ Build: ✅ Compiles with 2 sorries in FullAdeles.lean
 - ✅ `denseRange_inftyRingHom` - K is dense in FqtInfty
 - ✅ `exists_approx_in_ball_infty` - Can approximate any FqtInfty element to within O_∞
 - ✅ `polynomial_integral_at_finite_places` - Polynomials are integral at all finite places
+- ✅ `exists_local_approximant` - **NEW in Cycle 138**: For any a_v ∈ K_v, ∃ y ∈ K with a_v - y ∈ O_v
 - ✅ Main theorem structure complete (modulo 2 helper lemmas)
 
 ### What's Needed (2 sorries remain)
 
-**`exists_finite_integral_translate` (line ~1012)**
+**`exists_finite_integral_translate` (line ~1040)**
 - For any finite adele a, find k ∈ K such that a - diag(k) is integral at all finite places
-- Approach: Use CRT for PIDs - only finitely many bad places
+- **Cycle 138 progress**: Proved `exists_local_approximant` (density step)
+- **Remaining**: CRT gluing step - need to handle the fact that y_v might have poles outside S
+- **Key insight from Cycle 138**: The y_v from density might create new bad places.
+  We need y_v with poles ONLY in S (i.e., principal parts). This is unavoidable.
 
-**`exists_finite_integral_translate_with_infty_bound` (line ~1022)**
+**`exists_finite_integral_translate_with_infty_bound` (line ~1090)**
 - Same as above, but with bound on |k|_∞
-- Key insight: CRT solution can be chosen with deg(num) < deg(denom)
-- This gives |k|_∞ < 1
+- Depends on resolving the first sorry
 
 ### Axioms Used
 | Axiom | Purpose |
 |-------|---------|
 | `[AllIntegersCompact Fq[X] (RatFunc Fq)]` | Finite adeles compactness |
 | `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness |
+
+---
+
+## Cycle 138 Summary
+
+**Goal**: Prove weak approximation lemmas (`exists_finite_integral_translate`)
+
+**Status**: 🔶 PARTIAL - Proved density step, CRT gluing still needed
+
+**Key accomplishments**:
+1. Proved `exists_local_approximant` - For any a_v ∈ K_v, ∃ y ∈ K with a_v - y ∈ O_v
+   - Uses `UniformSpace.Completion.denseRange_coe` for density of K in K_v
+   - Uses `Valued.isOpen_valuationSubring` to show O_v is open
+   - Uses `DenseRange.exists_mem_open` to get the approximant
+
+2. Restructured proof approach based on external feedback:
+   - **Abandoned**: Principal part extraction (requires Laurent series machinery)
+   - **Abandoned**: Induction on bad set (plumbing hell, bad set depends on a)
+   - **Adopted**: Density + CRT gluing approach
+
+**Key insight discovered**:
+- The naive density approach doesn't quite work: each y_v from `exists_local_approximant`
+  might have poles outside S, creating new bad places
+- To avoid this, we actually NEED y_v with poles only at v (i.e., principal parts)
+- This means partial fractions are unavoidable for the global gluing step
+- The density lemma IS useful as a stepping stone, but not sufficient alone
+
+**What remains for Cycle 139**:
+- Either formalize partial fractions for RatFunc Fq, OR
+- Find an alternative approach that controls pole locations
+
+**Key mathlib APIs used**:
+- `UniformSpace.Completion.denseRange_coe` - K is dense in completion
+- `Valued.isOpen_valuationSubring` - valuation ring is open
+- `DenseRange.exists_mem_open` - density implies intersection with open sets
 
 ---
 

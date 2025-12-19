@@ -997,28 +997,95 @@ theorem fqFullDiagonalEmbedding_fst (k : RatFunc Fq) :
 theorem fqFullDiagonalEmbedding_snd (k : RatFunc Fq) :
     (fqFullDiagonalEmbedding Fq k).2 = inftyRingHom Fq k := rfl
 
+/-- For any element a_v ∈ K_v, there exists y ∈ K approximating it: a_v - y ∈ O_v.
+
+This follows from density of K in K_v. The set {x ∈ K_v : a_v - x ∈ O_v} = a_v - O_v
+is open (since O_v is open for discrete valuations), and non-empty (contains a_v - 0 = a_v
+only if a_v ∈ O_v, otherwise we need to find an approximant).
+
+For elements with poles, this approximation exists by the structure of completions.
+-/
+theorem exists_local_approximant (v : HeightOneSpectrum Fq[X]) (a_v : v.adicCompletion (RatFunc Fq)) :
+    ∃ y : RatFunc Fq, (a_v - y) ∈ v.adicCompletionIntegers (RatFunc Fq) := by
+  -- K is dense in K_v, and the ball a_v - O_v is open
+  -- So K intersects this ball
+  have hdense : DenseRange (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))) :=
+    UniformSpace.Completion.denseRange_coe
+  have hopen : IsOpen {x : v.adicCompletion (RatFunc Fq) | (a_v - x) ∈ v.adicCompletionIntegers (RatFunc Fq)} := by
+    -- {x : a_v - x ∈ O_v} = a_v - O_v, open since O_v is open
+    convert (Valued.isOpen_valuationSubring (v.adicCompletion (RatFunc Fq))).preimage
+      (continuous_const.sub continuous_id) using 1
+    ext x
+    simp only [Set.mem_preimage, Set.mem_setOf_eq, sub_sub_cancel]
+    constructor <;> intro h <;> exact h
+  have hne : (a_v - (v.adicCompletionIntegers (RatFunc Fq) : Set _)).Nonempty := by
+    use a_v
+    simp only [Set.mem_sub, SetLike.mem_coe]
+    exact ⟨0, Subring.zero_mem _, sub_zero a_v⟩
+  obtain ⟨y, hy⟩ := hdense.exists_mem_open hopen hne
+  exact ⟨y, hy⟩
+
 /-- For any finite adele, there exists k ∈ K such that a - diag(k) is integral at all finite places.
 
-This uses the CRT for PIDs. The key insight is that:
-- Only finitely many places are non-integral
-- For PIDs, we can find a single element clearing all denominators
+**Proof strategy** (density + CRT gluing):
+1. S = {v : a.val v ∉ O_v} is finite (restricted product property)
+2. For each v ∈ S, use `exists_local_approximant` to get y_v ∈ K with a_v - y_v ∈ O_v
+3. Use CRT (`IsDedekindDomain.exists_forall_sub_mem_ideal`) to glue the y_v:
+   Find k ∈ K with k ≡ y_v (mod p_v^N) for suitable powers
+4. This gives a_v - k = (a_v - y_v) + (y_v - k) ∈ O_v since both terms are in O_v
+
+**Key insight**: We glue global approximants y_v, not principal parts from completions.
+The CRT handles the gluing, and the constraint k ≡ y_v (mod p_v^N) ensures k - y_v ∈ O_v.
 -/
 theorem exists_finite_integral_translate (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) :
     ∃ k : RatFunc Fq, ∀ v, (a.val v - k) ∈ v.adicCompletionIntegers (RatFunc Fq) := by
-  -- The support S = {v : a v ∉ O_v} is finite by restricted product definition
-  -- We use induction on |S| combined with CRT
-  -- For PIDs like Fq[X], there's a simpler approach:
-  -- find k matching the "principal parts" at all bad places
+  -- Step 1: The bad set S is finite
+  have hfin : {v : HeightOneSpectrum Fq[X] | a.val v ∉ v.adicCompletionIntegers (RatFunc Fq)}.Finite := by
+    rw [← Set.compl_setOf]
+    exact Filter.eventually_cofinite.mp a.2
+  -- Base case: if already integral everywhere, k = 0 works
+  by_cases hbase : ∀ v, a.val v ∈ v.adicCompletionIntegers (RatFunc Fq)
+  · exact ⟨0, fun v => by rw [sub_zero]; exact hbase v⟩
+  -- Step 2: For each bad v, get local approximant y_v
+  -- Step 3: Glue using CRT to get single k
+  -- Step 4: Verify a_v - k ∈ O_v for all v
+  --
+  -- The gluing requires:
+  -- - Scaling y_v to work in R (common denominator)
+  -- - Applying CRT to scaled targets
+  -- - Dividing back, controlling where poles land
+  --
+  -- For this to work cleanly, we need y_v to have poles only in S.
+  -- This is the "partial fraction" property: principal parts have poles at single places.
+  -- Formalizing this requires more structure on RatFunc Fq.
   sorry
 
-/-- Combined: existence of translate with controlled infinity valuation. -/
+/-- Combined: existence of translate with controlled infinity valuation.
+
+This strengthens `exists_finite_integral_translate` by adding a bound on the infinity valuation.
+The bound is achievable because for Fq[X]:
+- The CRT solution k = P/D where D = ∏_{v∈S} f_v^{n_v} (product of prime powers)
+- The numerator P can be chosen with deg(P) < deg(D) (reduce mod D)
+- Then |k|_∞ = exp(deg(P) - deg(D)) < 1
+
+**Mathematical proof sketch**:
+1. Use `exists_finite_integral_translate` to get k₀ making a - k₀ integral at finite places
+2. If |k₀|_∞ > bound, we need to modify k₀
+3. Key insight: adding any polynomial p ∈ Fq[X] to k₀ preserves integrality at finite places
+   (because polynomials are integral at all finite places)
+4. Choose p such that |k₀ + p|_∞ ≤ bound (possible by density at infinity)
+-/
 theorem exists_finite_integral_translate_with_infty_bound
     (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) (bound : WithZero (Multiplicative ℤ)) :
     ∃ k : RatFunc Fq, (∀ v, (a.val v - k) ∈ v.adicCompletionIntegers (RatFunc Fq)) ∧
       Valued.v (inftyRingHom Fq k) ≤ bound := by
-  -- This combines CRT with degree bounds
-  -- For Fq[X], the CRT solution can be chosen with deg(num) < deg(denom)
-  -- which gives control over the infinity valuation
+  -- First get k₀ from exists_finite_integral_translate
+  obtain ⟨k₀, hk₀⟩ := exists_finite_integral_translate Fq a
+  -- The key insight: we can adjust k₀ by any polynomial without breaking finite integrality
+  -- because polynomials are integral at all finite places
+  -- We use this to control the infinity valuation
+  -- This requires showing that for any target bound, we can find p ∈ Fq[X] such that
+  -- |k₀ + p|_∞ ≤ bound, which follows from density of polynomials in FqtInfty
   sorry
 
 /-- Weak approximation: every element can be shifted into integral adeles.
