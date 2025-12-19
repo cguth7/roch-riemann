@@ -1066,10 +1066,26 @@ theorem HeightOneSpectrum.finite_divisors (D : Fq[X]) (hD : D ≠ 0) :
   · -- Containment: if v.intValuation D < 1, then v corresponds to a factor of D
     intro v hv
     simp only [Set.mem_setOf_eq] at hv ⊢
-    -- v.intValuation D < 1 means the generator of v divides D
-    -- Need to find p ∈ normalizedFactors D with v.asIdeal = (p)
-    -- This uses the principality of height-one primes in a PID
-    sorry
+    -- v.intValuation D < 1 means D ∈ v.asIdeal
+    have hD_mem_v : D ∈ v.asIdeal := (v.intValuation_lt_one_iff_mem D).mp hv
+    -- In a PID, v.asIdeal is principal
+    haveI : v.asIdeal.IsPrincipal := IsPrincipalIdealRing.principal v.asIdeal
+    let g := Submodule.IsPrincipal.generator v.asIdeal
+    -- g is irreducible (prime generator of prime ideal)
+    have hg_irr : Irreducible g := by
+      have hprime := Submodule.IsPrincipal.prime_generator_of_isPrime v.asIdeal v.ne_bot
+      exact hprime.irreducible
+    -- g | D (since D ∈ v.asIdeal = (g))
+    have hg_dvd_D : g ∣ D := (Submodule.IsPrincipal.mem_iff_generator_dvd v.asIdeal).mp hD_mem_v
+    -- By UFD, there exists q ∈ normalizedFactors D with g ~ᵤ q
+    obtain ⟨q, hq_mem, hq_assoc⟩ := UniqueFactorizationMonoid.exists_mem_normalizedFactors_of_dvd
+      hD hg_irr hg_dvd_D
+    -- v.asIdeal = span {g} = span {q} (since g ~ᵤ q)
+    use q
+    constructor
+    · exact Multiset.mem_toFinset.mpr hq_mem
+    · rw [← Ideal.span_singleton_generator v.asIdeal]
+      exact Ideal.span_singleton_eq_span_singleton.mpr hq_assoc
 
 /-- For any finite adele, there exists k ∈ K such that a - diag(k) is integral at all finite places.
 
@@ -1126,25 +1142,41 @@ theorem exists_finite_integral_translate (a : FiniteAdeleRing Fq[X] (RatFunc Fq)
   choose Py hPy using hDy_in_R
 
   -- Step 4: Set of primes dividing D (the "enlarged set T")
-  -- T includes S plus any other irreducible factors of denominators
-  -- For now, we work with D directly via valuation calculations
+  -- T = S ∪ {v : v divides D} - finite by HeightOneSpectrum.finite_divisors
+  let T := S ∪ (HeightOneSpectrum.finite_divisors Fq D hD_ne).toFinset
 
-  -- Step 5: Use CRT to find P ∈ R with:
-  -- - For v ∈ S: P ≡ Py v (mod p_v^{N_v}) where N_v > val_v(D)
-  -- - For w dividing D with w ∉ S: P ≡ 0 (mod p_w^{val_w(D)})
-  -- This requires setting up the enlarged index set and applying the CRT theorem
-
-  -- Key verification for v ∈ S:
-  -- val_v(k - y_v) = val_v((P - D·y_v)/D) = val_v(P - Py v) - val_v(D) ≥ N_v - val_v(D) > 0
-
-  -- Key verification for w ∉ S:
-  -- a_w ∈ O_w by definition of S
-  -- Need val_w(k) ≥ 0, i.e., val_w(P) ≥ val_w(D)
-  -- If w ∉ poles of D: val_w(D) = 0, so val_w(P) ≥ 0 automatic
-  -- If w ∈ poles of D but w ∉ S: CRT gives val_w(P) ≥ val_w(D)
-
-  -- The full CRT construction is technically involved; we defer to a sorry for now
-  -- The mathematical content is: CRT in Fq[X] (a PID) with coprime prime power moduli
+  -- Step 5: Apply CRT to get P ∈ Fq[X] such that k = P/D works at all places
+  --
+  -- The goal is to find P with:
+  -- - For v ∈ S: P ≡ Py v (mod v^{e_v}) where e_v ≥ val_v(D)
+  -- - For v ∈ T \ S: P ≡ 0 (mod v^{e_v}) where e_v = val_v(D)
+  --
+  -- Then k = P/D satisfies:
+  -- - For v ∈ S: val_v(k - y_v) = val_v((P - Py v)/D) ≥ e_v - val_v(D) ≥ 0
+  -- - For v ∉ S with v ∈ T: val_v(k) = val_v(P) - val_v(D) ≥ 0
+  -- - For v ∉ T: val_v(D) = 0, so val_v(k) = val_v(P) ≥ 0 (P is a polynomial)
+  --
+  -- The CRT theorem `IsDedekindDomain.exists_forall_sub_mem_ideal` provides P
+  -- given distinct prime ideals with specified exponents and targets.
+  --
+  -- The verification requires:
+  -- 1. Setting up T as a Finset with appropriate structure
+  -- 2. Defining the prime ideals v.asIdeal for v ∈ T
+  -- 3. Computing exponents from the UFD factorization of D
+  -- 4. Applying CRT and verifying the valuation conditions
+  --
+  -- This is a substantial amount of infrastructure. The mathematical content is:
+  -- - T is finite (proven via HeightOneSpectrum.finite_divisors)
+  -- - The primes are pairwise coprime (they're distinct height-one primes)
+  -- - CRT gives existence of P
+  -- - The valuation calculations verify k = P/D works
+  --
+  -- For now, we note that the weak approximation theorem for function fields
+  -- guarantees the existence of such k. The full formalization would require
+  -- setting up the CRT machinery with explicit exponent computation.
+  --
+  -- The core mathematical argument is correct; the remaining work is
+  -- connecting the abstract CRT to the specific valuation calculations.
   sorry
 
 /-- Combined: existence of translate with controlled infinity valuation.
@@ -1169,10 +1201,30 @@ theorem exists_finite_integral_translate_with_infty_bound
   -- First get k₀ from exists_finite_integral_translate
   obtain ⟨k₀, hk₀⟩ := exists_finite_integral_translate Fq a
   -- The key insight: we can adjust k₀ by any polynomial without breaking finite integrality
-  -- because polynomials are integral at all finite places
-  -- We use this to control the infinity valuation
-  -- This requires showing that for any target bound, we can find p ∈ Fq[X] such that
-  -- |k₀ + p|_∞ ≤ bound, which follows from density of polynomials in FqtInfty
+  -- because polynomials are integral at all finite places.
+  --
+  -- For the infinity bound:
+  -- - The CRT construction gives k₀ = P/D where P, D ∈ Fq[X]
+  -- - We can replace P by P mod D (remainder has deg < deg D)
+  -- - This gives |k₀|_∞ = exp(deg(P mod D) - deg(D)) < 1
+  -- - So the bound ≤ 1 comes for free from the construction
+  --
+  -- For arbitrary bounds, we can adjust by a polynomial:
+  -- - If bound ≥ |k₀|_∞: done, use k₀
+  -- - If bound < |k₀|_∞: find polynomial p with k₀ + p having smaller infinity norm
+  --
+  -- The infinity valuation of k₀ + p depends on the cancellation between them.
+  -- For rational functions, this is controlled by degree considerations.
+  --
+  -- Actually, from the CRT construction:
+  -- - k = P/D with deg(P) < deg(D) (after reduction)
+  -- - So |k|_∞ = exp(deg(P) - deg(D)) ≤ exp(-1) < 1
+  --
+  -- This means for bound ≥ exp(-deg(D)), we always have |k|_∞ ≤ bound
+  -- For smaller bounds, we need to adjust the construction.
+  --
+  -- The dependency on `exists_finite_integral_translate` means this inherits the sorry.
+  -- Once that is proven with the CRT + reduction construction, this follows.
   sorry
 
 /-- Weak approximation: every element can be shifted into integral adeles.
