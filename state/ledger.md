@@ -6,74 +6,50 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ 2771 jobs, compiles cleanly
+**Build**: ✅ 2523 jobs, compiles cleanly
 **Phase**: 3 - Serre Duality
-**Cycle**: 156
+**Cycle**: 156 (complete)
 
-### Sorry Count: 6 (none critical)
+### Sorry Count: 11 (5 new in SerreDuality, expected)
 
 | File | Count | Notes |
 |------|-------|-------|
 | `FullAdelesCompact.lean` | 1 | bound<1 edge case, not needed |
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
+| `SerreDuality.lean` | 5 | **NEW** - pairing types defined, proofs pending |
 
 ---
 
-## Next Steps (Cycle 156)
+## Next Steps (Cycle 157)
 
-### Goal: Define the Serre Duality Pairing (Types Only)
+### Goal: Fill the Serre Pairing Construction
 
-**Do NOT start proving things.** First get the pairing definition to typecheck.
+The types are defined in `SerreDuality.lean`. Now we need to:
 
-### Critical Insight: Trace vs Residue
+1. **Replace the sorry in `serrePairing`** with an actual construction
+2. **Options to explore:**
+   - Use local traces on completions + sum over places (needs trace on `adicCompletion`)
+   - Use global trace on a suitable subspace
+   - Use `FractionalIdeal.dual` machinery from `DifferentIdealBridge.lean`
 
-Mathlib has **algebraic** `Submodule.traceDual` but NOT **geometric** residues for function fields. Building `res_v : K_v → k` from scratch is a major project.
+### Key Open Question
 
-**Key question to answer first:**
-> Can we define the global pairing using `Algebra.trace` on adeles, avoiding explicit residue maps?
+Mathlib has NO `Algebra.trace` on `adicCompletion` or `FiniteAdeleRing`.
+We need to either:
+- Build local trace infrastructure (significant work)
+- Find an algebraic shortcut using `traceDual`
 
-This would align with our existing `DifferentIdealBridge.lean` infrastructure.
+### Investigation Task
 
-### Step 1: Investigate (before writing code)
-
-1. **Search Mathlib** for:
-   - `Algebra.trace` on completions/adeles
-   - Any "sum over places" or product formula machinery
-   - How `traceDual` relates to pairings
-
-2. **Check type compatibility**:
-   - Can we pair `FiniteAdeleRing R K` with `K` using trace?
-   - Does the sum over places make sense (almost all zero)?
-
-3. **Look at what we have**:
-   - `DifferentIdealBridge.lean` uses `FractionalIdeal.dual`
-   - `TraceDualityProof.lean` has `dual_dual_eq`
-   - How do these connect to a bilinear form?
-
-### Step 2: Define the Pairing
-
-Create `SerreDuality.lean` with:
-```lean
--- The pairing (leave proof obligations as sorry initially)
-def serrePairing (D : DivisorV2 R) :
-    SpaceModule k R K D →ₗ[k] (RRModuleV2 k R K (canonical - D)) →ₗ[k] k := sorry
-```
-
-**Success criterion**: The types compile. Don't worry about the proof yet.
-
-### Step 3: Then prove properties
-
-Only after types work:
-- `serrePairing_wellDefined` (descends to quotient)
-- `serrePairing_left_nondegen`
-- `serrePairing_right_nondegen`
+Read how `FractionalIdeal.dual_eq_mul_inv : dual I = dual 1 * I⁻¹` could help.
+The different ideal gives `div(dual 1) = K` (canonical divisor).
 
 ### Warning Signs (abort and reassess if you see these)
 
 - Trying to define `res_v` via Laurent series expansion
 - Building coefficient extraction for local fields
-- More than 100 lines without a compiling definition
+- More than 100 lines without progress on the pairing
 - Needing to construct uniformizers explicitly
 
 ---
@@ -128,6 +104,14 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 156 (2025-12-19)
+- **Created `SerreDuality.lean`** with pairing type definitions
+- Defined `serrePairing : H¹(D) × L(K-D) → k` (types compile, proof is sorry)
+- Added supporting lemmas: `serrePairing_wellDefined`, `_left_nondegen`, `_right_nondegen`
+- Added `serre_duality` theorem and `mkAdelicRRData` constructor
+- Investigated Mathlib: no trace on adeles/completions, need algebraic approach
+- 5 new sorries (expected, pairing construction pending)
 
 ### Cycle 155 (2025-12-18)
 - Repo maintenance cycle
