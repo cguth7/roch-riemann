@@ -264,6 +264,59 @@ theorem residueAtInfty_inv_X_sub (c : Fq) :
   -- if 1 = 1 then ... else ... = -1
   norm_num
 
+/-- Auxiliary function for residue at infinity on unreduced fractions.
+For p/q (not necessarily reduced), extracts the coefficient at the critical index.
+This is additive in p for fixed q, which is key for proving residueAtInfty_add. -/
+def residueAtInftyAux (p q : Polynomial Fq) : Fq :=
+  if q = 0 then 0
+  else -((p % q).coeff (q.natDegree - 1))
+
+/-- residueAtInftyAux is additive in the numerator for fixed denominator. -/
+lemma residueAtInftyAux_add (p₁ p₂ q : Polynomial Fq) :
+    residueAtInftyAux (p₁ + p₂) q = residueAtInftyAux p₁ q + residueAtInftyAux p₂ q := by
+  simp only [residueAtInftyAux]
+  by_cases hq : q = 0
+  · simp [hq]
+  simp only [hq, ↓reduceIte]
+  rw [Polynomial.add_mod, Polynomial.coeff_add]
+  ring
+
+/-- residueAtInftyAux equals residueAtInfty for reduced fractions. -/
+lemma residueAtInfty_eq_aux (f : RatFunc Fq) :
+    residueAtInfty f = residueAtInftyAux f.num f.denom := by
+  rw [residueAtInfty_eq_neg_coeff, residueAtInftyAux]
+  simp [RatFunc.denom_ne_zero f]
+
+/-- Key scaling lemma: multiplying both num and denom by a monic polynomial preserves residue.
+This uses coeff_mul_at_sum_sub_one for the coefficient extraction. -/
+lemma residueAtInftyAux_mul_monic (p q k : Polynomial Fq)
+    (hq : q ≠ 0) (hq_monic : q.Monic) (hk : k.Monic) (hk_ne : k ≠ 0) :
+    residueAtInftyAux (p * k) (q * k) = residueAtInftyAux p q := by
+  simp only [residueAtInftyAux, mul_ne_zero hq hk_ne, hq, ↓reduceIte]
+  -- Need: ((p * k) % (q * k)).coeff((q * k).natDegree - 1) = (p % q).coeff(q.natDegree - 1)
+  -- Key fact: (p * k) % (q * k) = (p % q) * k for monic k
+  have hmod : (p * k) % (q * k) = (p % q) * k := by
+    have hdiv : (p * k) / (q * k) = p / q := by
+      rw [mul_comm p k, mul_comm q k]
+      exact EuclideanDomain.mul_div_mul_cancel hk_ne (dvd_refl k)
+    have : (q * k) * ((p * k) / (q * k)) + (p * k) % (q * k) = p * k := EuclideanDomain.div_add_mod _ _
+    rw [hdiv] at this
+    have h2 : q * (p / q) + p % q = p := EuclideanDomain.div_add_mod p q
+    calc (p * k) % (q * k) = p * k - (q * k) * (p / q) := by rw [this]; ring
+      _ = (p - q * (p / q)) * k := by ring
+      _ = (p % q) * k := by rw [← h2]; ring
+  rw [hmod]
+  -- Now use that (q * k).natDegree = q.natDegree + k.natDegree for monic
+  rw [hq_monic.natDegree_mul hk]
+  -- (p % q) * k has coefficient at q.natDegree - 1 + k.natDegree equal to (p % q).coeff(q.natDegree - 1)
+  by_cases hq_deg : q.natDegree = 0
+  · -- q = 1 since monic, so p % q = 0
+    have hq_one : q = 1 := Polynomial.eq_one_of_monic_natDegree_zero hq_monic hq_deg
+    simp [hq_one]
+  have h_rem_deg : (p % q).natDegree < q.natDegree := Polynomial.natDegree_mod_lt p hq_deg
+  rw [show q.natDegree + k.natDegree - 1 = q.natDegree - 1 + k.natDegree by omega]
+  exact (coeff_mul_at_sum_sub_one h_rem_deg hk).symm
+
 /-- Helper: Express residueAtInfty in terms of coefficient extraction.
 
 When denom.natDegree ≥ 1, the residue is the negated coefficient of X^{deg(denom)-1}

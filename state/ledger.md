@@ -6,11 +6,11 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ 2375 jobs, compiles cleanly
+**Build**: ❌ BROKEN - Residue.lean has ordering issues, needs fix
 **Phase**: 3 - Serre Duality
-**Cycle**: 163 (in progress)
+**Cycle**: 164 (in progress - handoff)
 
-### Sorry Count: 16 (up from 14: expanded proof structure for residueAtInfty_add)
+### Sorry Count: 16 (unchanged, but file currently broken)
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,54 +18,71 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 5 | residueAtInfty_add structure set up (3 sub-cases) |
+| `Residue.lean` | 5 | residueAtInfty_add - new approach partially implemented |
 
 ---
 
-## Next Steps (Cycle 164+): RESIDUE APPROACH
+## CYCLE 164 HANDOFF - READ THIS FIRST
 
-### Progress: Cycle 163 (Significant structural progress)
+### What Was Tried (Failed Approach - DO NOT REPEAT)
+Tried to prove `residueAtInfty_add` by showing `(f+g).denom = g.denom` when f is polynomial.
+This required gcd/coprime infrastructure (`gcd_add_mul_self`, `denom_add_polynomial_left`).
+**Hit Mathlib API friction** - `IsCoprime.gcd_eq_one` doesn't exist as expected, RatFunc
+normalization is complex. Spent ~1hr on this dead end.
 
-**New helper lemmas proved:**
-- `residueAtInfty_eq_neg_coeff` ✅ - Characterizes residue as coefficient extraction
-- `coeff_mul_at_sum_sub_one` ✅ - Coefficient extraction for products at critical index
+### The Correct Approach (Partially Implemented)
+Use an **auxiliary function** for unreduced fractions:
 
-**`residueAtInfty_add` proof structure:**
-- Case analysis set up for polynomial edge cases (d_f = 1, d_g = 1)
-- Main case: degree bounds (`hr_f_deg`, `hr_g_deg`) proved
-- Sum is proper fraction: `hsum_proper` proved
-- Remainder is itself: `hsum_mod` proved
-- **Remaining:** Relate reduced form to common denominator form (gcd reduction invariance)
+```lean
+def residueAtInftyAux (p q : Polynomial Fq) : Fq :=
+  if q = 0 then 0 else -((p % q).coeff (q.natDegree - 1))
+```
 
-**Key mathematical insight documented:**
-For P = N * k and Q = D * k with D monic:
-- P % Q = (N % D) * k
-- Coefficient at deg(Q)-1 / Q.leadingCoeff = coefficient at deg(D)-1 / D.leadingCoeff
-- Therefore residue is invariant under gcd reduction
+This is:
+1. **Additive in numerator**: `(p₁+p₂) % q = p₁%q + p₂%q` via `Polynomial.add_mod`
+2. **Scaling invariant**: `(p*k) % (q*k) = (p%q) * k` for monic k
 
-**Residue status:**
-- `residueAtX_add` ✅
-- `residueAtX_smul` ✅
-- `residueAtX_polynomial` ✅
-- `residueAtX_inv_X = 1` ✅
-- `residueAtX_inv_X_sq = 0` ✅
-- `residueAtX_linearMap` ✅
-- `residueAtInfty_zero` ✅
-- `residueAtInfty_polynomial` ✅
-- `residueAtInfty_inv_X_sub = -1` ✅
-- `residueAtInfty_add` - 3 sub-sorries (proof structure complete)
+### Current File State (Residue.lean)
+Added but **NOT COMPILING** due to ordering:
+- Line 270: `residueAtInftyAux` definition ✅
+- Line 275: `residueAtInftyAux_add` ✅ (additive in numerator)
+- Line 285: `residueAtInfty_eq_aux` ❌ BROKEN - references `residueAtInfty_eq_neg_coeff` (line 325)
+- Line 292: `residueAtInftyAux_mul_monic` ❌ BROKEN - ordering + simp issues
 
-### Cycle 164 Task: Complete `residueAtInfty_add` proof
+### IMMEDIATE FIX NEEDED (10 min)
+1. **Reorder lemmas**: Move `residueAtInfty_eq_neg_coeff` (line 325) and `coeff_mul_at_sum_sub_one` (line 373) to BEFORE line 270
+2. **Fix `residueAtInftyAux_mul_monic`**: The `if_neg` for `q*k ≠ 0` needs explicit handling:
+   ```lean
+   simp only [residueAtInftyAux]
+   simp only [if_neg (mul_ne_zero hq hk_ne), if_neg hq]
+   ```
 
-**Remaining sub-proofs:**
-1. Polynomial f case: Show residue(f + g) = residue(g) when f is polynomial
-2. Polynomial g case: Show residue(f + g) = residue(f) when g is polynomial
-3. Main case: Prove gcd reduction preserves the coefficient at critical index
+### After Fix: Complete residueAtInfty_add
+The proof strategy is:
+```lean
+theorem residueAtInfty_add (f g : RatFunc Fq) : ... := by
+  -- Express over common denominator d = d_f * d_g
+  -- residueAtInfty f = residueAtInftyAux (n_f * d_g) (d_f * d_g)  [by scaling lemma]
+  -- residueAtInfty g = residueAtInftyAux (n_g * d_f) (d_f * d_g)  [by scaling lemma]
+  -- f + g has num/denom related to (n_f * d_g + n_g * d_f) / (d_f * d_g) via num_denom_add
+  -- Use residueAtInftyAux_add for the sum
+  -- Show result equals residueAtInfty (f + g)
+```
 
-**Approach options:**
-- Option A: Prove mod_mul_of_monic lemma and use it for gcd reduction invariance
-- Option B: Work directly with num_denom_add relationship
-- Option C: Define residue via Laurent series at infinity (manifestly additive)
+### Key Mathlib Lemmas Already Found
+- `Polynomial.add_mod` - `(p₁ + p₂) % q = p₁ % q + p₂ % q`
+- `EuclideanDomain.mul_div_mul_cancel` - for `(p*k)/(q*k) = p/q`
+- `Polynomial.Monic.natDegree_mul` - `deg(q*k) = deg(q) + deg(k)` for monic
+- `coeff_mul_at_sum_sub_one` (already proved) - coefficient extraction for products
+
+### Build Command
+```bash
+lake build RrLean.RiemannRochV2.Residue 2>&1 | tail -30
+```
+
+---
+
+## Next Steps (Cycle 165+): RESIDUE APPROACH
 
 ### Remaining Plan (~7-9 cycles)
 
@@ -113,7 +130,9 @@ For `F = RatFunc Fq` (NOT an extension):
 - ❌ Trying to define trace on adeles/completions
 - ❌ Building abstract residue infrastructure for general extensions
 - ❌ More than 3 cycles without `.coeff (-1)` appearing in code
+- ❌ **Chasing gcd/coprime/denom normalization lemmas** (Cycle 164 hit this!)
 - ✅ Using `HahnSeries.coeff`, `LaurentSeries`, partial fractions
+- ✅ Using `Polynomial.add_mod`, `Polynomial.coeff_add` for coefficient-level proofs
 
 ---
 
@@ -164,6 +183,20 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 164 (2025-12-19) - INCOMPLETE HANDOFF
+- **Attempted:** Fill `residueAtInfty_add` sorries via gcd/coprime approach
+- **Failed approach:** Tried proving `(f+g).denom = g.denom` when f is polynomial
+  - Required `gcd_add_mul_self`, `denom_add_polynomial_left`, `num_add_polynomial_left`
+  - Hit API friction: `IsCoprime.gcd_eq_one` doesn't exist, RatFunc normalization complex
+  - **DO NOT REPEAT THIS APPROACH**
+- **Pivoted to:** Auxiliary function approach (partially implemented, not compiling)
+  - Defined `residueAtInftyAux (p q : Polynomial Fq) : Fq`
+  - Proved `residueAtInftyAux_add` (additivity in numerator)
+  - Started `residueAtInftyAux_mul_monic` (scaling invariance)
+- **Current state:** File broken due to lemma ordering issues
+- **Next Claude:** See "CYCLE 164 HANDOFF" section above for exact fix needed
+- Sorry count: 16 (unchanged, file broken)
 
 ### Cycle 163 (2025-12-19)
 - **Set up `residueAtInfty_add` proof structure** - Additivity for residue at infinity
