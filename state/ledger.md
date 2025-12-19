@@ -7,12 +7,13 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 130)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 131)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
 **Cycle 130 PROVED `fq_discrete_in_fullAdeles`** - the KEY discreteness theorem!
+**Cycle 131 PROVED `fq_closed_in_fullAdeles`** - discrete + T2 → closed!
 
 ### Current State
 - ✅ `algebraMap_FqtInfty_injective` - PROVED
@@ -23,30 +24,30 @@
 - ✅ `diag_integral_implies_valuation_le` - PROVED
 - ✅ `diag_infty_valuation` - PROVED
 - ✅ **`fq_discrete_in_fullAdeles` - PROVED in Cycle 130!**
-- ⚪ `fq_closed_in_fullAdeles` - SORRY: needs T2Space + `AddSubgroup.isClosed_of_discrete`
+- ✅ **`fq_closed_in_fullAdeles` - PROVED in Cycle 131!**
 - ⚪ `isCompact_integralFullAdeles` - SORRY: product of compacts
 - ⚪ `exists_translate_in_integralFullAdeles` - SORRY: weak approximation
 
-### Concrete Next Steps (Cycle 131+)
+### Concrete Next Steps (Cycle 132+)
 
-**PRIORITY 1: Complete `fq_closed_in_fullAdeles`**
-- Structure is already in place at line 619-641 of FullAdeles.lean
-- Strategy: show full adeles are T2 (product of T2 spaces), then use `AddSubgroup.isClosed_of_discrete`
-- The range is already cast to AddSubgroup (see `hrange` in the proof)
-- Need to instantiate T2Space for `FqFullAdeleRing Fq`
+**PRIORITY 1: Compactness `isCompact_integralFullAdeles`**
+- integral finite adeles ∏_v O_v are compact (from `AllIntegersCompact`)
+- integers at infinity {x | |x|_∞ ≤ 1} are compact (integer ring of local field)
+- Product of compact sets is compact
 
-**PRIORITY 2: Compactness and weak approximation**
-- `isCompact_integralFullAdeles` - product of compact O_v × O_∞
-- `exists_translate_in_integralFullAdeles` - use PID structure to clear denominators
+**PRIORITY 2: Weak approximation `exists_translate_in_integralFullAdeles`**
+- For any adele a, find x ∈ K such that a - diag(x) is integral
+- Use PID structure: only finitely many places with non-integral components
+- Find polynomial that "clears denominators" at all finite places
+- May need degree control for infinity place
 
 ### Key Mathlib APIs
 
 | What you need | How to get it |
 |---------------|---------------|
-| Discrete subgroup is closed | `AddSubgroup.isClosed_of_discrete` |
-| Product of T2 is T2 | `instT2SpaceProd` |
-| Valued rings are T2 | Look for `T2Space` instance on `Valued` types |
-| Ring hom `RatFunc Fq →+* FqtInfty Fq` | `UniformSpace.Completion.coeRingHom` |
+| Product compact | `IsCompact.prod` |
+| ValuationSubring compact | `IsCompact.compact_space` for local fields? |
+| PID clearing denominators | Use `IsCoprime` from UFD structure |
 
 ### What NOT To Do
 - ❌ Don't try to prove `discrete_diagonal_embedding` for finite adeles (it's false)
@@ -55,7 +56,7 @@
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 130)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 131)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -68,7 +69,7 @@
 | `FullAdeles.lean` | `algebraMap_FqtInfty_injective` | ✅ PROVED | Cycle 124: uses `coe_inj` for T0 spaces |
 | `FullAdeles.lean` | `finite_integral_implies_polynomial` | ✅ PROVED | **Cycle 125**: UFD/coprimality argument |
 | `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ✅ PROVED | **Cycle 130**: KEY discreteness theorem! |
-| `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ⚪ 1 sorry | Needs T2Space + discreteness |
+| `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ✅ PROVED | **Cycle 131**: T2Space + discreteness → closed |
 | `FullAdeles.lean` | `isCompact_integralFullAdeles` | ⚪ 1 sorry | Product of compacts |
 | `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ 1 sorry | Weak approximation |
 
@@ -103,10 +104,10 @@
 | `FullAdeles.lean` | `inftyRingHom` | ✅ DEFINED | RatFunc Fq →+* FqtInfty Fq |
 | `FullAdeles.lean` | `fqFullDiagonalEmbedding_injective` | ✅ PROVED | Uses infinity injection |
 
-**Build Status**: ✅ Compiles with 9 sorries total
+**Build Status**: ✅ Compiles with 8 sorries total
 - TraceDualityProof.lean: 1 sorry (non-critical)
 - FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles)
-- FullAdeles.lean: 3 sorries (closedness, compactness, weak approx) - down from 4!
+- FullAdeles.lean: 2 sorries (compactness, weak approx) - down from 3!
 
 **Key Progress (Cycle 123)**:
 - ✅ Full adeles concrete instance structure complete
@@ -790,6 +791,53 @@ and avoids "simp thrash" where repeated simp failures cause wasted cycles.
 **Next Steps** (Cycle 131+):
 1. Prove `fq_closed_in_fullAdeles` using discreteness + T2Space
 2. Prove compactness and weak approximation
+
+---
+
+#### Cycle 131 - CLOSEDNESS PROVED! (`fq_closed_in_fullAdeles`)
+
+**Goal**: Prove that the diagonal embedding of K is closed in full adeles.
+
+**Status**: ✅ COMPLETE - Closedness theorem proved!
+
+**Results**:
+- [x] **PROVED `fq_closed_in_fullAdeles`** (~70 lines) - The closedness theorem!
+- [x] Proved T2Space for `FqtInfty Fq` via `IsTopologicalAddGroup.t2Space_of_zero_sep`
+- [x] Proved T2Space for `FiniteAdeleRing` via `T2Space.of_injective_continuous` + `DFunLike.coe_injective`
+- [x] Used `Prod.t2Space` for full adeles = FiniteAdeleRing × FqtInfty
+- [x] Applied `AddSubgroup.isClosed_of_discrete` to get closedness from discreteness
+
+**Key Proof Techniques**:
+
+1. **T2Space for valued fields**: Used `IsTopologicalAddGroup.t2Space_of_zero_sep` with Valued structure
+   - For each x ≠ 0, the set `{k | Valued.v k < Valued.v x}` separates 0 from x
+   - This is a neighborhood of 0 (via `Valued.mem_nhds`) not containing x
+
+2. **T2Space for FiniteAdeleRing**: Used `T2Space.of_injective_continuous` with
+   - `DFunLike.coe_injective` for injectivity of embedding into Pi type
+   - `RestrictedProduct.continuous_coe` for continuity
+
+3. **Transfer discrete topology**: Used `SetLike.isDiscrete_iff_discreteTopology` to convert
+   between `DiscreteTopology (Set.range f)` and `DiscreteTopology (Subring.range.toAddSubgroup)`
+
+**Key Mathlib Lemmas Used**:
+- `IsTopologicalAddGroup.t2Space_of_zero_sep` - T2 via separation at 0
+- `Valued.mem_nhds` - neighborhood basis in valued rings
+- `T2Space.of_injective_continuous` - T2 from injection into T2 space
+- `DFunLike.coe_injective` - RestrictedProduct → Pi is injective
+- `RestrictedProduct.continuous_coe` - embedding is continuous
+- `Prod.t2Space` - product of T2 is T2
+- `AddSubgroup.isClosed_of_discrete` - discrete subgroups are closed in T2 spaces
+- `SetLike.isDiscrete_iff_discreteTopology` - discrete topology transfer
+
+**Sorry Status**:
+- FullAdeles.lean: 2 sorries (compactness, weak approx) - down from 3!
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 132+):
+1. Prove `isCompact_integralFullAdeles` - product of compact sets
+2. Prove `exists_translate_in_integralFullAdeles` - weak approximation for PIDs
 
 ---
 

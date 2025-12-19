@@ -614,31 +614,66 @@ theorem fq_discrete_in_fullAdeles :
 
 /-- Closedness of Fq(t) in full adeles.
 
-Discrete subgroups of locally compact Hausdorff groups are closed.
+Discrete subgroups of Hausdorff groups are closed.
 -/
 theorem fq_closed_in_fullAdeles :
     IsClosed (Set.range (fqFullDiagonalEmbedding Fq)) := by
-  -- The range of the diagonal embedding is an AddSubgroup
-  -- Discrete subgroups of T2 groups are closed (AddSubgroup.isClosed_of_discrete)
-  --
   -- Strategy:
-  -- 1. (fqFullDiagonalEmbedding Fq).range is a Subring
-  -- 2. (fqFullDiagonalEmbedding Fq).range.toAddSubgroup is an AddSubgroup
-  -- 3. By fq_discrete_in_fullAdeles, this AddSubgroup is discrete
-  -- 4. Full adeles are T2 (product of T2 spaces)
-  -- 5. By AddSubgroup.isClosed_of_discrete, the range is closed
+  -- 1. Show FqFullAdeleRing Fq is T2Space (product of T2 spaces)
+  -- 2. The range is an AddSubgroup with discrete topology
+  -- 3. Apply AddSubgroup.isClosed_of_discrete
   --
-  -- Technical note: Set.range f = f.range as sets
+  -- Step 1: T2Space for FqFullAdeleRing = FiniteAdeleRing × FqtInfty
+  -- FqtInfty has Valued instance → T2 via IsTopologicalAddGroup.t2Space_of_zero_sep
+  haveI hT2_infty : T2Space (FqtInfty Fq) := by
+    apply IsTopologicalAddGroup.t2Space_of_zero_sep
+    intro x x_ne
+    -- Use Valued structure: {y | Valued.v y < Valued.v x} is a neighborhood of 0 not containing x
+    refine ⟨{ k | Valued.v k < Valued.v x }, ?_, ?_⟩
+    · rw [Valued.mem_nhds]
+      have vx_ne := (Valuation.ne_zero_iff (Valued.v (R := FqtInfty Fq))).mpr x_ne
+      exact ⟨Units.mk0 _ vx_ne, fun y hy => by simpa using hy⟩
+    · simp only [Set.mem_setOf_eq]
+      exact lt_irrefl _
+  -- FiniteAdeleRing is T2 (RestrictedProduct of T2 spaces is T2)
+  -- Each v.adicCompletion K is Valued → T2 by the same argument as FqtInfty
+  haveI hT2_components : ∀ v : HeightOneSpectrum Fq[X], T2Space (v.adicCompletion (RatFunc Fq)) := fun v => by
+    apply IsTopologicalAddGroup.t2Space_of_zero_sep
+    intro x x_ne
+    refine ⟨{ k | Valued.v k < Valued.v x }, ?_, ?_⟩
+    · rw [Valued.mem_nhds]
+      have vx_ne := (Valuation.ne_zero_iff (Valued.v (R := v.adicCompletion (RatFunc Fq)))).mpr x_ne
+      exact ⟨Units.mk0 _ vx_ne, fun y hy => by simpa using hy⟩
+    · simp only [Set.mem_setOf_eq]
+      exact lt_irrefl _
+  -- FiniteAdeleRing = RestrictedProduct, and RestrictedProduct of T2 is T2
+  -- Use T2Space.of_injective_continuous with the embedding into Pi
+  haveI hT2_fin : T2Space (FiniteAdeleRing Fq[X] (RatFunc Fq)) :=
+    T2Space.of_injective_continuous DFunLike.coe_injective RestrictedProduct.continuous_coe
+  -- Product of T2 is T2
+  haveI : T2Space (FqFullAdeleRing Fq) := Prod.t2Space
+  -- Step 2: The range is an AddSubgroup
   have hrange : Set.range (fqFullDiagonalEmbedding Fq) =
       ((fqFullDiagonalEmbedding Fq).range.toAddSubgroup : Set _) := by
     ext x
-    simp only [Set.mem_range, RingHom.mem_range, Subring.mem_toAddSubgroup, RingHom.coe_range]
+    simp only [Set.mem_range]
     constructor <;> intro ⟨a, ha⟩ <;> exact ⟨a, ha⟩
+  -- Step 3: The range has discrete topology (from fq_discrete_in_fullAdeles)
+  haveI hdiscrete : DiscreteTopology (Set.range (fqFullDiagonalEmbedding Fq)) := fq_discrete_in_fullAdeles Fq
+  -- The carrier set of the AddSubgroup equals Set.range
+  have hcarrier : ((fqFullDiagonalEmbedding Fq).range.toAddSubgroup : Set _) =
+      Set.range (fqFullDiagonalEmbedding Fq) := by
+    ext x
+    simp only [Set.mem_range]
+    constructor <;> intro ⟨a, ha⟩ <;> exact ⟨a, ha⟩
+  -- Transfer discrete topology via the carrier equality
+  haveI : DiscreteTopology (fqFullDiagonalEmbedding Fq).range.toAddSubgroup := by
+    -- Use SetLike.isDiscrete_iff_discreteTopology
+    rw [← SetLike.isDiscrete_iff_discreteTopology, hcarrier]
+    exact isDiscrete_iff_discreteTopology.mpr hdiscrete
+  -- Apply AddSubgroup.isClosed_of_discrete
   rw [hrange]
-  -- Now we need T2Space and discreteness
-  -- Full adeles = FiniteAdeleRing × FqtInfty, both are T2 (valued rings are T2)
-  -- For now, sorry the T2 instance and discreteness-based closure
-  sorry
+  exact AddSubgroup.isClosed_of_discrete
 
 /-- Compactness of integral full adeles.
 
