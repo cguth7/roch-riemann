@@ -10,7 +10,7 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 139)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 140)
 
 ### Current State
 Build: ✅ Compiles with 2 sorries in FullAdeles.lean
@@ -23,27 +23,72 @@ Build: ✅ Compiles with 2 sorries in FullAdeles.lean
 - ✅ `denseRange_inftyRingHom` - K is dense in FqtInfty
 - ✅ `exists_approx_in_ball_infty` - Can approximate any FqtInfty element to within O_∞
 - ✅ `polynomial_integral_at_finite_places` - Polynomials are integral at all finite places
-- ✅ `exists_local_approximant` - **NEW in Cycle 138**: For any a_v ∈ K_v, ∃ y ∈ K with a_v - y ∈ O_v
+- ✅ `exists_local_approximant` - For any a_v ∈ K_v, ∃ y ∈ K with a_v - y ∈ O_v
 - ✅ Main theorem structure complete (modulo 2 helper lemmas)
+- ✅ **Cycle 139**: Proof structure for CRT with enlarged set approach
 
 ### What's Needed (2 sorries remain)
 
-**`exists_finite_integral_translate` (line ~1040)**
+**`exists_finite_integral_translate` (line ~1100)**
 - For any finite adele a, find k ∈ K such that a - diag(k) is integral at all finite places
-- **Cycle 138 progress**: Proved `exists_local_approximant` (density step)
-- **Remaining**: CRT gluing step - need to handle the fact that y_v might have poles outside S
-- **Key insight from Cycle 138**: The y_v from density might create new bad places.
-  We need y_v with poles ONLY in S (i.e., principal parts). This is unavoidable.
+- **Cycle 139 progress**: Set up D = ∏ denominators, proved D·y_v ∈ R
+- **Remaining**: Apply CRT with enlarged set T = S ∪ {primes dividing D outside S}
 
-**`exists_finite_integral_translate_with_infty_bound` (line ~1090)**
+**`exists_finite_integral_translate_with_infty_bound` (line ~1140)**
 - Same as above, but with bound on |k|_∞
 - Depends on resolving the first sorry
+
+### Cycle 139 CRT Approach (CORRECT, needs formalization)
+1. S = bad places (finite), get y_v ∈ K with a_v - y_v ∈ O_v for v ∈ S
+2. D = ∏_{v∈S} denom(y_v) - clears all denominators
+3. T = S ∪ {primes dividing D but not in S} - still finite
+4. CRT targets:
+   - For v ∈ S: target Py_v = D·y_v (mod p_v^{N_v}) where N_v > val_v(D)
+   - For w ∈ T\S: target 0 (mod p_w^{val_w(D)})
+5. Apply `exists_forall_sub_mem_ideal` to get P
+6. Set k = P/D
+7. Verify: val_v(k - y_v) ≥ 0 for v ∈ S, val_w(k) ≥ 0 for w ∉ S
+
+**Key lemma needed**: `{v : HeightOneSpectrum | v.intValuation D < 1}.Finite`
+(set of primes dividing D is finite - should follow from UFD properties)
 
 ### Axioms Used
 | Axiom | Purpose |
 |-------|---------|
 | `[AllIntegersCompact Fq[X] (RatFunc Fq)]` | Finite adeles compactness |
 | `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness |
+
+---
+
+## Cycle 139 Summary
+
+**Goal**: Prove `exists_finite_integral_translate` via CRT approach
+
+**Status**: 🔶 PARTIAL - Proof structure complete, CRT application pending
+
+**Key accomplishments**:
+1. Rejected principal parts / pole degree approaches (too complex for Lean)
+2. Identified correct approach: CRT with enlarged set T
+3. Set up proof structure with D = product of denominators
+4. Proved `hDy_in_R`: D · y_v ∈ R for all v ∈ S (key intermediate step)
+5. Documented the CRT application strategy
+
+**Key insight**:
+- Don't try to define n_v = ⌈-val_v(a_v)⌉ for a_v ∈ K_v (completion elements)
+- Work entirely with global elements y_v ∈ K from density
+- Enlarge the set to include ALL primes dividing D, not just S
+- CRT gives P with the right divisibility properties, then k = P/D works
+
+**What remains for Cycle 140**:
+1. Construct T = {v : HeightOneSpectrum | v.intValuation D < 1} and prove finite
+2. Set up CRT index type and targets
+3. Apply `exists_forall_sub_mem_ideal`
+4. Verify the valuation conditions
+
+**Mathlib APIs needed**:
+- `UniqueFactorizationMonoid.normalizedFactors` or `primeFactors` for factorization
+- `exists_forall_sub_mem_ideal` for CRT
+- `intValuation` properties for relating polynomial primes to HeightOneSpectrum
 
 ---
 
