@@ -516,19 +516,101 @@ theorem diag_infty_valuation (d : RatFunc Fq) :
 -/
 theorem fq_discrete_in_fullAdeles :
     DiscreteTopology (Set.range (fqFullDiagonalEmbedding Fq)) := by
-  -- Use discreteTopology_subtype_iff': for each point y in range,
-  -- find open U with U ∩ range = {y}
-  --
-  -- Key helpers proved in Cycle 129:
-  -- - diag_integral_implies_valuation_le: finite component integral ⟹ valuation ≤ 1
-  -- - diag_infty_valuation: infinity component valuation = inftyValuationDef
-  --
-  -- Proof structure (needs technical rewrite fix):
-  -- 1. For y = diag(k), define U = {a | a-diag(k) is integral at finite places ∧ |a-diag(k)|_∞ < 1}
-  -- 2. U is open (isOpen_integralFiniteAdeles, isOpen_inftyBall_lt_one)
-  -- 3. For diag(m) ∈ U: d = m-k is integral everywhere, so d ∈ Fq[X] by finite_integral_implies_polynomial
-  -- 4. |d|_∞ < 1 but nonzero poly has |d|_∞ ≥ 1, so d = 0, hence m = k
-  sorry
+  -- Use discreteTopology_subtype_iff': for each y in range, find open U with U ∩ range = {y}
+  rw [discreteTopology_subtype_iff']
+  intro y hy
+  -- y is in the range, so y = diag(k) for some k
+  obtain ⟨k, hk⟩ := hy
+  -- Define U = {a | (a - y).1 is integral at all finite places ∧ Valued.v (a - y).2 < 1}
+  let U_fin : Set (FiniteAdeleRing Fq[X] (RatFunc Fq)) :=
+    {b | ∀ v, b.1 v ∈ v.adicCompletionIntegers (RatFunc Fq)}
+  let U_infty : Set (FqtInfty Fq) := {x | Valued.v x < 1}
+  let U : Set (FqFullAdeleRing Fq) := {a | a.1 - y.1 ∈ U_fin ∧ a.2 - y.2 ∈ U_infty}
+  refine ⟨U, ?_, ?_⟩
+  · -- U is open: preimage of open product under continuous subtraction
+    have hU_fin_open : IsOpen U_fin := isOpen_integralFiniteAdeles Fq
+    have hU_infty_open : IsOpen U_infty := isOpen_inftyBall_lt_one Fq
+    have hprod_open : IsOpen (U_fin ×ˢ U_infty) := hU_fin_open.prod hU_infty_open
+    have hU_eq : U = (fun a : FqFullAdeleRing Fq => (a.1 - y.1, a.2 - y.2)) ⁻¹' (U_fin ×ˢ U_infty) := rfl
+    rw [hU_eq]
+    apply IsOpen.preimage _ hprod_open
+    have h1 : Continuous (fun a : FqFullAdeleRing Fq => a.1 - y.1) := continuous_fst.sub continuous_const
+    have h2 : Continuous (fun a : FqFullAdeleRing Fq => a.2 - y.2) := continuous_snd.sub continuous_const
+    exact Continuous.prodMk h1 h2
+  · -- U ∩ range = {y}
+    ext a
+    simp only [Set.mem_inter_iff, Set.mem_range, Set.mem_singleton_iff]
+    constructor
+    · -- If a ∈ U and a ∈ range, then a = y
+      intro ⟨⟨ha_fin, ha_infty⟩, ⟨m, hm⟩⟩
+      -- Substitute a = diag(m)
+      subst hm
+      -- Now we need: fqFullDiagonalEmbedding Fq m = y, where y = fqFullDiagonalEmbedding Fq k
+      -- Let d = m - k
+      set d := m - k with hd_def
+      -- Key: diag(m) - diag(k) = diag(m - k) = diag(d)
+      have hdiag_sub : fqFullDiagonalEmbedding Fq m - fqFullDiagonalEmbedding Fq k =
+          fqFullDiagonalEmbedding Fq d := by simp only [hd_def, map_sub]
+      -- ha_fin tells us: (diag(m).1 - y.1).val v ∈ O_v for all v
+      -- Since y = diag(k), we rewrite and get diag(d).1.val v ∈ O_v
+      have hd_integral : ∀ v : HeightOneSpectrum Fq[X], (fqFullDiagonalEmbedding Fq d).1.val v ∈
+          v.adicCompletionIntegers (RatFunc Fq) := fun v => by
+        have h1 := ha_fin v
+        -- The key: (diag(m).1 - diag(k).1) = diag(d).1
+        have h2 : (fqFullDiagonalEmbedding Fq m).1 - (fqFullDiagonalEmbedding Fq k).1 =
+            (fqFullDiagonalEmbedding Fq d).1 := congr_arg Prod.fst hdiag_sub
+        -- hk : fqFullDiagonalEmbedding Fq k = y, so ← hk replaces y with diag(k)
+        simp only [← hk] at h1
+        -- h1 : ((diag m).1 - (diag k).1).val v ∈ O_v
+        -- h2 : (diag m).1 - (diag k).1 = (diag d).1
+        rw [← h2]; exact h1
+      -- Using diag_integral_implies_valuation_le: d is integral at all finite places
+      have hd_val_le : ∀ v : HeightOneSpectrum Fq[X], v.valuation (RatFunc Fq) d ≤ 1 := fun v =>
+        diag_integral_implies_valuation_le Fq d v (hd_integral v)
+      -- ha_infty tells us: Valued.v (diag(m).2 - y.2) < 1
+      -- Since y = diag(k), this is Valued.v (diag(d).2) < 1
+      have hd_infty_lt : Valued.v ((fqFullDiagonalEmbedding Fq d).2) < 1 := by
+        have h1 := ha_infty
+        have h2 : (fqFullDiagonalEmbedding Fq m).2 - (fqFullDiagonalEmbedding Fq k).2 =
+            (fqFullDiagonalEmbedding Fq d).2 := congr_arg Prod.snd hdiag_sub
+        simp only [← hk] at h1
+        rw [← h2]; exact h1
+      -- Valued.v (diag(d).2) = inftyValuationDef d
+      have hd_infty_eq : FunctionField.inftyValuationDef Fq d < 1 := by
+        rw [← diag_infty_valuation Fq d]; exact hd_infty_lt
+      -- Now we show d = 0
+      have hd_zero : d = 0 := by
+        by_contra hd_ne
+        obtain ⟨p, hp⟩ := finite_integral_implies_polynomial Fq d hd_val_le
+        have hp_ne : p ≠ 0 := by rintro rfl; simp at hp; exact hd_ne hp.symm
+        have hp_val := polynomial_inftyVal_ge_one (Fq := Fq) hp_ne
+        -- hp : algebraMap p = d, so inftyValuationDef d = inftyValuationDef (algebraMap p)
+        rw [← hp] at hd_infty_eq
+        exact not_lt.mpr hp_val hd_infty_eq
+      -- d = 0 means m = k, so diag(m) = diag(k) = y
+      have hm_eq_k : m = k := sub_eq_zero.mp hd_zero
+      simp only [hm_eq_k, hk]
+    · -- If a = y, then a ∈ U ∩ range
+      intro ha_eq
+      subst ha_eq
+      refine ⟨⟨?_, ?_⟩, ⟨k, hk⟩⟩
+      · -- y.1 - y.1 = 0 is in U_fin (0 ∈ O_v for all v)
+        intro v
+        simp only [sub_self]
+        -- Goal: (0 : FiniteAdeleRing).val v ∈ O_v
+        -- 0.val v = 0 in v.adicCompletion, and 0 ∈ O_v
+        rw [mem_adicCompletionIntegers]
+        -- Goal: Valued.v ((0 : FiniteAdeleRing).val v) ≤ 1
+        -- (0 : FiniteAdeleRing).val = 0 (as a function to the product)
+        have h0 : (0 : FiniteAdeleRing Fq[X] (RatFunc Fq)).val v = 0 := by
+          rfl
+        rw [h0, Valuation.map_zero]
+        exact zero_le'
+      · -- y.2 - y.2 = 0 ∈ U_infty: Valued.v 0 < 1
+        simp only [sub_self]
+        show Valued.v (0 : FqtInfty Fq) < 1
+        simp only [map_zero]
+        exact zero_lt_one
 
 /-- Closedness of Fq(t) in full adeles.
 

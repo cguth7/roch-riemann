@@ -7,73 +7,55 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 129)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 130)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
-**Cycle 125 proved `finite_integral_implies_polynomial`** - the key algebraic lemma!
-**Cycle 129 proved key helper lemmas** connecting diagonal embedding to valuations.
+**Cycle 130 PROVED `fq_discrete_in_fullAdeles`** - the KEY discreteness theorem!
 
 ### Current State
 - ✅ `algebraMap_FqtInfty_injective` - PROVED
 - ✅ `polynomial_inftyVal_ge_one` - PROVED
 - ✅ `isOpen_inftyBall_lt_one` - PROVED
-- ✅ `finite_integral_implies_polynomial` - **PROVED**: key algebraic lemma!
-- ✅ `isOpen_integralFiniteAdeles` - **PROVED**: U_fin is open via RestrictedProduct.isOpen_forall_mem
-- ✅ `diag_integral_implies_valuation_le` - **PROVED in Cycle 129**: uses `valuedAdicCompletion_eq_valuation'`
-- ✅ `diag_infty_valuation` - **PROVED in Cycle 129**: uses `valuedFqtInfty.def` + `extension_extends`
-- ⚪ `fq_discrete_in_fullAdeles` - SORRY: proof structure complete, needs `subst` instead of `rw` for goal substitution
-- ⚪ `fq_closed_in_fullAdeles` - SORRY: needs T2Space + discreteness
-- ⚪ 2 more sorries (compactness, weak approx)
+- ✅ `finite_integral_implies_polynomial` - PROVED
+- ✅ `isOpen_integralFiniteAdeles` - PROVED
+- ✅ `diag_integral_implies_valuation_le` - PROVED
+- ✅ `diag_infty_valuation` - PROVED
+- ✅ **`fq_discrete_in_fullAdeles` - PROVED in Cycle 130!**
+- ⚪ `fq_closed_in_fullAdeles` - SORRY: needs T2Space + `AddSubgroup.isClosed_of_discrete`
+- ⚪ `isCompact_integralFullAdeles` - SORRY: product of compacts
+- ⚪ `exists_translate_in_integralFullAdeles` - SORRY: weak approximation
 
-### Discreteness Proof Strategy (Documented in Cycle 128)
+### Concrete Next Steps (Cycle 131+)
 
-**Key helper `isOpen_integralFiniteAdeles` is now PROVED!** Uses:
-- `RestrictedProduct.isOpen_forall_mem` with `A_v = v.adicCompletionIntegers K`
-- `Valued.isOpen_valuationSubring` to show each O_v is open
+**PRIORITY 1: Complete `fq_closed_in_fullAdeles`**
+- Structure is already in place at line 619-641 of FullAdeles.lean
+- Strategy: show full adeles are T2 (product of T2 spaces), then use `AddSubgroup.isClosed_of_discrete`
+- The range is already cast to AddSubgroup (see `hrange` in the proof)
+- Need to instantiate T2Space for `FqFullAdeleRing Fq`
 
-**Remaining work for `fq_discrete_in_fullAdeles`**:
-1. `diag_integral_implies_valuation_le`: Show `(diag d).1 v ∈ O_v ⟹ v.valuation d ≤ 1`
-   - Needs `Valued.valuedCompletion_apply` to equate valuations
-2. `diag_infty_valuation`: Show `Valued.v ((diag d).2) = inftyValuationDef d`
-   - Uses `inftyRingHom = coeRingHom` and `valuedCompletion_apply`
-3. Main proof: connect `isDiscrete_iff_forall_exists_isOpen` to the open set U = U_fin × U_infty
-
-### Concrete Next Steps (Cycle 130+)
-
-**PRIORITY 1: Complete `fq_discrete_in_fullAdeles`**
-- All helper lemmas proved! Use `discreteTopology_subtype_iff'`
-- Technical fix needed: use `subst hm` instead of `rw [hm]` to substitute `a = diag(m)`
-- The full proof structure is documented in the code comments
-
-**PRIORITY 2: Complete `fq_closed_in_fullAdeles`**
-- Once discreteness proved, use `AddSubgroup.isClosed_of_discrete`
-- Need T2Space for full adeles (product of T2 spaces)
-
-**PRIORITY 3: Compactness and weak approximation**
-- `isCompact_integralFullAdeles` - product of compacts
-- `exists_translate_in_integralFullAdeles` - PID structure
+**PRIORITY 2: Compactness and weak approximation**
+- `isCompact_integralFullAdeles` - product of compact O_v × O_∞
+- `exists_translate_in_integralFullAdeles` - use PID structure to clear denominators
 
 ### Key Mathlib APIs
 
 | What you need | How to get it |
 |---------------|---------------|
+| Discrete subgroup is closed | `AddSubgroup.isClosed_of_discrete` |
+| Product of T2 is T2 | `instT2SpaceProd` |
+| Valued rings are T2 | Look for `T2Space` instance on `Valued` types |
 | Ring hom `RatFunc Fq →+* FqtInfty Fq` | `UniformSpace.Completion.coeRingHom` |
-| Completion is T0 | `UniformSpace.Completion.t0Space` |
-| Valued ring is T0 | `ValuedRing.separated` |
-| Completion coe is injective | `UniformSpace.Completion.coe_inj` |
-| Balls are clopen | `Valued.isClopen_ball` |
-| Polynomial has inftyVal = exp(deg) | `FunctionField.inftyValuation.polynomial` |
 
 ### What NOT To Do
 - ❌ Don't try to prove `discrete_diagonal_embedding` for finite adeles (it's false)
 - ❌ Don't use `inftyValuation` directly on `FqtInfty` elements (use `Valued.v`)
-- ❌ Don't skip the `finite_integral_implies_polynomial` step - it's essential
+- ❌ Don't guess Mathlib lemma names - search with `rg` first
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 126)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 130)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -85,8 +67,8 @@
 | `FqPolynomialInstance.lean` | `exists_K_translate_in_integralAdeles` | ⚪ 1 sorry | Weak approximation - may still work |
 | `FullAdeles.lean` | `algebraMap_FqtInfty_injective` | ✅ PROVED | Cycle 124: uses `coe_inj` for T0 spaces |
 | `FullAdeles.lean` | `finite_integral_implies_polynomial` | ✅ PROVED | **Cycle 125**: UFD/coprimality argument |
-| `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ⚪ 1 sorry | KEY: uses helper lemmas |
-| `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ⚪ 1 sorry | Follows from discrete |
+| `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ✅ PROVED | **Cycle 130**: KEY discreteness theorem! |
+| `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ⚪ 1 sorry | Needs T2Space + discreteness |
 | `FullAdeles.lean` | `isCompact_integralFullAdeles` | ⚪ 1 sorry | Product of compacts |
 | `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ 1 sorry | Weak approximation |
 
@@ -121,10 +103,10 @@
 | `FullAdeles.lean` | `inftyRingHom` | ✅ DEFINED | RatFunc Fq →+* FqtInfty Fq |
 | `FullAdeles.lean` | `fqFullDiagonalEmbedding_injective` | ✅ PROVED | Uses infinity injection |
 
-**Build Status**: ✅ Compiles with 10 sorries total
+**Build Status**: ✅ Compiles with 9 sorries total
 - TraceDualityProof.lean: 1 sorry (non-critical)
 - FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles)
-- FullAdeles.lean: 5 sorries (concrete instance proofs)
+- FullAdeles.lean: 3 sorries (closedness, compactness, weak approx) - down from 4!
 
 **Key Progress (Cycle 123)**:
 - ✅ Full adeles concrete instance structure complete
@@ -767,6 +749,47 @@ and avoids "simp thrash" where repeated simp failures cause wasted cycles.
 1. Fill `diag_integral_implies_valuation_le` using `Valued.valuedCompletion_apply`
 2. Fill `diag_infty_valuation` using completion embedding properties
 3. Fill `fq_discrete_in_fullAdeles` using the documented strategy
+
+---
+
+#### Cycle 130 - DISCRETENESS PROVED! (`fq_discrete_in_fullAdeles`)
+
+**Goal**: Complete the discreteness proof for K in full adeles.
+
+**Status**: ✅ COMPLETE - Key theorem proved!
+
+**Results**:
+- [x] **PROVED `fq_discrete_in_fullAdeles`** (~90 lines) - The main discreteness theorem!
+- [x] Fixed type issues with `← hk` direction for simp substitution
+- [x] Used `Valuation.map_zero` (not `map_zero`) for valuation goals
+- [x] Used `Continuous.prodMk` for product continuity
+
+**Key Proof Techniques**:
+
+1. **Use `discreteTopology_subtype_iff'`**: Reduces to showing each point has isolating open set
+2. **Define U = {a | a.1 - y.1 ∈ U_fin ∧ a.2 - y.2 ∈ U_infty}** where:
+   - `U_fin = {b | ∀ v, b.val v ∈ O_v}` (integral finite adeles, open by `isOpen_integralFiniteAdeles`)
+   - `U_infty = {x | Valued.v x < 1}` (open unit ball, open by `isOpen_inftyBall_lt_one`)
+3. **Show U is open**: Preimage of open product under continuous subtraction
+4. **Show U ∩ range = {y}**:
+   - For `diag(m) ∈ U`: let `d = m - k`, use `← hk` to substitute `y = diag(k)`
+   - `diag(d)` is integral at all finite places → `d ∈ Fq[X]` by `finite_integral_implies_polynomial`
+   - `|d|_∞ < 1` but nonzero polynomial has `|·|_∞ ≥ 1` → `d = 0` → `m = k`
+
+**Lessons Learned**:
+- Use `← hk` (not `hk`) when you want to replace `y` with `diag(k)` in simp
+- For valuation of 0, use `Valuation.map_zero` not `map_zero`
+- Use `Continuous.prodMk` for product continuity, not `Continuous.prod`
+- When proving `0 ∈ O_v`, use `rfl` to show `(0 : FiniteAdeleRing).val v = 0`
+
+**Sorry Status**:
+- FullAdeles.lean: 3 sorries (closedness, compactness, weak approx) - down from 4!
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 131+):
+1. Prove `fq_closed_in_fullAdeles` using discreteness + T2Space
+2. Prove compactness and weak approximation
 
 ---
 
