@@ -205,19 +205,10 @@ For valued fields with discrete value group, the closed ball is also open (clope
 -/
 theorem isOpen_ball_le_one_FqtInfty :
     IsOpen {x : FqtInfty Fq | Valued.v x ≤ 1} := by
-  /-
-  **Proof approach**:
-  For discrete valuations, {v ≤ 1} = {v < exp(1)} which is open.
-  Since value group is ℤ, there's nothing between 1 = exp(0) and exp(1).
-
-  Key steps:
-  - convert to showing {v ≤ 1} = {v < exp(1)} via Valued.isClopen_ball
-  - Forward: v x ≤ 1 = exp(0) < exp(1)
-  - Backward: v x < exp(1), with v x = exp(n) for some n ∈ ℤ, so n < 1 hence n ≤ 0
-
-  API issues: WithZero.coe_lt_coe rewrite patterns not matching
-  -/
-  sorry
+  -- Valued.isOpen_integer: the closed unit ball {v ≤ 1} is open in any valued ring
+  -- Need to convert between set notation and ValuationSubring coercion
+  have h := @Valued.isOpen_integer (FqtInfty Fq) _ _ _ _
+  convert h using 1
 
 /-- K is dense in FqtInfty (the completion at infinity). -/
 theorem denseRange_inftyRingHom :
@@ -254,10 +245,9 @@ For k ∈ Fq[X] ⊂ RatFunc Fq, at any finite place v, we have v(k) ≥ 0.
 -/
 theorem polynomial_integral_at_finite_places (p : Fq[X]) (v : HeightOneSpectrum Fq[X]) :
     (algebraMap Fq[X] (RatFunc Fq) p : v.adicCompletion (RatFunc Fq)) ∈
-      v.adicCompletionIntegers (RatFunc Fq) := by
-  -- Polynomials are integral: val_v(p) ≤ 1 for any polynomial p
-  -- API issue: valuedAdicCompletion_eq_valuation rewrite not matching
-  sorry
+      v.adicCompletionIntegers (RatFunc Fq) :=
+  -- Polynomials in R = Fq[X] have intValuation ≤ 1 at all places
+  coe_algebraMap_mem Fq[X] (RatFunc Fq) v p
 
 /-- For a polynomial P, diag(P) is integral at all finite places. -/
 theorem polynomial_diag_integral (p : Fq[X]) (v : HeightOneSpectrum Fq[X]) :
@@ -283,10 +273,24 @@ For elements with poles, this approximation exists by the structure of completio
 -/
 theorem exists_local_approximant (v : HeightOneSpectrum Fq[X]) (a_v : v.adicCompletion (RatFunc Fq)) :
     ∃ y : RatFunc Fq, (a_v - y) ∈ v.adicCompletionIntegers (RatFunc Fq) := by
-  -- K is dense in K_v, and the ball a_v - O_v is open
-  -- So K intersects this ball
-  -- Using density of K in K_v and openness of the integer ring
-  -- Proof has API issues with current mathlib - using sorry
+  /-
+  **Proof approach** (90% complete - blocked by UniformSpace instance mismatch):
+
+  1. hopen_int: {z : Valued.v z ≤ 1} is open via `@Valued.isOpen_integer` + convert
+  2. hopen: {x : Valued.v (a_v - x) ≤ 1} is open as preimage of hopen_int
+  3. hne: This set is non-empty (contains a_v since v(0) = 0 ≤ 1)
+  4. hdense: K is dense in K_v - **BLOCKED**
+     - Need `DenseRange (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq)))`
+     - adicCompletion = (v.valuation K).Completion, so coe should be dense
+     - But `UniformSpace.Completion.denseRange_coe` has instance mismatch
+     - The synthesized UniformSpace differs from WithVal.instValued's
+  5. By density: K intersects the open non-empty set → done
+
+  **Possible fixes for hdense**:
+  - Find a direct density lemma for adicCompletion in mathlib
+  - Use typeclass manipulation (congr_arg, cast, etc.)
+  - Prove helper `denseRange_adicCompletion` using completion properties
+  -/
   sorry
 
 /-- Construct a HeightOneSpectrum from an irreducible polynomial.
@@ -315,10 +319,52 @@ This bounds the multiplicity of any prime in D by the degree of D.
 Proof: g is irreducible so deg(g) ≥ 1, and g^n | D implies n·deg(g) ≤ deg(D). -/
 lemma intValuation_ge_exp_neg_natDegree (v : HeightOneSpectrum Fq[X]) (D : Fq[X]) (hD : D ≠ 0) :
     v.intValuation D ≥ WithZero.exp (-(D.natDegree : ℤ)) := by
-  -- Key idea: multiplicity of v in D is bounded by degree of D
-  -- because deg(g) ≥ 1 for any irreducible generator g of v
-  -- API mismatches with current mathlib - using sorry
-  sorry
+  by_cases hD_mem : D ∈ v.asIdeal
+  · -- Case: D ∈ v.asIdeal, need to bound the multiplicity
+    -- Get the multiplicity n from intValuation_if_neg
+    have hval := v.intValuation_if_neg hD
+    rw [hval]
+    -- Need to show: exp(-count) ≥ exp(-natDegree D), i.e., count ≤ natDegree D
+    apply WithZero.exp_le_exp.mpr
+    simp only [neg_le_neg_iff, Int.ofNat_le]
+    -- Let n = the multiplicity (count of v.asIdeal in the factorization)
+    set n := (Associates.mk v.asIdeal).count (Associates.mk (Ideal.span {D})).factors with hn_def
+    -- Get the generator g of v.asIdeal
+    haveI hPrincipal : v.asIdeal.IsPrincipal := IsPrincipalIdealRing.principal v.asIdeal
+    set g := Submodule.IsPrincipal.generator v.asIdeal with hg_def
+    -- g is prime (hence irreducible) since v.asIdeal is a nonzero prime ideal
+    have hg_prime : Prime g :=
+      Submodule.IsPrincipal.prime_generator_of_isPrime v.asIdeal v.ne_bot
+    have hg_irr : Irreducible g := hg_prime.irreducible
+    -- deg(g) ≥ 1 since g is irreducible
+    have hg_deg : 1 ≤ g.natDegree := hg_irr.natDegree_pos
+    -- D ∈ v.asIdeal^n by definition of intValuation
+    have hD_in_pow : D ∈ v.asIdeal ^ n := (v.intValuation_le_pow_iff_mem D n).mp (le_of_eq hval)
+    -- v.asIdeal^n = (g^n) in a PID
+    have hgen : v.asIdeal = Ideal.span {g} := (Ideal.span_singleton_generator v.asIdeal).symm
+    have hpow_eq : v.asIdeal ^ n = Ideal.span {g ^ n} := by
+      rw [hgen, Ideal.span_singleton_pow]
+    -- So g^n | D
+    have hgn_dvd : g ^ n ∣ D := by
+      rw [hpow_eq] at hD_in_pow
+      exact Ideal.mem_span_singleton.mp hD_in_pow
+    -- deg(g^n) ≤ deg(D)
+    have hdeg_pow_le : (g ^ n).natDegree ≤ D.natDegree :=
+      Polynomial.natDegree_le_of_dvd hgn_dvd hD
+    -- deg(g^n) = n * deg(g)
+    have hdeg_pow : (g ^ n).natDegree = n * g.natDegree :=
+      Polynomial.natDegree_pow g n
+    -- Conclude: n ≤ n * deg(g) = deg(g^n) ≤ deg(D)
+    calc n ≤ n * g.natDegree := Nat.le_mul_of_pos_right n hg_deg
+      _ = (g ^ n).natDegree := hdeg_pow.symm
+      _ ≤ D.natDegree := hdeg_pow_le
+  · -- Case: D ∉ v.asIdeal, so intValuation D = 1
+    have hval_one : v.intValuation D = 1 := intValuation_eq_one_iff.mpr hD_mem
+    rw [hval_one]
+    -- 1 = exp(0) ≥ exp(-natDegree D) since -natDegree D ≤ 0
+    rw [← WithZero.exp_zero]
+    apply WithZero.exp_le_exp.mpr
+    linarith [Int.ofNat_nonneg D.natDegree]
 
 /-- For any finite adele, there exists k ∈ K such that a - diag(k) is integral at all finite places.
 
