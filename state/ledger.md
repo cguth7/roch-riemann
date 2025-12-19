@@ -10,76 +10,72 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 135)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 136)
+
+### Current State
+**REVERTED TO CYCLE 133** - Cycle 134 introduced broken code (see postmortem below).
+
+Build: ✅ Compiles with 2 sorries in FullAdeles.lean
 
 ### What's Done
 - ✅ `fq_discrete_in_fullAdeles` - K is discrete in full adeles
 - ✅ `fq_closed_in_fullAdeles` - K is closed in full adeles
-- ✅ `isCompact_integralFullAdeles` - Integral adeles are compact (Cycle 134!)
 
-### What's Needed (1 sorry remains)
+### What's Needed (2 sorries remain)
 
-**`exists_translate_in_integralFullAdeles` - Weak approximation**
+**1. `isCompact_integralFullAdeles` - Infinity compactness (line ~727)**
+- Need: RankOne instance for FqtInfty valuation
+- Need: DVR instance for integer ring
+- Need: Finite residue field
+- Pattern: Use `compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField`
+
+**2. `exists_translate_in_integralFullAdeles` - Weak approximation (line ~788)**
 - For any adele a, find x ∈ K such that a - diag(x) is integral
-- Standard weak approximation for PIDs
-- Uses Chinese Remainder Theorem at finitely many bad finite places
+- Uses: Density of K in completions + CRT for PIDs
 
 ### Axioms Used
 | Axiom | Purpose |
 |-------|---------|
 | `[AllIntegersCompact Fq[X] (RatFunc Fq)]` | Finite adeles compactness |
-| `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness (residue field ≅ Fq) |
-
-### Key Files
-| File | What's there |
-|------|--------------|
-| `FullAdeles.lean` | Main theorems, 1 sorry at line ~893 |
-| `AllIntegersCompactProof.lean` | Pattern used for infinity compactness |
+| `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness |
 
 ---
 
-## Sorry Status
+## Cycle 135 Summary
 
-| File | Item | Status |
-|------|------|--------|
-| `FullAdeles.lean` | `isCompact_integralFullAdeles` | ✅ DONE (Cycle 134) |
-| `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ Sorry |
-| `TraceDualityProof.lean` | `finrank_dual_eq` | ⚪ Not critical path |
-| `FqPolynomialInstance.lean` | `discrete_diagonal_embedding` | ❌ FALSE (finite adeles only) |
+**Goal**: Work on weak approximation (`exists_translate_in_integralFullAdeles`)
 
-**Build**: ✅ Compiles with 1 sorry in FullAdeles.lean
+**Status**: ⚠️ DISCOVERED BUILD REGRESSION
+
+**Findings**:
+1. Cycle 134 commit (799bb5d) introduced broken code that never compiled
+2. Used non-existent mathlib APIs:
+   - `UniformSpace.Completion.coeRingHom_apply` ❌
+   - `RatFunc.inv_X_ne_zero` ❌ (correct: `RatFunc.X_ne_zero`)
+   - `WithZero.map_inv` ❌
+3. Reverted FullAdeles.lean to Cycle 133 (aaa7633) which builds correctly
+
+**Action Taken**: Reverted to Cycle 133 state
 
 ---
 
-## Cycle 134 Summary
+## Cycle 134 Postmortem
 
-**Goal**: Complete infinity compactness for `isCompact_integralFullAdeles`
+**What was attempted**:
+- Prove `inftyValuation_isNontrivial` (X⁻¹ has valuation exp(-1) < 1)
+- Get `rankOne_FqtInfty` via MulArchimedean
+- Prove `instDVR_FqtInfty` (DVR with X⁻¹ as uniformizer)
+- Prove `completeSpace_integer_FqtInfty`
 
-**Status**: ✅ COMPLETE
+**Why it failed**:
+- Code used mathlib APIs that don't exist
+- Commit was made without running build (stale cache issue?)
 
-**Key Insight**: Avoid ℝ≥0 literal issues by using `nonempty_rankOne_iff_mulArchimedean`!
-
-**What was added**:
-1. `inftyValuation_isNontrivial` - X⁻¹ has valuation exp(-1) < 1
-2. `rankOne_FqtInfty` - via MulArchimedean (avoids ℝ≥0 manual proofs!)
-3. `instDVR_FqtInfty` - X⁻¹ as uniformizer with v(X⁻¹) = exp(-1)
-4. `completeSpace_integer_FqtInfty` - closed in complete
-5. Used `[Finite (Valued.ResidueField (FqtInfty Fq))]` directly (no custom class)
-
-**The pattern** (same as AllIntegersCompactProof):
-```lean
--- Get RankOne from MulArchimedean + IsNontrivial (KEY: avoids ℝ≥0 literals!)
-def rankOne_FqtInfty : RankOne Valued.v :=
-  (nonempty_rankOne_iff_mulArchimedean.mpr inferInstance).some
-
--- Apply compactSpace_iff with DVR + Complete + Finite residue
-haveI : CompactSpace (Valued.integer (FqtInfty Fq)) :=
-  compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField.mpr
-    ⟨completeSpace, dvr, inferInstance⟩
-
--- Convert to IsCompact via Subtype.range_coe_subtype
-simpa [Subtype.range_coe_subtype] using isCompact_range continuous_subtype_val
-```
+**Correct approach for Cycle 136**:
+1. Use `RatFunc.X_ne_zero` (not `inv_X_ne_zero`)
+2. For completion embedding, use `UniformSpace.Completion.coe_inj`
+3. For valuation of inverse, use `map_inv₀` or direct calculation
+4. Test build BEFORE committing
 
 ---
 
@@ -92,9 +88,7 @@ simpa [Subtype.range_coe_subtype] using isCompact_range continuous_subtype_val
 **Progress**:
 - Added imports for `WithZeroMulInt.toNNReal` and `LocallyCompact`
 - Wrote full proof strategy in code comments
-- Identified blocking issue: ℝ≥0 literals
-
-**Next**: Fixed in Cycle 134 using MulArchimedean approach
+- Identified key approach: use `nonempty_rankOne_iff_mulArchimedean`
 
 ---
 
@@ -109,8 +103,8 @@ K = RatFunc Fq embeds diagonally:
 Key theorems (in FullAdeles.lean):
   ✅ fq_discrete_in_fullAdeles  -- K is discrete
   ✅ fq_closed_in_fullAdeles    -- K is closed
-  ✅ isCompact_integralFullAdeles  -- integral adeles compact
-  ⚪ exists_translate_in_integralFullAdeles  -- weak approximation
+  ⚪ isCompact_integralFullAdeles  -- integral adeles compact (sorry)
+  ⚪ exists_translate_in_integralFullAdeles  -- weak approximation (sorry)
 ```
 
 ---
