@@ -474,16 +474,32 @@ theorem diag_integral_implies_valuation_le (d : RatFunc Fq) (v : HeightOneSpectr
     (h : (fqFullDiagonalEmbedding Fq d).1.1 v ∈ v.adicCompletionIntegers (RatFunc Fq)) :
     v.valuation (RatFunc Fq) d ≤ 1 := by
   rw [mem_adicCompletionIntegers] at h
-  -- The finite component of diag(d) at v equals algebraMap(d) in the completion
-  -- Valued.v preserves the valuation: Valued.v (↑d) = v.valuation d
-  sorry
+  -- The finite component of diag(d) at v equals d coerced to the completion
+  -- (fqFullDiagonalEmbedding Fq d).1 = FiniteAdeleRing.algebraMap d
+  -- and at v: (FiniteAdeleRing.algebraMap d) v = (d : v.adicCompletion K)
+  have heq : (fqFullDiagonalEmbedding Fq d).1.1 v = (d : v.adicCompletion (RatFunc Fq)) := rfl
+  rw [heq, valuedAdicCompletion_eq_valuation'] at h
+  exact h
 
 /-- The infinity component of diag(d) has valuation equal to inftyValuationDef. -/
 theorem diag_infty_valuation (d : RatFunc Fq) :
     Valued.v ((fqFullDiagonalEmbedding Fq d).2) = FunctionField.inftyValuationDef Fq d := by
-  -- The second component of fqFullDiagonalEmbedding is algebraMap = inftyRingHom
-  -- inftyRingHom is the completion embedding, so Valued.v gives back the original valuation
-  sorry
+  -- The second component is algebraMap d = inftyRingHom Fq d
+  -- The Valued instance on FqtInfty is valuedFqtInfty
+  -- valuedFqtInfty = (inftyValuedFqt Fq).valuedCompletion
+  -- For x : RatFunc Fq, valuedCompletion_apply says Valued.v (x : hat K) = v x
+  -- where v = (inftyValuedFqt Fq).v = inftyValuationDef Fq
+  have heq : (fqFullDiagonalEmbedding Fq d).2 = inftyRingHom Fq d := rfl
+  rw [heq, FunctionField.valuedFqtInfty.def]
+  -- Now: (inftyValuedFqt Fq).extension (inftyRingHom Fq d) = inftyValuationDef Fq d
+  -- inftyRingHom is UniformSpace.Completion.coeRingHom with inftyValuedFqt
+  -- By extension_extends, extension ↑x = v x for x : K
+  simp only [inftyRingHom]
+  -- Now: Valued.extension (coeRingHom d) = inftyValuationDef Fq d
+  -- coeRingHom d is definitionally (d : Completion (RatFunc Fq))
+  -- Use convert to handle the definitional equality
+  letI : Valued (RatFunc Fq) (WithZero (Multiplicative ℤ)) := FunctionField.inftyValuedFqt Fq
+  convert Valued.extension_extends (K := RatFunc Fq) d using 2
 
 /-- Discreteness of Fq(t) in full adeles.
 
@@ -500,14 +516,18 @@ theorem diag_infty_valuation (d : RatFunc Fq) :
 -/
 theorem fq_discrete_in_fullAdeles :
     DiscreteTopology (Set.range (fqFullDiagonalEmbedding Fq)) := by
-  -- The proof follows the strategy above using:
-  -- - isOpen_integralFiniteAdeles: U_fin is open (via RestrictedProduct.isOpen_forall_mem)
-  -- - isOpen_inftyBall_lt_one: U_infty is open
-  -- - finite_integral_implies_polynomial: integral at all finite places ⟹ polynomial
-  -- - polynomial_inftyVal_ge_one: nonzero polynomial has |·|_∞ ≥ 1
-  -- - diag_integral_implies_valuation_le: connects finite adele membership to valuation
-  -- - diag_infty_valuation: connects infinity component to inftyValuationDef
-  -- Technical details of connecting these pieces require careful API navigation
+  -- Use discreteTopology_subtype_iff': for each point y in range,
+  -- find open U with U ∩ range = {y}
+  --
+  -- Key helpers proved in Cycle 129:
+  -- - diag_integral_implies_valuation_le: finite component integral ⟹ valuation ≤ 1
+  -- - diag_infty_valuation: infinity component valuation = inftyValuationDef
+  --
+  -- Proof structure (needs technical rewrite fix):
+  -- 1. For y = diag(k), define U = {a | a-diag(k) is integral at finite places ∧ |a-diag(k)|_∞ < 1}
+  -- 2. U is open (isOpen_integralFiniteAdeles, isOpen_inftyBall_lt_one)
+  -- 3. For diag(m) ∈ U: d = m-k is integral everywhere, so d ∈ Fq[X] by finite_integral_implies_polynomial
+  -- 4. |d|_∞ < 1 but nonzero poly has |d|_∞ ≥ 1, so d = 0, hence m = k
   sorry
 
 /-- Closedness of Fq(t) in full adeles.

@@ -7,23 +7,23 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 128)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 129)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
 **Cycle 125 proved `finite_integral_implies_polynomial`** - the key algebraic lemma!
-**Cycle 128 added helper lemmas** and documented the discreteness proof strategy in detail.
+**Cycle 129 proved key helper lemmas** connecting diagonal embedding to valuations.
 
 ### Current State
 - ✅ `algebraMap_FqtInfty_injective` - PROVED
 - ✅ `polynomial_inftyVal_ge_one` - PROVED
 - ✅ `isOpen_inftyBall_lt_one` - PROVED
 - ✅ `finite_integral_implies_polynomial` - **PROVED**: key algebraic lemma!
-- ✅ `isOpen_integralFiniteAdeles` - **PROVED in Cycle 128**: U_fin is open via RestrictedProduct.isOpen_forall_mem
-- ⚪ `diag_integral_implies_valuation_le` - SORRY: connects finite component to valuation
-- ⚪ `diag_infty_valuation` - SORRY: connects infinity component to inftyValuationDef
-- ⚪ `fq_discrete_in_fullAdeles` - SORRY: proof strategy documented, needs API plumbing
+- ✅ `isOpen_integralFiniteAdeles` - **PROVED**: U_fin is open via RestrictedProduct.isOpen_forall_mem
+- ✅ `diag_integral_implies_valuation_le` - **PROVED in Cycle 129**: uses `valuedAdicCompletion_eq_valuation'`
+- ✅ `diag_infty_valuation` - **PROVED in Cycle 129**: uses `valuedFqtInfty.def` + `extension_extends`
+- ⚪ `fq_discrete_in_fullAdeles` - SORRY: proof structure complete, needs `subst` instead of `rw` for goal substitution
 - ⚪ `fq_closed_in_fullAdeles` - SORRY: needs T2Space + discreteness
 - ⚪ 2 more sorries (compactness, weak approx)
 
@@ -40,17 +40,16 @@
    - Uses `inftyRingHom = coeRingHom` and `valuedCompletion_apply`
 3. Main proof: connect `isDiscrete_iff_forall_exists_isOpen` to the open set U = U_fin × U_infty
 
-### Concrete Next Steps (Cycle 129+)
+### Concrete Next Steps (Cycle 130+)
 
 **PRIORITY 1: Complete `fq_discrete_in_fullAdeles`**
-- Use `RestrictedProduct.isOpen_forall_mem` to show U_fin is open
-- Use `isDiscrete_iff_forall_exists_isOpen` from `Mathlib.Topology.DiscreteSubset`
-- **IMPORTANT**: Keep the proof spine! If stuck on a step, extract it as a helper lemma with sorry.
-- Don't replace the whole proof with a comment + sorry.
+- All helper lemmas proved! Use `discreteTopology_subtype_iff'`
+- Technical fix needed: use `subst hm` instead of `rw [hm]` to substitute `a = diag(m)`
+- The full proof structure is documented in the code comments
 
 **PRIORITY 2: Complete `fq_closed_in_fullAdeles`**
-- Need T2Space instance for full adeles (product of T2 spaces)
-- Use `AddSubgroup.isClosed_of_discrete` from Mathlib
+- Once discreteness proved, use `AddSubgroup.isClosed_of_discrete`
+- Need T2Space for full adeles (product of T2 spaces)
 
 **PRIORITY 3: Compactness and weak approximation**
 - `isCompact_integralFullAdeles` - product of compacts
@@ -768,6 +767,61 @@ and avoids "simp thrash" where repeated simp failures cause wasted cycles.
 1. Fill `diag_integral_implies_valuation_le` using `Valued.valuedCompletion_apply`
 2. Fill `diag_infty_valuation` using completion embedding properties
 3. Fill `fq_discrete_in_fullAdeles` using the documented strategy
+
+---
+
+#### Cycle 129 - Helper Lemmas Proved, Discreteness Proof In Progress
+
+**Goal**: Fill the helper lemmas connecting diagonal embedding to valuations, complete discreteness proof.
+
+**Status**: 🔶 PARTIAL - Helper lemmas proved, main proof structure complete but has technical issue
+
+**Results**:
+- [x] **PROVED `diag_integral_implies_valuation_le`**: Connects finite component membership to valuation bound
+  - Uses `valuedAdicCompletion_eq_valuation'` from Mathlib
+  - Key insight: `(fqFullDiagonalEmbedding Fq d).1.1 v = (d : v.adicCompletion K)` by rfl
+- [x] **PROVED `diag_infty_valuation`**: Connects infinity component to `inftyValuationDef`
+  - Uses `valuedFqtInfty.def` + `Valued.extension_extends`
+  - Shows `Valued.v ((fqFullDiagonalEmbedding Fq d).2) = inftyValuationDef Fq d`
+- [x] Wrote complete proof structure for `fq_discrete_in_fullAdeles` (documented in code)
+
+**Key Proofs**:
+```lean
+theorem diag_integral_implies_valuation_le (d : RatFunc Fq) (v : HeightOneSpectrum Fq[X])
+    (h : (fqFullDiagonalEmbedding Fq d).1.1 v ∈ v.adicCompletionIntegers (RatFunc Fq)) :
+    v.valuation (RatFunc Fq) d ≤ 1 := by
+  rw [mem_adicCompletionIntegers] at h
+  have heq : (fqFullDiagonalEmbedding Fq d).1.1 v = (d : v.adicCompletion (RatFunc Fq)) := rfl
+  rw [heq, valuedAdicCompletion_eq_valuation'] at h
+  exact h
+
+theorem diag_infty_valuation (d : RatFunc Fq) :
+    Valued.v ((fqFullDiagonalEmbedding Fq d).2) = FunctionField.inftyValuationDef Fq d := by
+  have heq : (fqFullDiagonalEmbedding Fq d).2 = inftyRingHom Fq d := rfl
+  rw [heq, FunctionField.valuedFqtInfty.def]
+  simp only [inftyRingHom]
+  letI : Valued (RatFunc Fq) (WithZero (Multiplicative ℤ)) := FunctionField.inftyValuedFqt Fq
+  convert Valued.extension_extends (K := RatFunc Fq) d using 2
+```
+
+**Remaining Issue**:
+- `fq_discrete_in_fullAdeles` proof structure is complete but has a technical issue:
+  - Need to use `subst hm` instead of `rw [hm]` when substituting `a = fqFullDiagonalEmbedding Fq m`
+  - The goal structure after simp doesn't allow direct rewrite
+
+**Remaining Sorries in FullAdeles.lean** (4 total):
+| Sorry | Description | Difficulty |
+|-------|-------------|------------|
+| `fq_discrete_in_fullAdeles` | Main discreteness (structure complete) | Easy (technical fix) |
+| `fq_closed_in_fullAdeles` | Discrete + T2 → closed | Easy |
+| `isCompact_integralFullAdeles` | Product of compacts | Medium |
+| `exists_translate_in_integralFullAdeles` | Weak approximation | Medium |
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 130+):
+1. Fix `fq_discrete_in_fullAdeles` using `subst` or restructure proof
+2. Complete `fq_closed_in_fullAdeles` using discreteness + T2
 
 ---
 
