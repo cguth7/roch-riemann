@@ -10,29 +10,66 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 137)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 138)
 
 ### Current State
-Build: ✅ Compiles with 1 sorry in FullAdeles.lean
+Build: ✅ Compiles with 2 sorries in FullAdeles.lean
 
 ### What's Done
 - ✅ `fq_discrete_in_fullAdeles` - K is discrete in full adeles
 - ✅ `fq_closed_in_fullAdeles` - K is closed in full adeles
 - ✅ `isCompact_integralFullAdeles` - Integral adeles are compact (Cycle 136!)
+- ✅ `isOpen_ball_le_one_FqtInfty` - Closed unit ball is open (discrete valuation)
+- ✅ `denseRange_inftyRingHom` - K is dense in FqtInfty
+- ✅ `exists_approx_in_ball_infty` - Can approximate any FqtInfty element to within O_∞
+- ✅ `polynomial_integral_at_finite_places` - Polynomials are integral at all finite places
+- ✅ Main theorem structure complete (modulo 2 helper lemmas)
 
-### What's Needed (1 sorry remains)
+### What's Needed (2 sorries remain)
 
-**`exists_translate_in_integralFullAdeles` - Weak approximation (line ~891)**
-- For any adele a, find x ∈ K such that a - diag(x) is integral
-- Approach: Use finite adele structure + CRT for PIDs
-- At finite places: Only finitely many are non-integral, use CRT to clear denominators
-- At infinity: Find polynomial adjustment to ensure |a_∞ - x|_∞ ≤ 1
+**`exists_finite_integral_translate` (line ~1012)**
+- For any finite adele a, find k ∈ K such that a - diag(k) is integral at all finite places
+- Approach: Use CRT for PIDs - only finitely many bad places
+
+**`exists_finite_integral_translate_with_infty_bound` (line ~1022)**
+- Same as above, but with bound on |k|_∞
+- Key insight: CRT solution can be chosen with deg(num) < deg(denom)
+- This gives |k|_∞ < 1
 
 ### Axioms Used
 | Axiom | Purpose |
 |-------|---------|
 | `[AllIntegersCompact Fq[X] (RatFunc Fq)]` | Finite adeles compactness |
 | `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness |
+
+---
+
+## Cycle 137 Summary
+
+**Goal**: Work on weak approximation (`exists_translate_in_integralFullAdeles`)
+
+**Status**: 🔶 PARTIAL - Main structure complete, 2 helper sorries remain
+
+**Key accomplishments**:
+1. Proved `isOpen_ball_le_one_FqtInfty` - {v ≤ 1} = {v < exp(1)} for discrete valuation
+2. Proved `denseRange_inftyRingHom` - density of K in completion
+3. Proved `exists_approx_in_ball_infty` - existence of approximation at infinity
+4. Proved `polynomial_integral_at_finite_places` - polynomials integral at finite places
+5. Structured main theorem proof using:
+   - Step 1: Find P with |a.2 - P|_∞ ≤ 1 (done via density)
+   - Step 2: Work with b = a - diag(P)
+   - Step 3: Find z clearing finite places with |z|_∞ ≤ 1 (needs CRT lemma)
+   - Step 4: Combine x = P + z, verify via ultrametric inequality
+
+**Key techniques used**:
+- `UniformSpace.Completion.denseRange_coe` for density
+- `Valued.isClopen_ball` for openness of valuation balls
+- `WithZero.exp_lt_exp` and `omega` for discrete value group reasoning
+- `Valued.v.map_sub_le_max'` for ultrametric inequality
+
+**Remaining work for Cycle 138**:
+- Prove CRT-based lemmas using `IsDedekindDomain.exists_forall_sub_mem_ideal`
+- Key challenge: targets are in K_v (completion), need density argument
 
 ---
 

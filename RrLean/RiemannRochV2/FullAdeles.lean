@@ -881,16 +881,197 @@ theorem isCompact_integralFullAdeles [AllIntegersCompact Fq[X] (RatFunc Fq)]
   rw [hprod]
   exact hCompactFin.prod hCompactInfty
 
+/-! ### Helper lemmas for weak approximation -/
+
+/-- The set {x : Valued.v x ≤ 1} is a neighborhood of any point in it.
+
+For valued fields with discrete value group, the closed ball is also open (clopen).
+-/
+theorem isOpen_ball_le_one_FqtInfty :
+    IsOpen {x : FqtInfty Fq | Valued.v x ≤ 1} := by
+  -- For discrete valuations, {v ≤ 1} = {v < exp(1)} which is open
+  -- Since value group is ℤ, there's nothing between 1 = exp(0) and exp(1)
+  convert (Valued.isClopen_ball (R := FqtInfty Fq) (WithZero.exp (1 : ℤ))).isOpen using 1
+  ext x
+  simp only [Set.mem_setOf_eq, Valued.mem_ball_zero_iff]
+  constructor
+  · intro hle
+    calc Valued.v x ≤ 1 := hle
+      _ = WithZero.exp (0 : ℤ) := by rw [WithZero.exp_zero]
+      _ < WithZero.exp (1 : ℤ) := WithZero.exp_lt_exp.mpr (by norm_num)
+  · intro hlt
+    -- v < exp(1) means v ≤ exp(0) = 1 since value group is ℤ
+    by_cases hx : x = 0
+    · simp [hx]
+    · -- v x ∈ {exp n : n ∈ ℤ} for x ≠ 0
+      -- v x < exp 1 means v x ≤ exp 0 = 1
+      have hval_pos : (0 : WithZero (Multiplicative ℤ)) < Valued.v x :=
+        (Valuation.ne_zero_iff _).mpr hx
+      -- The key: valuation range is discrete (values in exp(ℤ) ∪ {0})
+      -- For x ≠ 0, v x = exp(n) for some n ∈ ℤ
+      -- If v x < exp(1) and v x > 0, then n < 1, so n ≤ 0, so v x ≤ 1
+      rw [← WithZero.exp_zero]
+      -- Use the fact that in WithZero (Multiplicative ℤ), the only values between
+      -- 0 and exp(1) are {0} ∪ {exp(n) : n ≤ 0}
+      -- Since v x > 0 and v x < exp(1), and v x takes values in exp(ℤ),
+      -- we must have v x = exp(n) for some n < 1, hence n ≤ 0
+      -- Strategy: use that WithZero (Multiplicative ℤ) is well-ordered in a sense
+      -- Below exp(1), the maximum non-zero value is exp(0) = 1
+      -- For x ≠ 0, Valued.v x ∈ range(Valued.v) ⊆ image of exp on ℤ
+      -- The only values < exp(1) and > 0 are exp(n) for n ≤ 0
+      -- All these are ≤ exp(0) = 1
+      by_contra hgt
+      push_neg at hgt
+      -- hgt : 1 < v x, hlt : v x < exp(1), hval_pos : 0 < v x
+      -- This is a contradiction in the ordered structure of WithZero (Multiplicative ℤ)
+      -- 1 = exp(0) < v x < exp(1) implies 0 < n < 1 for v x = exp(n), impossible for n ∈ ℤ
+      -- Use WithZero.coe_lt_coe to convert to Multiplicative ℤ comparisons
+      have h1 : (1 : WithZero (Multiplicative ℤ)) = WithZero.exp 0 := (WithZero.exp_zero).symm
+      have h2 : WithZero.exp (1 : ℤ) = ((Multiplicative.ofAdd 1 : Multiplicative ℤ) : WithZero _) := rfl
+      have h3 : (1 : WithZero (Multiplicative ℤ)) = ((1 : Multiplicative ℤ) : WithZero _) := rfl
+      rw [h1] at hgt
+      -- Now hgt : exp(0) < v x and hlt : v x < exp(1)
+      -- v x must be in the image of (coe : Multiplicative ℤ → WithZero _) since v x ≠ 0
+      obtain ⟨m, hm⟩ : ∃ m : Multiplicative ℤ, (m : WithZero (Multiplicative ℤ)) = Valued.v x := by
+        have : Valued.v x ≠ 0 := ne_of_gt hval_pos
+        exact WithZero.ne_zero_iff_exists.mp this
+      rw [← hm] at hgt hlt
+      -- Now hgt : exp(0) < m and hlt : m < exp(1) in WithZero (Multiplicative ℤ)
+      rw [WithZero.coe_lt_coe] at hgt hlt
+      -- hgt : Multiplicative.ofAdd 0 < m, hlt : m < Multiplicative.ofAdd 1
+      simp only [Multiplicative.ofAdd_lt] at hgt hlt
+      -- hgt : 0 < toAdd m, hlt : toAdd m < 1, with toAdd m : ℤ
+      omega
+
+/-- K is dense in FqtInfty (the completion at infinity). -/
+theorem denseRange_inftyRingHom :
+    DenseRange (inftyRingHom Fq) := by
+  letI : Valued (RatFunc Fq) (WithZero (Multiplicative ℤ)) := FunctionField.inftyValuedFqt Fq
+  -- inftyRingHom is the coe from K to its completion
+  exact UniformSpace.Completion.denseRange_coe
+
+/-- For any element of FqtInfty, there exists k ∈ K with |a - k|_∞ ≤ 1.
+
+This follows from density of K in FqtInfty and the clopen nature of the unit ball.
+-/
+theorem exists_approx_in_ball_infty (a : FqtInfty Fq) :
+    ∃ k : RatFunc Fq, Valued.v (a - inftyRingHom Fq k) ≤ 1 := by
+  -- The ball {x : |x - a| ≤ 1} is an open neighborhood of a
+  -- By density, K intersects it
+  have hopen : IsOpen {x : FqtInfty Fq | Valued.v (a - x) ≤ 1} := by
+    -- Translate the open set {y : |y| ≤ 1} by a
+    have h1 : {x : FqtInfty Fq | Valued.v (a - x) ≤ 1} = (fun y => a - y) ⁻¹' {y | Valued.v y ≤ 1} := by
+      ext x
+      simp only [Set.mem_preimage, Set.mem_setOf_eq]
+    rw [h1]
+    apply IsOpen.preimage (by continuity) (isOpen_ball_le_one_FqtInfty Fq)
+  have hmem : a ∈ {x : FqtInfty Fq | Valued.v (a - x) ≤ 1} := by
+    simp only [Set.mem_setOf_eq, sub_self, map_zero]
+    exact zero_le'
+  -- Use density
+  obtain ⟨k, hk⟩ := (denseRange_inftyRingHom Fq).exists_mem_open hopen ⟨a, hmem⟩
+  exact ⟨k, hk⟩
+
+/-- Polynomials are integral at all finite places.
+
+For k ∈ Fq[X] ⊂ RatFunc Fq, at any finite place v, we have v(k) ≥ 0.
+-/
+theorem polynomial_integral_at_finite_places (p : Fq[X]) (v : HeightOneSpectrum Fq[X]) :
+    (algebraMap Fq[X] (RatFunc Fq) p : v.adicCompletion (RatFunc Fq)) ∈
+      v.adicCompletionIntegers (RatFunc Fq) := by
+  rw [mem_adicCompletionIntegers]
+  simp only [adicCompletion, Valued.valuedCompletion_apply]
+  exact v.valuation_of_algebraMap_le p
+
+/-- For a polynomial P, diag(P) is integral at all finite places. -/
+theorem polynomial_diag_integral (p : Fq[X]) (v : HeightOneSpectrum Fq[X]) :
+    ((fqFullDiagonalEmbedding Fq (algebraMap Fq[X] (RatFunc Fq) p)).1).val v ∈
+      v.adicCompletionIntegers (RatFunc Fq) :=
+  polynomial_integral_at_finite_places Fq p v
+
+/-- The finite adele component of the diagonal embedding. -/
+theorem fqFullDiagonalEmbedding_fst (k : RatFunc Fq) :
+    (fqFullDiagonalEmbedding Fq k).1 = FiniteAdeleRing.algebraMap Fq[X] (RatFunc Fq) k := rfl
+
+/-- The infinity component of the diagonal embedding. -/
+theorem fqFullDiagonalEmbedding_snd (k : RatFunc Fq) :
+    (fqFullDiagonalEmbedding Fq k).2 = inftyRingHom Fq k := rfl
+
+/-- For any finite adele, there exists k ∈ K such that a - diag(k) is integral at all finite places.
+
+This uses the CRT for PIDs. The key insight is that:
+- Only finitely many places are non-integral
+- For PIDs, we can find a single element clearing all denominators
+-/
+theorem exists_finite_integral_translate (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) :
+    ∃ k : RatFunc Fq, ∀ v, (a.val v - k) ∈ v.adicCompletionIntegers (RatFunc Fq) := by
+  -- The support S = {v : a v ∉ O_v} is finite by restricted product definition
+  -- We use induction on |S| combined with CRT
+  -- For PIDs like Fq[X], there's a simpler approach:
+  -- find k matching the "principal parts" at all bad places
+  sorry
+
+/-- Combined: existence of translate with controlled infinity valuation. -/
+theorem exists_finite_integral_translate_with_infty_bound
+    (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) (bound : WithZero (Multiplicative ℤ)) :
+    ∃ k : RatFunc Fq, (∀ v, (a.val v - k) ∈ v.adicCompletionIntegers (RatFunc Fq)) ∧
+      Valued.v (inftyRingHom Fq k) ≤ bound := by
+  -- This combines CRT with degree bounds
+  -- For Fq[X], the CRT solution can be chosen with deg(num) < deg(denom)
+  -- which gives control over the infinity valuation
+  sorry
+
 /-- Weak approximation: every element can be shifted into integral adeles.
 
 For Fq[X] (a PID), this is straightforward:
 - Only finitely many places have non-integral components
 - Find a polynomial that "clears denominators" at all these places
 - The result lands in the integral adeles
+
+**Proof strategy**:
+1. Use `exists_approx_in_ball_infty` to find P with |a.2 - P|_∞ ≤ 1
+2. Work with b = a - diag(P), which has |b.2|_∞ ≤ 1
+3. Use `exists_finite_integral_translate_with_infty_bound` to find z with:
+   - b.1 - diag(z) integral at all finite places
+   - |z|_∞ ≤ 1
+4. Combine: x = P + z satisfies a - diag(x) ∈ integralFullAdeles
 -/
 theorem exists_translate_in_integralFullAdeles (a : FqFullAdeleRing Fq) :
     ∃ x : RatFunc Fq, a - fqFullDiagonalEmbedding Fq x ∈ integralFullAdeles Fq := by
-  sorry
+  -- Step 1: Approximate a.2 at infinity
+  obtain ⟨P, hP⟩ := exists_approx_in_ball_infty Fq a.2
+  -- Step 2: Work with the modified adele
+  let b : FqFullAdeleRing Fq := a - fqFullDiagonalEmbedding Fq P
+  -- Step 3: Find z clearing finite places with bounded infinity valuation
+  -- Need: for all v, (b.1 v - z) ∈ O_v and |z|_∞ ≤ 1
+  obtain ⟨z, hz_fin, hz_inf⟩ := exists_finite_integral_translate_with_infty_bound Fq b.1 1
+  -- Step 4: Combine
+  use P + z
+  constructor
+  · -- Finite places
+    intro v
+    -- (a - diag(P + z)).1 v = (a - diag(P)).1 v - z = b.1 v - z
+    have heq : ((a - fqFullDiagonalEmbedding Fq (P + z)).1).val v = (b.1.val v - z) := by
+      simp only [b, Prod.fst_sub, fqFullDiagonalEmbedding_fst, map_add]
+      rfl
+    rw [heq]
+    exact hz_fin v
+  · -- Infinity place
+    -- (a - diag(P + z)).2 = a.2 - (P + z) = (a.2 - P) - z = b.2 - z
+    have heq : (a - fqFullDiagonalEmbedding Fq (P + z)).2 = b.2 - inftyRingHom Fq z := by
+      simp only [b, Prod.snd_sub, fqFullDiagonalEmbedding_snd, map_add]
+      ring
+    rw [heq]
+    -- |b.2 - z|_∞ ≤ max(|b.2|_∞, |z|_∞) ≤ 1 by ultrametric inequality
+    -- But we need to be careful: b.2 = a.2 - P, so |b.2|_∞ = |a.2 - P|_∞ ≤ 1
+    have hb2 : Valued.v b.2 ≤ 1 := by
+      simp only [b, Prod.snd_sub, fqFullDiagonalEmbedding_snd]
+      exact hP
+    -- Use ultrametric: |b.2 - z| ≤ max(|b.2|, |z|)
+    calc Valued.v (b.2 - inftyRingHom Fq z)
+        ≤ max (Valued.v b.2) (Valued.v (inftyRingHom Fq z)) := Valued.v.map_sub_le_max' _ _
+      _ ≤ max 1 1 := max_le_max hb2 hz_inf
+      _ = 1 := max_self 1
 
 /-! ### Full Instance -/
 
