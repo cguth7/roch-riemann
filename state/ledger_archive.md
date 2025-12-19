@@ -5115,3 +5115,50 @@ DiscreteCocompactEmbedding if we're careful about what we're proving.
 generalizing. This follows ChatGPT's advice and avoids abstract machinery bugs.
 
 ---
+
+---
+
+## Vol. 3.2 Part 2: Full Adeles Foundation (Cycles 118-132)
+
+### Cycle 118 - AllIntegersCompact Instance for Fq[X]
+- Created `FqPolynomialInstance.lean`
+- Proved `finite_quotient_polynomial` via monic normalization
+- First concrete instantiation of axiom classes
+
+### Cycle 119 - DiscreteCocompactEmbedding Structure
+- Extended FqPolynomialInstance with 5 sorries for deep proofs
+
+### Cycle 120 - `valuation_eq_one_almost_all` Proved
+- Used `HeightOneSpectrum.Support.finite` from Mathlib
+
+### Cycle 121 - CRITICAL: K NOT Discrete in Finite Adeles
+- Discovered fundamental spec bug
+- Finite adeles missing infinity place
+- Decision: Add infinity via product construction
+
+### Cycles 122-123 - FullAdeles.lean Created
+- `FullAdeleRing := FiniteAdeleRing × K_∞`
+- `fqFullDiagonalEmbedding` defined and proved injective
+- `FullDiscreteCocompactEmbedding` class created
+
+### Cycles 124-126 - Helper Lemmas for Discreteness
+- `algebraMap_FqtInfty_injective` proved
+- `polynomial_inftyVal_ge_one` proved
+- `finite_integral_implies_polynomial` proved (key algebraic lemma)
+- `isOpen_integralFiniteAdeles` proved
+
+### Cycles 128-129 - Discreteness Proof Structure
+- `diag_integral_implies_valuation_le` proved
+- `diag_infty_valuation` proved
+
+### Cycle 130 - DISCRETENESS PROVED
+- `fq_discrete_in_fullAdeles` complete (~90 lines)
+- Key insight: integral at finite + |·|_∞ < 1 → polynomial → |·|_∞ ≥ 1 → contradiction
+
+### Cycle 131 - CLOSEDNESS PROVED
+- `fq_closed_in_fullAdeles` complete
+- Used `AddSubgroup.isClosed_of_discrete` with T2Space
+
+### Cycle 132 - Finite Adeles Compactness
+- Finite part proved via `RestrictedProduct.range_structureMap`
+- Infinity component still sorry
