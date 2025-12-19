@@ -1,5 +1,7 @@
 # Ledger Vol. 3.3 (Cycles 133+) - Full Adeles Compactness
 
+**Ultimate Goal**: Formalize Riemann-Roch for curves over finite fields in Lean 4 — **no axioms, no sorries**.
+
 *For Cycles 1-34, see `state/ledger_archive.md` (Vol. 1)*
 *For Cycles 35-79, see `state/ledger_archive.md` (Vol. 2)*
 *For Cycles 80-99, see `state/ledger_archive.md` (Vol. 3.1)*
@@ -8,56 +10,31 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 134)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 135)
 
 ### What's Done
 - ✅ `fq_discrete_in_fullAdeles` - K is discrete in full adeles
 - ✅ `fq_closed_in_fullAdeles` - K is closed in full adeles
-- ✅ Finite adeles compactness - via `RestrictedProduct.range_structureMap`
+- ✅ `isCompact_integralFullAdeles` - Integral adeles are compact (Cycle 134!)
 
-### What's Needed (2 sorries remain)
+### What's Needed (1 sorry remains)
 
-**1. `isCompact_integralFullAdeles` - Infinity component sorry**
-
-The finite adeles part is DONE. Need to prove `IsCompact {x : FqtInfty Fq | Valued.v x ≤ 1}`.
-
-**Blocking issue from Cycle 133**: ℝ≥0 literal proofs fail.
-- `(2 : ℝ≥0) ≠ 0` and `(1 : ℝ≥0) < 2` don't work with `norm_num` or `native_decide`
-- **FIX**: Use coercion trick: `NNReal.coe_lt_coe.mp (by norm_num : (1:ℝ) < 2)`
-
-**Proof strategy** (documented in `FullAdeles.lean` line 687-718):
-```lean
--- 1. RankOne instance (needs ℝ≥0 literal fix)
-instance instRankOneFqtInfty : Valuation.RankOne (Valued.v (R := FqtInfty Fq)) where
-  toIsNontrivial := inftyValuation_isNontrivial Fq  -- v(X) = exp(1) ≠ 0,1
-  hom := WithZeroMulInt.toNNReal h2                  -- h2 : (2 : ℝ≥0) ≠ 0
-  strictMono' := WithZeroMulInt.toNNReal_strictMono h1  -- h1 : (1 : ℝ≥0) < 2
-
--- 2. Apply compactSpace_iff (same pattern as AllIntegersCompactProof.lean)
--- Needs: CompleteSpace (closed in complete), DVR (value group ℤ), Finite residue (≅ Fq)
-Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField
-
--- 3. Convert CompactSpace → IsCompact via continuous_subtype_val
-```
-
-**2. `exists_translate_in_integralFullAdeles` - Weak approximation**
+**`exists_translate_in_integralFullAdeles` - Weak approximation**
 - For any adele a, find x ∈ K such that a - diag(x) is integral
 - Standard weak approximation for PIDs
+- Uses Chinese Remainder Theorem at finitely many bad finite places
+
+### Axioms Used
+| Axiom | Purpose |
+|-------|---------|
+| `[AllIntegersCompact Fq[X] (RatFunc Fq)]` | Finite adeles compactness |
+| `[Finite (Valued.ResidueField (FqtInfty Fq))]` | Infinity compactness (residue field ≅ Fq) |
 
 ### Key Files
 | File | What's there |
 |------|--------------|
-| `FullAdeles.lean` | Main theorems, 2 sorries at lines ~727 and ~788 |
-| `AllIntegersCompactProof.lean` | Pattern to follow for infinity compactness |
-| `FqPolynomialInstance.lean` | Concrete Fq[X] instances |
-
-### Key Mathlib APIs
-| What | Lemma |
-|------|-------|
-| Integer = {v ≤ 1} | `Valuation.mem_integer_iff` |
-| CompactSpace ↔ complete+DVR+finite | `compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField` |
-| ℤᵐ⁰ → ℝ≥0 embedding | `WithZeroMulInt.toNNReal`, `WithZeroMulInt.toNNReal_strictMono` |
-| Closed subset complete | `IsClosed.completeSpace_coe` |
+| `FullAdeles.lean` | Main theorems, 1 sorry at line ~893 |
+| `AllIntegersCompactProof.lean` | Pattern used for infinity compactness |
 
 ---
 
@@ -65,12 +42,44 @@ Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_fi
 
 | File | Item | Status |
 |------|------|--------|
-| `FullAdeles.lean` | `isCompact_integralFullAdeles` | 🔶 Infinity sorry (finite DONE) |
+| `FullAdeles.lean` | `isCompact_integralFullAdeles` | ✅ DONE (Cycle 134) |
 | `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ Sorry |
 | `TraceDualityProof.lean` | `finrank_dual_eq` | ⚪ Not critical path |
 | `FqPolynomialInstance.lean` | `discrete_diagonal_embedding` | ❌ FALSE (finite adeles only) |
 
-**Build**: ✅ Compiles with 2 sorries in FullAdeles.lean
+**Build**: ✅ Compiles with 1 sorry in FullAdeles.lean
+
+---
+
+## Cycle 134 Summary
+
+**Goal**: Complete infinity compactness for `isCompact_integralFullAdeles`
+
+**Status**: ✅ COMPLETE
+
+**Key Insight**: Avoid ℝ≥0 literal issues by using `nonempty_rankOne_iff_mulArchimedean`!
+
+**What was added**:
+1. `inftyValuation_isNontrivial` - X⁻¹ has valuation exp(-1) < 1
+2. `rankOne_FqtInfty` - via MulArchimedean (avoids ℝ≥0 manual proofs!)
+3. `instDVR_FqtInfty` - X⁻¹ as uniformizer with v(X⁻¹) = exp(-1)
+4. `completeSpace_integer_FqtInfty` - closed in complete
+5. Used `[Finite (Valued.ResidueField (FqtInfty Fq))]` directly (no custom class)
+
+**The pattern** (same as AllIntegersCompactProof):
+```lean
+-- Get RankOne from MulArchimedean + IsNontrivial (KEY: avoids ℝ≥0 literals!)
+def rankOne_FqtInfty : RankOne Valued.v :=
+  (nonempty_rankOne_iff_mulArchimedean.mpr inferInstance).some
+
+-- Apply compactSpace_iff with DVR + Complete + Finite residue
+haveI : CompactSpace (Valued.integer (FqtInfty Fq)) :=
+  compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField.mpr
+    ⟨completeSpace, dvr, inferInstance⟩
+
+-- Convert to IsCompact via Subtype.range_coe_subtype
+simpa [Subtype.range_coe_subtype] using isCompact_range continuous_subtype_val
+```
 
 ---
 
@@ -85,7 +94,7 @@ Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_fi
 - Wrote full proof strategy in code comments
 - Identified blocking issue: ℝ≥0 literals
 
-**Next**: Fix ℝ≥0 proofs, complete RankOne instance, finish compactness
+**Next**: Fixed in Cycle 134 using MulArchimedean approach
 
 ---
 
@@ -100,7 +109,7 @@ K = RatFunc Fq embeds diagonally:
 Key theorems (in FullAdeles.lean):
   ✅ fq_discrete_in_fullAdeles  -- K is discrete
   ✅ fq_closed_in_fullAdeles    -- K is closed
-  🔶 isCompact_integralFullAdeles  -- integral adeles compact
+  ✅ isCompact_integralFullAdeles  -- integral adeles compact
   ⚪ exists_translate_in_integralFullAdeles  -- weak approximation
 ```
 
@@ -110,4 +119,4 @@ Key theorems (in FullAdeles.lean):
 
 - `AllIntegersCompactProof.lean` - Pattern for compactness via DVR+complete+finite
 - `Mathlib/Topology/Algebra/Valued/LocallyCompact.lean` - compactSpace_iff lemma
-- `Mathlib/Data/Int/WithZero.lean` - WithZeroMulInt.toNNReal
+- `Valuation.nonempty_rankOne_iff_mulArchimedean` - KEY: gets RankOne without ℝ≥0 literals
