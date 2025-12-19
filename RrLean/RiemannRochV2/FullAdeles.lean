@@ -684,9 +684,63 @@ The integral full adeles form a compact set because:
 -/
 theorem isCompact_integralFullAdeles [AllIntegersCompact Fq[X] (RatFunc Fq)] :
     IsCompact (integralFullAdeles Fq) := by
-  -- integralFullAdeles is a subset of (integral finite adeles) × (integers at ∞)
-  -- Both factors are compact, so the product is compact
-  sorry
+  -- Step 1: Show integralFullAdeles = (integral finite adeles) ×ˢ (integers at ∞)
+  -- Step 2: Show each factor is compact
+  -- Step 3: Apply IsCompact.prod
+
+  -- Define the two factor sets
+  let integralFin : Set (FiniteAdeleRing Fq[X] (RatFunc Fq)) :=
+    {a | ∀ v, a.val v ∈ v.adicCompletionIntegers (RatFunc Fq)}
+  let integralInfty : Set (FqtInfty Fq) := {x | Valued.v x ≤ 1}
+
+  -- integralFullAdeles is the product of these two sets
+  have hprod : integralFullAdeles Fq = integralFin ×ˢ integralInfty := by
+    ext ⟨af, ai⟩
+    simp only [integralFullAdeles, Set.mem_setOf_eq]
+    rfl
+
+  -- Prove compactness of the finite adeles factor
+  have hCompactFin : IsCompact integralFin := by
+    -- Each O_v is compact by AllIntegersCompact
+    haveI hOv_compact : ∀ v : HeightOneSpectrum Fq[X],
+        CompactSpace (v.adicCompletionIntegers (RatFunc Fq)) :=
+      fun v => AllIntegersCompact.compact v
+    -- Π v, O_v is compact by Tychonoff (Pi.compactSpace)
+    -- The integral adeles are the image of structureMap, which is a continuous embedding
+    -- Image of compact set under continuous map is compact
+    let R' := fun v : HeightOneSpectrum Fq[X] => v.adicCompletion (RatFunc Fq)
+    let A' := fun v : HeightOneSpectrum Fq[X] => (v.adicCompletionIntegers (RatFunc Fq) : Set (R' v))
+    -- Use range_structureMap to show integralFin = range(structureMap)
+    have hrange : integralFin = Set.range (RestrictedProduct.structureMap R' A' Filter.cofinite) := by
+      ext a
+      rw [RestrictedProduct.range_structureMap]
+      -- a ∈ integralFin ↔ ∀ v, a.1 v ∈ A' v
+      -- Both express: every component is in the integers
+      rfl
+    rw [hrange]
+    -- Now need: range of structureMap is compact
+    -- structureMap is continuous, Π v, O_v is compact, so image is compact
+    exact isCompact_range (RestrictedProduct.isEmbedding_structureMap.continuous)
+
+  -- Prove compactness of the infinity factor
+  have hCompactInfty : IsCompact integralInfty := by
+    -- The integer ring {x | Valued.v x ≤ 1} = Valued.integer in a complete valued field is compact
+    -- when the residue field is finite and the valuation has rank 1.
+    -- Use: Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField
+    --
+    -- For FqtInfty Fq, we need:
+    -- 1. RankOne instance for Valued.v on FqtInfty Fq (ℤᵐ⁰ embeds into ℝ≥0)
+    -- 2. CompleteSpace (Valued.integer (FqtInfty Fq)) - follows from FqtInfty being a completion
+    -- 3. IsDiscreteValuationRing (Valued.integer (FqtInfty Fq)) - follows from compactness
+    -- 4. Finite (Valued.residueField (FqtInfty Fq)) - residue field is Fq
+    --
+    -- integralInfty = (Valued.integer (FqtInfty Fq) : Set _) by definition
+    -- Then use isCompact_iff_compactSpace to convert CompactSpace to IsCompact
+    sorry
+
+  -- Combine using IsCompact.prod
+  rw [hprod]
+  exact hCompactFin.prod hCompactInfty
 
 /-- Weak approximation: every element can be shifted into integral adeles.
 

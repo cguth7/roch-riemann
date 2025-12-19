@@ -7,13 +7,14 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 131)
+## 🎯 NEXT CLAUDE: Start Here (Post-Cycle 132)
 
 ### Critical Context
 **Cycle 121 discovered a spec bug**: K is NOT discrete in the *finite* adeles.
 **Cycle 122 created `FullAdeles.lean`** with the product definition A = A_f × K_∞.
 **Cycle 130 PROVED `fq_discrete_in_fullAdeles`** - the KEY discreteness theorem!
 **Cycle 131 PROVED `fq_closed_in_fullAdeles`** - discrete + T2 → closed!
+**Cycle 132**: PARTIAL progress on `isCompact_integralFullAdeles` - finite adeles part DONE!
 
 ### Current State
 - ✅ `algebraMap_FqtInfty_injective` - PROVED
@@ -25,15 +26,24 @@
 - ✅ `diag_infty_valuation` - PROVED
 - ✅ **`fq_discrete_in_fullAdeles` - PROVED in Cycle 130!**
 - ✅ **`fq_closed_in_fullAdeles` - PROVED in Cycle 131!**
-- ⚪ `isCompact_integralFullAdeles` - SORRY: product of compacts
+- 🔶 `isCompact_integralFullAdeles` - Finite adeles PROVED, infinity sorry
 - ⚪ `exists_translate_in_integralFullAdeles` - SORRY: weak approximation
 
-### Concrete Next Steps (Cycle 132+)
+### Concrete Next Steps (Cycle 133+)
 
-**PRIORITY 1: Compactness `isCompact_integralFullAdeles`**
-- integral finite adeles ∏_v O_v are compact (from `AllIntegersCompact`)
-- integers at infinity {x | |x|_∞ ≤ 1} are compact (integer ring of local field)
-- Product of compact sets is compact
+**PRIORITY 1: Finish `isCompact_integralFullAdeles` - Infinity Component**
+
+The finite adeles compactness is PROVED via:
+- `RestrictedProduct.range_structureMap` identifies integral adeles as image
+- `isCompact_range` + `isEmbedding_structureMap.continuous`
+
+For the infinity component `{x : FqtInfty | Valued.v x ≤ 1}`, need:
+1. **RankOne instance** for `Valued.v` on `FqtInfty Fq` (ℤᵐ⁰ embeds into ℝ≥0)
+2. **CompleteSpace** for `Valued.integer (FqtInfty Fq)` - follows from completion
+3. **IsDiscreteValuationRing** for the integer ring
+4. **Finite residue field** - should be Fq
+
+Then use `Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField`
 
 **PRIORITY 2: Weak approximation `exists_translate_in_integralFullAdeles`**
 - For any adele a, find x ∈ K such that a - diag(x) is integral
@@ -46,8 +56,9 @@
 | What you need | How to get it |
 |---------------|---------------|
 | Product compact | `IsCompact.prod` |
-| ValuationSubring compact | `IsCompact.compact_space` for local fields? |
-| PID clearing denominators | Use `IsCoprime` from UFD structure |
+| Infinity integers compact | `compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField` |
+| RankOne for ℤᵐ⁰ | Need to construct embedding `ℤᵐ⁰ →*₀ ℝ≥0` |
+| Finite adeles compact | ✅ Done via `range_structureMap` + `isCompact_range` |
 
 ### What NOT To Do
 - ❌ Don't try to prove `discrete_diagonal_embedding` for finite adeles (it's false)
@@ -56,7 +67,7 @@
 
 ---
 
-## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 131)
+## ⚡ Quick Reference: Current Axiom/Sorry Status (Cycle 132)
 
 ### Sorries (proof holes)
 | File | Item | Status | Notes |
@@ -70,7 +81,7 @@
 | `FullAdeles.lean` | `finite_integral_implies_polynomial` | ✅ PROVED | **Cycle 125**: UFD/coprimality argument |
 | `FullAdeles.lean` | `fq_discrete_in_fullAdeles` | ✅ PROVED | **Cycle 130**: KEY discreteness theorem! |
 | `FullAdeles.lean` | `fq_closed_in_fullAdeles` | ✅ PROVED | **Cycle 131**: T2Space + discreteness → closed |
-| `FullAdeles.lean` | `isCompact_integralFullAdeles` | ⚪ 1 sorry | Product of compacts |
+| `FullAdeles.lean` | `isCompact_integralFullAdeles` | 🔶 PARTIAL | **Cycle 132**: Finite adeles DONE, infinity sorry |
 | `FullAdeles.lean` | `exists_translate_in_integralFullAdeles` | ⚪ 1 sorry | Weak approximation |
 
 ### New Helper Lemmas (Cycle 124)
@@ -104,10 +115,10 @@
 | `FullAdeles.lean` | `inftyRingHom` | ✅ DEFINED | RatFunc Fq →+* FqtInfty Fq |
 | `FullAdeles.lean` | `fqFullDiagonalEmbedding_injective` | ✅ PROVED | Uses infinity injection |
 
-**Build Status**: ✅ Compiles with 8 sorries total
+**Build Status**: ✅ Compiles with 7 sorries total (+ 1 FALSE)
 - TraceDualityProof.lean: 1 sorry (non-critical)
-- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles)
-- FullAdeles.lean: 2 sorries (compactness, weak approx) - down from 3!
+- FqPolynomialInstance.lean: 4 sorries (1 FALSE, 3 finite adeles related)
+- FullAdeles.lean: 2 sorries (compactness partial, weak approx)
 
 **Key Progress (Cycle 123)**:
 - ✅ Full adeles concrete instance structure complete
@@ -838,6 +849,67 @@ and avoids "simp thrash" where repeated simp failures cause wasted cycles.
 **Next Steps** (Cycle 132+):
 1. Prove `isCompact_integralFullAdeles` - product of compact sets
 2. Prove `exists_translate_in_integralFullAdeles` - weak approximation for PIDs
+
+---
+
+#### Cycle 132 - PARTIAL: Finite Adeles Compactness Proved
+
+**Goal**: Prove `isCompact_integralFullAdeles` - compactness of integral full adeles.
+
+**Status**: 🔶 PARTIAL - Finite adeles part proved, infinity component needs more work
+
+**Results**:
+- [x] **PROVED finite adeles compactness** using `RestrictedProduct.range_structureMap`
+  - Showed `{a ∈ FiniteAdeleRing | ∀ v, a.val v ∈ O_v} = range(structureMap)`
+  - Used `isCompact_range` + `isEmbedding_structureMap.continuous`
+  - Each `O_v` compact from `AllIntegersCompact`
+- [x] Structured proof with `IsCompact.prod` for final combination
+- [x] Documented requirements for infinity component
+
+**Key Proof Techniques**:
+
+1. **Finite adeles as range of structureMap**:
+   ```lean
+   have hrange : integralFin = Set.range (RestrictedProduct.structureMap R' A' Filter.cofinite) := by
+     ext a
+     rw [RestrictedProduct.range_structureMap]
+     rfl
+   ```
+
+2. **Compactness from embedding**:
+   ```lean
+   exact isCompact_range (RestrictedProduct.isEmbedding_structureMap.continuous)
+   ```
+   - `isEmbedding_structureMap` gives continuous embedding from `Π v, O_v`
+   - `Π v, O_v` is compact via `Pi.compactSpace` (Tychonoff)
+   - Image of compact under continuous is compact
+
+**Remaining Sorry - Infinity Component**:
+
+For `{x : FqtInfty Fq | Valued.v x ≤ 1}` to be compact, need:
+1. `RankOne` instance for `Valued.v` on `FqtInfty Fq`
+2. `CompleteSpace (Valued.integer (FqtInfty Fq))`
+3. `IsDiscreteValuationRing` for integer ring
+4. `Finite` residue field
+
+Then use `Valued.integer.compactSpace_iff_completeSpace_and_isDiscreteValuationRing_and_finite_residueField`
+
+**Key Mathlib Lemmas Used**:
+- `RestrictedProduct.range_structureMap` - identifies integral adeles
+- `RestrictedProduct.isEmbedding_structureMap` - embedding property
+- `isCompact_range` - image of compact under continuous is compact
+- `AllIntegersCompact.compact` - each O_v is compact
+- `IsCompact.prod` - product of compact sets
+
+**Sorry Status**:
+- FullAdeles.lean: 2 sorries (1 partial = infinity sorry, 1 full = weak approx)
+
+**Build**: ✅ Compiles successfully
+
+**Next Steps** (Cycle 133+):
+1. Establish `RankOne` instance for `FqtInfty Fq` (need ℤᵐ⁰ →*₀ ℝ≥0)
+2. Complete infinity compactness proof
+3. Start weak approximation `exists_translate_in_integralFullAdeles`
 
 ---
 
