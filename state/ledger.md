@@ -10,43 +10,40 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 149)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 150)
 
 ### Current State
-Build: ✅ **COMPILES** with **5 sorries** in FullAdelesCompact.lean (down from 7!)
+Build: ✅ **COMPILES** with **3 sorries** in FullAdelesCompact.lean (down from 5!)
 
-### What Cycle 148 Did
-- ✅ **FILLED `exists_local_approximant`** - Fixed UniformSpace mismatch by factoring through `WithVal`
-- ✅ **FILLED `HeightOneSpectrum.finite_divisors`** - Injective map to normalizedFactors + UFM API
+### What Cycle 149 Did
+- ✅ **FILLED `isPrincipalIdealRing_integer_FqtInfty`** - Used IsCyclic and Nontrivial of valueGroup
+- ✅ **FILLED `isDiscreteValuationRing_integer_FqtInfty`** - Same approach as PIR
 
-### Remaining Sorries (5 total)
-1. `isPrincipalIdealRing_integer_FqtInfty` (line 113) - needs DVR proof
-2. `isDiscreteValuationRing_integer_FqtInfty` (line 122) - needs uniformizer argument
-3. `exists_finite_integral_translate` (line ~454) - CRT proof (approach documented inline)
-4. `exists_finite_integral_translate_with_infty_bound` (line ~509) - polynomial division
-5. `exists_translate_in_integralFullAdeles` (line ~552) - combining above
+### Remaining Sorries (3 total)
+1. `exists_finite_integral_translate` (line ~502) - CRT proof (approach documented inline)
+2. `exists_finite_integral_translate_with_infty_bound` (line ~557) - polynomial division
+3. `exists_translate_in_integralFullAdeles` (line ~600) - combining above
 
-### Key Fix in Cycle 148: `exists_local_approximant`
+### Key Fix in Cycle 149: PIR and DVR for integer ring
 
-The UniformSpace instance mismatch was fixed by factoring density through `WithVal`:
+The key insight is that the value group of `Valued.v` on `FqtInfty Fq` is a subgroup of `(WithZero (Multiplicative ℤ))ˣ ≅ Multiplicative ℤ`. Since:
+1. `Multiplicative ℤ` is cyclic (because ℤ is additively cyclic)
+2. Every subgroup of a cyclic group is cyclic (`Subgroup.isCyclic`)
+3. The valueGroup is nontrivial (from `isNontrivial_FqtInfty`)
+
+With `[IsCyclic (valueGroup v)]` and `[Nontrivial (valueGroup v)]`, mathlib gives us:
+- `Valuation.valuationSubring_isPrincipalIdealRing`
+- `Valuation.valuationSubring_isDiscreteValuationRing`
 
 ```lean
--- The fix: factor algebraMap through WithVal to use the correct uniform space
-have hdense : DenseRange (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))) := by
-  let W := WithVal (v.valuation (RatFunc Fq))
-  have hdense_withval : DenseRange ((↑) : W → UniformSpace.Completion W) :=
-    UniformSpace.Completion.denseRange_coe
-  have hsurj : Function.Surjective (algebraMap (RatFunc Fq) W) := fun w => ⟨w, rfl⟩
-  exact hdense_withval.comp hsurj.denseRange (UniformSpace.Completion.continuous_coe W)
+-- Key pattern: convert x ≠ 0 to v x ≠ 0
+have hx_vne : Valued.v x ≠ 0 := (Valuation.ne_zero_iff Valued.v).mpr hx_ne
+-- Build a unit from the valuation
+let vx : (WithZero (Multiplicative ℤ))ˣ := Units.mk0 (Valued.v x) hx_vne
+-- Show it's in the valueGroup
+have hvx_mem : vx ∈ MonoidWithZeroHom.valueGroup Valued.v :=
+  MonoidWithZeroHom.mem_valueGroup Valued.v (Set.mem_range.mpr ⟨x, rfl⟩)
 ```
-
-### Key Fix in Cycle 148: `HeightOneSpectrum.finite_divisors`
-
-Used injective map to `normalizedFactors`:
-- Map each v to `normalize (generator v.asIdeal)`
-- Show image ⊆ `normalizedFactors D` (via `exists_mem_normalizedFactors_of_dvd`)
-- Show injectivity (associated generators ⟹ same ideal)
-- Conclude finiteness via `Set.Finite.of_finite_image`
 
 ### IMMEDIATE NEXT STEP: Work on CRT-based proofs
 
@@ -74,6 +71,40 @@ These require careful work with `IsDedekindDomain.exists_forall_sub_mem_ideal` A
 - **FullAdelesBase.lean** (~685 lines) - General defs → ✅ COMPILES
 - **FullAdelesCompact.lean** (~505 lines) - Compactness, weak approx → ✅ COMPILES (7 sorries)
 - **FullAdeles.lean** - Re-export hub
+
+---
+
+## Cycle 149 Summary - 2 SORRIES FILLED
+
+**Goal**: Fill remaining sorries in FullAdelesCompact.lean
+
+**Status**: ✅ Reduced from 5 to 3 sorries
+
+**Filled**:
+1. `isPrincipalIdealRing_integer_FqtInfty` - Value group is cyclic + nontrivial ⟹ PIR
+2. `isDiscreteValuationRing_integer_FqtInfty` - Same approach gives DVR
+
+**Key technique**: Working with the value group of a discrete valuation
+- Value group is a subgroup of `(WithZero (Multiplicative ℤ))ˣ ≅ Multiplicative ℤ`
+- Use `isCyclic_multiplicative` (from `IsAddCyclic ℤ`) and `Subgroup.isCyclic`
+- Prove nontriviality by exhibiting an element ≠ 1 via `isNontrivial_FqtInfty`
+- Key API: `Valuation.ne_zero_iff`, `MonoidWithZeroHom.mem_valueGroup`, `Units.mk0`
+
+**Key code patterns**:
+```lean
+-- Get IsCyclic via inference chain
+haveI hCyclic : IsCyclic (MonoidWithZeroHom.valueGroup Valued.v) := inferInstance
+
+-- Prove Nontrivial explicitly
+obtain ⟨x, hx_ne, hx_lt⟩ := Valuation.isNontrivial_iff_exists_lt_one Valued.v |>.mp hnt
+have hx_vne : Valued.v x ≠ 0 := (Valuation.ne_zero_iff Valued.v).mpr hx_ne
+let vx : (WithZero (Multiplicative ℤ))ˣ := Units.mk0 (Valued.v x) hx_vne
+have hvx_mem := MonoidWithZeroHom.mem_valueGroup Valued.v (Set.mem_range.mpr ⟨x, rfl⟩)
+exact ⟨⟨1, Subgroup.one_mem _⟩, ⟨⟨vx, hvx_mem⟩, proof_that_vx_ne_1⟩⟩
+
+-- Apply mathlib's instance
+exact Valuation.valuationSubring_isPrincipalIdealRing Valued.v
+```
 
 ---
 

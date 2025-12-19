@@ -112,8 +112,38 @@ Uses the fact that WithZero (Multiplicative ℤ) is not densely ordered.
 -/
 instance isPrincipalIdealRing_integer_FqtInfty :
     IsPrincipalIdealRing (Valued.integer (FqtInfty Fq)) := by
-  -- API mismatches with current mathlib - needs investigation
-  sorry
+  -- The value group is a subgroup of (WithZero (Multiplicative ℤ))ˣ ≅ Multiplicative ℤ
+  -- Multiplicative ℤ is cyclic (since ℤ is additively cyclic)
+  -- Every subgroup of a cyclic group is cyclic
+  -- With IsCyclic and Nontrivial, we get PIR from valuationSubring_isPrincipalIdealRing
+  haveI hCyclic : IsCyclic (MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq))) :=
+    inferInstance
+  haveI hNontrivial : Nontrivial (MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq))) := by
+    -- From isNontrivial_FqtInfty, we have Valued.v.IsNontrivial
+    -- This means ∃ x with x ≠ 0 and v x < 1, so the range has non-1 elements
+    haveI hnt := isNontrivial_FqtInfty Fq
+    -- IsNontrivial implies ∃ x ≠ 0 with v x < 1, so valueGroup has element ≠ 1
+    obtain ⟨x, hx_ne, hx_lt⟩ := Valuation.isNontrivial_iff_exists_lt_one Valued.v |>.mp hnt
+    -- Convert x ≠ 0 to v x ≠ 0 using v x = 0 ↔ x = 0
+    have hx_vne : Valued.v x ≠ 0 := (Valuation.ne_zero_iff Valued.v).mpr hx_ne
+    have hx_ne_one : Valued.v x ≠ 1 := ne_of_lt hx_lt
+    -- v x is a unit in (WithZero (Multiplicative ℤ))ˣ and is in the range
+    let vx : (WithZero (Multiplicative ℤ))ˣ := Units.mk0 (Valued.v x) hx_vne
+    have hvx_mem : vx ∈ MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq)) :=
+      MonoidWithZeroHom.mem_valueGroup Valued.v (Set.mem_range.mpr ⟨x, rfl⟩)
+    exact ⟨⟨1, Subgroup.one_mem _⟩, ⟨⟨vx, hvx_mem⟩, by
+      simp only [ne_eq, Subtype.mk.injEq]
+      intro h
+      apply hx_ne_one
+      have : vx.val = 1 := by
+        rw [← Units.val_one]
+        congr
+        exact h.symm
+      simp only [vx, Units.val_mk0] at this
+      exact this⟩⟩
+  -- Now use that Valued.integer = Valued.v.integer = Valued.v.valuationSubring.toSubring
+  -- The PIR instance on valuationSubring transfers to integer
+  exact Valuation.valuationSubring_isPrincipalIdealRing (Valued.v (R := FqtInfty Fq))
 
 /-- The integer ring of FqtInfty is a discrete valuation ring.
 
@@ -121,8 +151,26 @@ This follows from being a PID that is not a field (uniformizer 1/X has valuation
 -/
 instance isDiscreteValuationRing_integer_FqtInfty :
     IsDiscreteValuationRing (Valued.integer (FqtInfty Fq)) := by
-  -- API mismatches with current mathlib - needs investigation
-  sorry
+  -- Same as PIR proof: show value group is cyclic and nontrivial
+  haveI hCyclic : IsCyclic (MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq))) :=
+    inferInstance
+  haveI hNontrivial : Nontrivial (MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq))) := by
+    haveI hnt := isNontrivial_FqtInfty Fq
+    obtain ⟨x, hx_ne, hx_lt⟩ := Valuation.isNontrivial_iff_exists_lt_one Valued.v |>.mp hnt
+    have hx_vne : Valued.v x ≠ 0 := (Valuation.ne_zero_iff Valued.v).mpr hx_ne
+    have hx_ne_one : Valued.v x ≠ 1 := ne_of_lt hx_lt
+    let vx : (WithZero (Multiplicative ℤ))ˣ := Units.mk0 (Valued.v x) hx_vne
+    have hvx_mem : vx ∈ MonoidWithZeroHom.valueGroup (Valued.v (R := FqtInfty Fq)) :=
+      MonoidWithZeroHom.mem_valueGroup Valued.v (Set.mem_range.mpr ⟨x, rfl⟩)
+    exact ⟨⟨1, Subgroup.one_mem _⟩, ⟨⟨vx, hvx_mem⟩, by
+      simp only [ne_eq, Subtype.mk.injEq]
+      intro h
+      apply hx_ne_one
+      have : vx.val = 1 := by rw [← Units.val_one]; congr; exact h.symm
+      simp only [vx, Units.val_mk0] at this
+      exact this⟩⟩
+  -- The DVR instance on valuationSubring transfers to integer
+  exact Valuation.valuationSubring_isDiscreteValuationRing (Valued.v (R := FqtInfty Fq))
 
 /-- Compactness of integral full adeles.
 
