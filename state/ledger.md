@@ -10,19 +10,80 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 155)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 155) - REPO MAINTENANCE
 
 ### Current State
-Build: ✅ **COMPILES** with **1 sorry** in FullAdelesCompact.lean (line ~994) - **2771 jobs**
+Build: ✅ **COMPILES** - **2771 jobs** (this is the CORRECT count with all files)
 
-**IMPORTANT**: The import was previously disabled! Now enabled:
-- FullAdeles.lean imports FullAdelesCompact.lean ✅
-- RiemannRochV2.lean imports FullAdeles.lean ✅
+### ⚠️ CRITICAL: Verify Build Health First!
+Before doing ANYTHING, run:
+```bash
+lake build 2>&1 | tail -5
+```
+**Expected**: "Build completed successfully (2771 jobs)"
+**If you see ~2351 jobs**: Files are disconnected from build! Check imports.
 
-**The remaining sorry is for `bound < 1` case only - NOT on critical path!**
-The main theorem `exists_translate_in_integralFullAdeles` uses `bound = 1`, which is fully proven.
+### 🔧 Cycle 155 Task: Repository Maintenance & Wiring
 
-### What Cycle 154 Did - FILLED bound ≥ 1 case!
+**Goal**: Wire up disconnected files, understand repo structure, general cleanup.
+
+#### Task 1: Understand Current Sorry Count (HONEST)
+| File | Sorries | In Build? | Notes |
+|------|---------|-----------|-------|
+| FullAdelesCompact.lean | 1 | ✅ Yes | bound<1 case, not critical |
+| FqPolynomialInstance.lean | 4 | ✅ Yes | Fq[X] instance sorries |
+| TraceDualityProof.lean | 1 | ❌ NO | Serre duality, not wired |
+| **Total** | **6** | | |
+
+#### Task 2: Files NOT in Build Tree (Need Wiring)
+These files exist but are NOT transitively imported by RiemannRochV2.lean:
+```
+NOT IN BUILD (but mostly sorry-free!):
+- Adeles.lean (0 sorries) - imports TraceDualityProof
+- AdelicH1v2.lean (0 sorries) - imports Adeles
+- AdelicTopology.lean (0 sorries)
+- AllIntegersCompactProof.lean (0 sorries)
+- DedekindDVR.lean (0 sorries)
+- DifferentIdealBridge.lean (0 sorries)
+- FullRRData.lean (0 sorries) - Full RR axioms
+- KernelProof.lean (0 sorries)
+- P1Instance.lean (0 sorries)
+- Projective.lean (0 sorries)
+- ResidueFieldIso.lean (0 sorries)
+- TraceDualityProof.lean (1 sorry) - Serre duality
+```
+
+#### Task 3: Recommended Actions
+1. **Add disconnected files to RiemannRochV2.lean imports** (if they compile)
+2. **Document why each file exists** (add module docstrings if missing)
+3. **Create dependency graph** in this ledger
+4. **Check for other disabled imports** (`grep "^-- import"`)
+
+#### Task 4: Project Roadmap Understanding
+```
+Current: Riemann Inequality ✅ (ℓ(D) ≥ deg(D) + 1 - g)
+
+For Full RR: ℓ(D) - ℓ(K-D) = deg(D) + 1 - g
+
+Track A (Axiomatic): FullRRData.lean
+  - Defines canonical divisor K, genus g as axioms
+  - Full RR follows algebraically
+  - 0 sorries, just needs wiring
+
+Track B (Constructive): TraceDualityProof.lean
+  - Discharge axioms via Mathlib's traceDual
+  - 1 sorry remaining
+  - Needs: DifferentIdealBridge.lean → TraceDualityProof.lean → Adeles.lean
+```
+
+#### Optional: File Splitting
+FullAdelesCompact.lean is ~1000 lines. Could split if desired:
+- Keep compactness in FullAdelesCompact
+- Move approximation theorems to FullAdelesApproximation.lean
+
+---
+
+## Cycle 154 Summary - FILLED bound ≥ 1 case + Fixed Imports!
 - ✅ **FILLED**: `exists_finite_integral_translate_with_infty_bound` for `bound ≥ 1`
   - Uses Euclidean division: k₀ = q + r/denom where q = num/denom, r = num % denom
   - k = r/denom = k₀ - q (fractional part)
