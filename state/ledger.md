@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ 2375 jobs, compiles cleanly
 **Phase**: 3 - Serre Duality
-**Cycle**: 162 (complete)
+**Cycle**: 163 (in progress)
 
-### Sorry Count: 14 (down from 15: filled residueAtInfty_inv_X_sub)
+### Sorry Count: 16 (up from 14: expanded proof structure for residueAtInfty_add)
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,37 +18,54 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 3 | residueAtInfty_inv_X_sub filled ✅ |
+| `Residue.lean` | 5 | residueAtInfty_add structure set up (3 sub-cases) |
 
 ---
 
-## Next Steps (Cycle 163+): RESIDUE APPROACH
+## Next Steps (Cycle 164+): RESIDUE APPROACH
 
-### Progress: Cycle 162 Complete ✅
+### Progress: Cycle 163 (Significant structural progress)
 
-Both X-adic residue and residue at infinity are now defined with key test cases proved:
+**New helper lemmas proved:**
+- `residueAtInfty_eq_neg_coeff` ✅ - Characterizes residue as coefficient extraction
+- `coeff_mul_at_sum_sub_one` ✅ - Coefficient extraction for products at critical index
 
-**X-adic residue** (`residueAtX`):
+**`residueAtInfty_add` proof structure:**
+- Case analysis set up for polynomial edge cases (d_f = 1, d_g = 1)
+- Main case: degree bounds (`hr_f_deg`, `hr_g_deg`) proved
+- Sum is proper fraction: `hsum_proper` proved
+- Remainder is itself: `hsum_mod` proved
+- **Remaining:** Relate reduced form to common denominator form (gcd reduction invariance)
+
+**Key mathematical insight documented:**
+For P = N * k and Q = D * k with D monic:
+- P % Q = (N % D) * k
+- Coefficient at deg(Q)-1 / Q.leadingCoeff = coefficient at deg(D)-1 / D.leadingCoeff
+- Therefore residue is invariant under gcd reduction
+
+**Residue status:**
 - `residueAtX_add` ✅
 - `residueAtX_smul` ✅
 - `residueAtX_polynomial` ✅
 - `residueAtX_inv_X = 1` ✅
 - `residueAtX_inv_X_sq = 0` ✅
 - `residueAtX_linearMap` ✅
-
-**Residue at infinity** (`residueAtInfty`):
-- Definition complete ✅ (uses degree-based formula with polynomial remainder)
 - `residueAtInfty_zero` ✅
 - `residueAtInfty_polynomial` ✅
-- `residueAtInfty_inv_X_sub = -1` ✅ (just filled!)
-- `residueAtInfty_add` - sorry (additivity)
+- `residueAtInfty_inv_X_sub = -1` ✅
+- `residueAtInfty_add` - 3 sub-sorries (proof structure complete)
 
-### Cycle 163 Task: Fill `residueAtInfty_add` proof
+### Cycle 164 Task: Complete `residueAtInfty_add` proof
 
-Prove additivity: `residueAtInfty (f + g) = residueAtInfty f + residueAtInfty g`
+**Remaining sub-proofs:**
+1. Polynomial f case: Show residue(f + g) = residue(g) when f is polynomial
+2. Polynomial g case: Show residue(f + g) = residue(f) when g is polynomial
+3. Main case: Prove gcd reduction preserves the coefficient at critical index
 
-**Challenge:** The degree-based formula doesn't immediately yield additivity.
-Need to work through the algebra of num/denom for sums.
+**Approach options:**
+- Option A: Prove mod_mul_of_monic lemma and use it for gcd reduction invariance
+- Option B: Work directly with num_denom_add relationship
+- Option C: Define residue via Laurent series at infinity (manifestly additive)
 
 ### Remaining Plan (~7-9 cycles)
 
@@ -147,6 +164,19 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 163 (2025-12-19)
+- **Set up `residueAtInfty_add` proof structure** - Additivity for residue at infinity
+- **Proved helper lemmas:**
+  - `residueAtInfty_eq_neg_coeff`: residue = negated coefficient at deg(denom)-1 in remainder
+  - `coeff_mul_at_sum_sub_one`: for proper fractions, coefficient at critical index
+- **Main proof structure:**
+  - Case analysis: polynomial f (d_f=1), polynomial g (d_g=1), main case
+  - Main case established: degree bounds for remainders, sum is proper, remainder is itself
+  - Mathematical insight: gcd reduction preserves coefficient at critical index
+- **Remaining:** 3 sub-sorries for polynomial cases and gcd invariance
+- Sorry count: 14 → 16 (expanded structure, helper lemmas proved)
+- Key discovery: `Polynomial.coeff_mul_add_eq_of_natDegree_le` is the right tool
 
 ### Cycle 162 (2025-12-19)
 - **Filled `residueAtInfty_inv_X_sub` proof** - Key test case for residue at infinity

@@ -264,9 +264,155 @@ theorem residueAtInfty_inv_X_sub (c : Fq) :
   -- if 1 = 1 then ... else ... = -1
   norm_num
 
-/-- The residue at infinity is additive. -/
+/-- Helper: Express residueAtInfty in terms of coefficient extraction.
+
+When denom.natDegree ≥ 1, the residue is the negated coefficient of X^{deg(denom)-1}
+in the remainder. This is key for proving additivity.
+-/
+lemma residueAtInfty_eq_neg_coeff (f : RatFunc Fq) :
+    residueAtInfty f = -((f.num % f.denom).coeff (f.denom.natDegree - 1)) := by
+  simp only [residueAtInfty]
+  -- Since denom is monic, leadingCoeff = 1
+  have hmonic : f.denom.Monic := RatFunc.monic_denom f
+  have hlc : f.denom.leadingCoeff = 1 := hmonic
+  -- Let rem = f.num % f.denom
+  set rem := f.num % f.denom with hrem_def
+  -- Case split on whether deg(rem) + 1 = deg(denom)
+  by_cases hdeg : rem.natDegree + 1 = f.denom.natDegree
+  · -- Case: deg(rem) + 1 = deg(denom), so the X^{-1} coefficient is nonzero
+    simp only [hdeg, ↓reduceIte, hlc, div_one]
+    -- rem.coeff(denom.natDegree - 1) = rem.leadingCoeff when deg(rem) = denom.natDegree - 1
+    have hdeg' : rem.natDegree = f.denom.natDegree - 1 := by omega
+    simp only [hdeg', Polynomial.leadingCoeff]
+  · -- Case: deg(rem) + 1 ≠ deg(denom)
+    simp only [hdeg, ↓reduceIte]
+    -- The coefficient at position denom.natDegree - 1 is 0 because deg(rem) < that
+    -- Need: rem.coeff(denom.natDegree - 1) = 0
+    by_cases hdenom_pos : f.denom.natDegree = 0
+    · -- If denom has degree 0, then denom = 1 (since monic), so rem = 0
+      simp only [hdenom_pos]
+      -- 0 - 1 in ℕ is 0
+      have hsub : (0 : ℕ) - 1 = 0 := rfl
+      rw [hsub]
+      -- f is a polynomial, so num % 1 = 0
+      have hdenom_eq : f.denom = 1 := by
+        apply Polynomial.eq_one_of_monic_natDegree_zero hmonic hdenom_pos
+      have hrem_eq : rem = 0 := by
+        rw [hrem_def, hdenom_eq, EuclideanDomain.mod_one]
+      rw [hrem_eq, Polynomial.coeff_zero, neg_zero]
+    · -- denom.natDegree ≥ 1
+      have hdenom_ge : f.denom.natDegree ≥ 1 := Nat.one_le_iff_ne_zero.mpr hdenom_pos
+      -- rem has degree < denom.natDegree (by mod property)
+      -- If hdeg fails, then rem.natDegree ≠ denom.natDegree - 1
+      -- Combined with rem.natDegree < denom.natDegree, we get rem.natDegree < denom.natDegree - 1
+      have hrem_deg : rem.natDegree < f.denom.natDegree := by
+        apply Polynomial.natDegree_mod_lt f.num hdenom_pos
+      have hrem_small : rem.natDegree < f.denom.natDegree - 1 := by
+        omega
+      rw [Polynomial.coeff_eq_zero_of_natDegree_lt hrem_small]
+      ring
+
+/-- Coefficient extraction for products at the "critical" index.
+
+For a proper fraction r/d₁ (deg r < deg d₁) multiplied by a monic polynomial d₂,
+the coefficient at index (deg d₁ - 1 + deg d₂) equals r.coeff(deg d₁ - 1).
+-/
+lemma coeff_mul_at_sum_sub_one {r d₁ d₂ : Polynomial Fq}
+    (hr : r.natDegree < d₁.natDegree) (hd₂_monic : d₂.Monic) :
+    (r * d₂).coeff (d₁.natDegree - 1 + d₂.natDegree) = r.coeff (d₁.natDegree - 1) := by
+  by_cases hd₁ : d₁.natDegree = 0
+  · -- If d₁ has degree 0, then r has degree < 0 which is impossible, so r = 0
+    have hr_zero : r = 0 := by
+      by_contra h
+      have : r.natDegree ≥ 0 := Nat.zero_le _
+      omega
+    simp [hr_zero, hd₁]
+  have hd₁_pos : 0 < d₁.natDegree := Nat.zero_lt_of_ne_zero hd₁
+  have hr_bound : r.natDegree ≤ d₁.natDegree - 1 := by omega
+  rw [Polynomial.coeff_mul_add_eq_of_natDegree_le hr_bound (le_refl _)]
+  simp [hd₂_monic]
+
+/-- The residue at infinity is additive.
+
+Proof strategy:
+1. Express f, g via their reduced forms: f = n_f/d_f, g = n_g/d_g (d_f, d_g monic)
+2. Write n_f = d_f * q_f + r_f, n_g = d_g * q_g + r_g (polynomial division)
+3. Then f + g = (q_f + q_g) + (r_f * d_g + r_g * d_f)/(d_f * d_g)
+4. The remainder (r_f * d_g + r_g * d_f) is already proper (degree < deg(d_f * d_g))
+5. Use coeff_mul_add_eq_of_natDegree_le to extract coefficients
+6. Conclude: residue(f+g) = residue(f) + residue(g)
+-/
 theorem residueAtInfty_add (f g : RatFunc Fq) :
     residueAtInfty (f + g) = residueAtInfty f + residueAtInfty g := by
+  -- Use the coefficient characterization
+  rw [residueAtInfty_eq_neg_coeff, residueAtInfty_eq_neg_coeff, residueAtInfty_eq_neg_coeff]
+  -- Set up notation for numerators and denominators
+  set n_f := f.num with hn_f
+  set d_f := f.denom with hd_f
+  set n_g := g.num with hn_g
+  set d_g := g.denom with hd_g
+  set r_f := n_f % d_f with hr_f
+  set r_g := n_g % d_g with hr_g
+  -- Denominators are monic
+  have hd_f_monic : d_f.Monic := RatFunc.monic_denom f
+  have hd_g_monic : d_g.Monic := RatFunc.monic_denom g
+  have hd_f_ne : d_f ≠ 0 := RatFunc.denom_ne_zero f
+  have hd_g_ne : d_g ≠ 0 := RatFunc.denom_ne_zero g
+  -- Handle degenerate cases where f or g is a polynomial (denom = 1)
+  by_cases hd_f_deg : d_f.natDegree = 0
+  · -- f is a polynomial (d_f = 1), so residue(f) = 0
+    have hd_f_one : d_f = 1 := Polynomial.eq_one_of_monic_natDegree_zero hd_f_monic hd_f_deg
+    have hr_f_zero : r_f = 0 := by simp [hr_f, hd_f_one]
+    -- residue(f) = 0 because d_f.natDegree - 1 = 0 - 1 = 0 in ℕ and r_f = 0
+    have hres_f : r_f.coeff (d_f.natDegree - 1) = 0 := by simp [hr_f_zero]
+    -- Now the equation simplifies
+    simp only [hres_f, neg_zero, zero_add]
+    -- Need to show: residue(f + g) = residue(g)
+    -- When f is a polynomial, f + g has the same residue as g
+    -- This requires showing (f+g).num % (f+g).denom relates to g.num % g.denom
+    sorry
+  by_cases hd_g_deg : d_g.natDegree = 0
+  · -- g is a polynomial (d_g = 1), so residue(g) = 0
+    have hd_g_one : d_g = 1 := Polynomial.eq_one_of_monic_natDegree_zero hd_g_monic hd_g_deg
+    have hr_g_zero : r_g = 0 := by simp [hr_g, hd_g_one]
+    have hres_g : r_g.coeff (d_g.natDegree - 1) = 0 := by simp [hr_g_zero]
+    simp only [hres_g, neg_zero, add_zero]
+    -- Need to show: residue(f + g) = residue(f)
+    sorry
+  -- Main case: both d_f and d_g have positive degree
+  -- The combined denominator d_f * d_g is monic
+  have hd_fg_monic : (d_f * d_g).Monic := hd_f_monic.mul hd_g_monic
+  -- Degrees of remainders are strictly less than degrees of denominators
+  have hr_f_deg : r_f.natDegree < d_f.natDegree := Polynomial.natDegree_mod_lt n_f hd_f_deg
+  have hr_g_deg : r_g.natDegree < d_g.natDegree := Polynomial.natDegree_mod_lt n_g hd_g_deg
+  -- The sum of proper fractions gives a proper fraction: deg(r_f * d_g + r_g * d_f) < deg(d_f * d_g)
+  have hsum_proper : (r_f * d_g + r_g * d_f).natDegree < (d_f * d_g).natDegree := by
+    have h1 : (r_f * d_g).natDegree < (d_f * d_g).natDegree := by
+      by_cases hr_f_zero : r_f = 0
+      · simp only [hr_f_zero, zero_mul, Polynomial.natDegree_zero]
+        rw [hd_f_monic.natDegree_mul hd_g_monic]
+        omega
+      · rw [Polynomial.natDegree_mul hr_f_zero hd_g_ne, hd_f_monic.natDegree_mul hd_g_monic]
+        omega
+    have h2 : (r_g * d_f).natDegree < (d_f * d_g).natDegree := by
+      by_cases hr_g_zero : r_g = 0
+      · simp only [hr_g_zero, zero_mul, Polynomial.natDegree_zero]
+        rw [hd_f_monic.natDegree_mul hd_g_monic]
+        omega
+      · rw [Polynomial.natDegree_mul hr_g_zero hd_f_ne, hd_f_monic.natDegree_mul hd_g_monic]
+        omega
+    calc (r_f * d_g + r_g * d_f).natDegree
+        ≤ max (r_f * d_g).natDegree (r_g * d_f).natDegree := Polynomial.natDegree_add_le _ _
+      _ < (d_f * d_g).natDegree := max_lt h1 h2
+  -- The remainder of the proper fraction is itself
+  have hsum_mod : (r_f * d_g + r_g * d_f) % (d_f * d_g) = r_f * d_g + r_g * d_f := by
+    rw [Polynomial.mod_eq_self_iff (mul_ne_zero hd_f_ne hd_g_ne)]
+    exact Polynomial.degree_lt_degree hsum_proper
+  -- Now we need to relate (f+g).num % (f+g).denom to r_f * d_g + r_g * d_f
+  -- This is the tricky part: the reduced form might differ from the common denominator form
+  -- Key insight: both give the same residue due to invariance under gcd reduction
+  --
+  -- For now, we use a computational approach based on num_denom_add
   sorry
 
 /-! ## Section 3: Residue at General Finite Place
