@@ -892,10 +892,13 @@ theorem exists_finite_integral_translate_with_infty_bound
       have hdiv_add_mod : denom * (num / denom) + num % denom = num :=
         EuclideanDomain.div_add_mod num denom
       have hk₀_eq := RatFunc.num_div_denom k₀
-      -- r = num - denom * q
+      -- r = num - denom * q (from div_add_mod: denom * q + r = num)
       have hr_eq : (num % denom : Fq[X]) = num - denom * (num / denom) := by
+        -- denom * (num / denom) + num % denom = num
+        -- So num % denom = num - denom * (num / denom)
         have h := hdiv_add_mod
-        linarith [h]
+        rw [add_comm] at h
+        exact eq_sub_of_add_eq h
       calc algebraMap Fq[X] (RatFunc Fq) (num % denom) / algebraMap Fq[X] (RatFunc Fq) denom
           = algebraMap Fq[X] (RatFunc Fq) (num - denom * (num / denom)) /
             algebraMap Fq[X] (RatFunc Fq) denom := by rw [hr_eq]
@@ -915,13 +918,14 @@ theorem exists_finite_integral_translate_with_infty_bound
       intro v
       have heq : a.val v - (k : v.adicCompletion (RatFunc Fq)) =
           (a.val v - k₀) + (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
-        have hsub_coe : (k : v.adicCompletion (RatFunc Fq)) =
+        -- k = k₀ - q, so a.val v - k = a.val v - (k₀ - q) = (a.val v - k₀) + q
+        have hsub : (k : v.adicCompletion (RatFunc Fq)) =
             (k₀ : v.adicCompletion (RatFunc Fq)) -
             (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
-          rw [hk_eq]
-          exact ((algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))).map_sub k₀
-            (algebraMap Fq[X] (RatFunc Fq) q)).symm
-        rw [hsub_coe]
+          simp only [hk_eq]
+          -- Need to show coercion distributes over subtraction
+          exact (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))).map_sub k₀ _
+        rw [hsub]
         ring
       rw [heq]
       -- (a.val v - k₀) ∈ O_v by hk₀_int, q (polynomial) ∈ O_v
@@ -929,7 +933,7 @@ theorem exists_finite_integral_translate_with_infty_bound
       have hq_int : (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) ∈
           v.adicCompletionIntegers (RatFunc Fq) :=
         polynomial_integral_at_finite_places Fq q v
-      exact (v.adicCompletionIntegers (RatFunc Fq)).add_mem hk₀_v hq_int
+      exact add_mem hk₀_v hq_int
 
     · -- Infinity bound: |r/denom|_∞ < 1 ≤ bound
       simp only [k, r, denom, num]
@@ -959,7 +963,14 @@ theorem exists_finite_integral_translate_with_infty_bound
         have hval_quot : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) (k₀.num % k₀.denom) /
             algebraMap Fq[X] (RatFunc Fq) k₀.denom)) =
             WithZero.exp (((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ)) := by
-          rw [map_div₀, hval_r, hval_denom, ← WithZero.exp_sub]
+          -- First distribute inftyRingHom over division (it's a ring hom to a field)
+          rw [map_div₀]
+          -- Then distribute Valued.v over division
+          rw [map_div₀]
+          -- Substitute the valuations of numerator and denominator
+          rw [hval_r, hval_denom]
+          -- Simplify exp(a) / exp(b) = exp(a - b)
+          rw [← WithZero.exp_sub]
         rw [hval_quot]
         -- exp(natDegree r - natDegree denom) < 1 since natDegree r < natDegree denom
         have hneg : ((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ) < 0 := by

@@ -3,10 +3,10 @@
 
 This file re-exports from the split files:
 - FullAdelesBase.lean: General definitions, basic FqInstance (COMPILES ✅)
-- FullAdelesCompact.lean: Compactness, weak approximation (HAS ERRORS ❌)
+- FullAdelesCompact.lean: Compactness, weak approximation (COMPILES ✅, 1 sorry for bound<1 case)
 
 Split for faster incremental builds.
 -/
 
 import RrLean.RiemannRochV2.FullAdelesBase
--- import RrLean.RiemannRochV2.FullAdelesCompact  -- Commented out until errors fixed
+import RrLean.RiemannRochV2.FullAdelesCompact

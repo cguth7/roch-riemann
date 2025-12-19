@@ -5,6 +5,7 @@ import RrLean.RiemannRochV2.Typeclasses
 import RrLean.RiemannRochV2.RiemannInequality
 import RrLean.RiemannRochV2.Infrastructure
 import RrLean.RiemannRochV2.RRDefinitions
+import RrLean.RiemannRochV2.FullAdeles
 
 /-!
 # Riemann-Roch V2: Constructive Dedekind Domain Approach
