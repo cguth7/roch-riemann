@@ -1,6 +1,6 @@
 # Playbook
 
-Strategic guide for formalizing Riemann-Roch. Updated Cycle 156.
+Strategic guide for formalizing Riemann-Roch. Updated Cycle 158.
 
 ---
 
@@ -62,10 +62,11 @@ Construct a perfect pairing via residues:
 
 | Component | Import | Key Definitions |
 |-----------|--------|-----------------|
+| Laurent series | `RingTheory.LaurentSeries` | `LaurentSeries`, `HahnSeries.coeff` |
 | Trace dual | `RingTheory.DedekindDomain.Different` | `Submodule.traceDual`, `differentIdeal` |
 | Fractional ideal dual | `RingTheory.DedekindDomain.Different` | `FractionalIdeal.dual`, `dual_dual` |
 | Finite adeles | `RingTheory.DedekindDomain.FiniteAdeleRing` | `FiniteAdeleRing`, `adicCompletion` |
-| Trace form | `Algebra.Trace` | `Algebra.trace` |
+| RatFunc coercion | `RingTheory.LaurentSeries` | `RatFunc F → LaurentSeries F` |
 
 ### Critical Definitions
 
@@ -126,7 +127,8 @@ RrLean/RiemannRochV2/
 ├── FullAdelesCompact.lean  # Compactness, discreteness ✅
 ├── DifferentIdealBridge.lean  # L(D) ↔ FractionalIdeal ✅
 ├── AdelicH1v2.lean         # H¹(D), AdelicRRData ✅
-├── [NEW: SerreDuality.lean]   # Trace pairing (TODO)
+├── Residue.lean            # Residue extraction via HahnSeries.coeff ✅
+├── SerreDuality.lean       # Residue pairing (in progress)
 └── FullRRData.lean         # Full RR theorem
 ```
 

@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ 2771 jobs, compiles cleanly
 **Phase**: 3 - Serre Duality
-**Cycle**: 157 (complete)
+**Cycle**: 158 (complete)
 
-### Sorry Count: 11 (unchanged)
+### Sorry Count: 17 (+6 in new Residue.lean)
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,42 +18,26 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
+| `Residue.lean` | 6 | **NEW** X-adic residue, structure in place |
 
 ---
 
-## Next Steps (Cycle 158+): RESIDUE APPROACH
+## Next Steps (Cycle 159+): RESIDUE APPROACH
 
-### KEY INSIGHT: Residues ARE Tractable for Fq[X]
+### Progress: Cycle 158 Complete ✅
 
-**Why trace dual failed**: `dual(L(D)) ↔ L(K+D)`, not `L(K-D)`.
+Created `Residue.lean` with:
+- `residueAtX` defined using `HahnSeries.coeff (-1)`
+- Key lemmas proved: `residueAtX_add`, `residueAtX_inv_X = 1`, `residueAtX_inv_X_sq = 0`
+- Structure in place for `residueAtInfty` and general `residueAt`
 
-**Why residues work**: For `K = RatFunc Fq` (no extension!), residues are just **coefficient extraction from Laurent series**. Mathlib has all the pieces:
+### Remaining Plan (~10-12 cycles)
 
-| Component | Mathlib Location | What It Does |
-|-----------|------------------|--------------|
-| `LaurentSeries R` | `Mathlib.RingTheory.LaurentSeries` | `HahnSeries ℤ R` |
-| `.coeff n` | `HahnSeries.coeff` | Extract n-th coefficient |
-| `RatFunc K → LaurentSeries K` | `LaurentSeries.lean` line 33-34 | Coercion exists! |
-| `LaurentSeriesRingEquiv K` | `LaurentSeries.lean` | X-adic completion ≅ Laurent series |
-| Partial fractions | `Mathlib.Algebra.Polynomial.PartialFractions` | `div_eq_quo_add_sum_rem_div` |
-
-### The Plan (~12-15 cycles)
-
-**Phase A: Define Residues (Cycles 158-160)**
-
-```lean
--- Cycle 158-159: Residue at finite place
--- For irreducible p ∈ Fq[X], embed f ∈ RatFunc Fq into Laurent series at p
--- Then: residue_at p f := (embedded f).coeff (-1)
-def residue_at (p : HeightOneSpectrum Fq[X]) : RatFunc Fq →ₗ[Fq] Fq := ...
-
--- Cycle 160: Residue at infinity
--- Expand in 1/t, extract coefficient of t^{-1}
-def residue_infty : RatFunc Fq →ₗ[Fq] Fq := ...
-```
+**Phase A: Complete Residue Definitions (Cycles 159-160)**
+- Cycle 159: Fill `residueAtX_smul`, `residueAtX_polynomial` proofs
+- Cycle 160: Define `residueAtInfty` using X ↦ 1/X substitution
 
 **Phase B: Residue Theorem (Cycles 161-163)**
-
 ```lean
 -- Use partial fractions: f = q + ∑ rᵢ/gᵢ where deg(rᵢ) < deg(gᵢ)
 -- Polynomial q contributes 0 residue
@@ -64,54 +48,17 @@ theorem residue_sum_eq_zero (f : RatFunc Fq) :
 ```
 
 **Phase C: Wire to Serre Pairing (Cycles 164-166)**
-
 ```lean
 -- The pairing: for [a] ∈ H¹(D) and f ∈ L(K-D)
 -- ⟨[a], f⟩ := ∑_v res_v(aᵥ · f)
--- Well-defined because:
---   1. f ∈ K (global) → residue_sum_eq_zero kills the K part
---   2. a ∈ A_K(D), f ∈ L(K-D) → product bounded by K → no residues
 def serrePairing : H¹(D) →ₗ[k] L(K-D) →ₗ[k] k := ...
 ```
 
 **Phase D: Non-degeneracy (Cycles 167-170)**
-
 ```lean
 -- Left: if ⟨[a], f⟩ = 0 for all f, then [a] = 0
 -- Right: if ⟨[a], f⟩ = 0 for all [a], then f = 0
 -- Use: strong approximation + partial fractions
-```
-
-### Concrete Starting Point for Cycle 158
-
-Create file `RrLean/RiemannRochV2/Residue.lean`:
-
-```lean
-import Mathlib.RingTheory.LaurentSeries
-import Mathlib.Algebra.Polynomial.PartialFractions
-import RrLean.RiemannRochV2.FqPolynomialInstance
-
-/-! # Residues for RatFunc Fq
-
-For the rational function field Fq(t), residues are explicit:
-- At finite place p: coefficient of (t-α)^{-1} in Laurent expansion
-- At infinity: coefficient of t^{-1} in expansion at 1/t
-
-## Key Mathlib tools
-- `LaurentSeries K` = `HahnSeries ℤ K`
-- `HahnSeries.coeff : HahnSeries Γ R → Γ → R`
-- `div_eq_quo_add_sum_rem_div` for partial fractions
--/
-
-namespace RiemannRochV2.Residue
-
-variable {Fq : Type*} [Field Fq] [Fintype Fq]
-
--- TODO: Define embedding RatFunc Fq → LaurentSeries at place p
--- TODO: Define residue_at p f := (embed f).coeff (-1)
--- TODO: Define residue_infty using 1/t expansion
-
-end RiemannRochV2.Residue
 ```
 
 ### Why This Works (Mathematical Justification)
@@ -181,6 +128,19 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 
 ## Recent Cycles
 
+### Cycle 158 (2025-12-19)
+- **Created `Residue.lean`** - Foundation for residue-based Serre duality
+- Defined `residueAtX : RatFunc Fq → Fq` using `HahnSeries.coeff (-1)`
+- Proved key lemmas:
+  - `residueAtX_add` - additivity ✅
+  - `residueAtX_inv_X = 1` - fundamental test case ✅
+  - `residueAtX_inv_X_sq = 0` - only simple poles contribute ✅
+- Defined `residueAtX_linearMap : RatFunc Fq →ₗ[Fq] Fq`
+- Placeholder definitions for `residueAtInfty` and `residueAt` (general places)
+- Placeholder for `residue_sum_eq_zero` (residue theorem)
+- 6 new sorries (expected - structure first, proofs in subsequent cycles)
+- Successfully uses `HahnSeries.coeff (-1)` as planned! ✅
+
 ### Cycle 157 (2025-12-19)
 - **Investigation cycle**: Deep dive into trace dual vs residue approaches
 - **Dead end found**: Trace dual gives `dual(L(D)) ↔ L(K+D)`, NOT `L(K-D)`
@@ -236,6 +196,7 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 - `RiemannInequality` ✅
 - `Infrastructure`, `RRDefinitions`
 - `FullAdelesBase`, `FullAdelesCompact` ✅
+- `Residue.lean` ✅ (NEW - X-adic residue foundation)
 
 ### Disconnected (need wiring)
 - `DifferentIdealBridge.lean` ✅
