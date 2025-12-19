@@ -10,54 +10,70 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 145) - CRITICAL BUILD ISSUE
+## 🎯 NEXT CLAUDE: Start Here (Cycle 146)
 
 ### Current State
-Build: ❌ **41 ERRORS** in FullAdeles.lean discovered after forcing fresh rebuild
+Build: ❌ **~15 ERRORS** in FullAdelesCompact.lean (down from 41)
 
-**⚠️ IMPORTANT LESSON LEARNED:**
-Previous "Build completed successfully" messages were **LIES** - Lake was using stale `.olean` cache
-and not actually recompiling the file. Always verify with `touch <file> && lake build` to force rebuild!
+### What Cycle 145 Fixed
+- Early errors (lines 68-147): Simplified proofs, added missing instances
+- `completeSpace_FqtInfty` - explicitly instantiated from Completion
+- `isCompact_of_compactSpace_subtype` → `isCompact_iff_compactSpace.mpr`
+- `valuation_of_algebraMap_le` → `valuation_of_algebraMap` + `intValuation_le_one`
+- `Finset.Finite` → `nf.finite_toSet`
+- Added `open scoped WithZero` for ℤᵐ⁰ notation
 
-### The Problem
-The file FullAdeles.lean has **never actually compiled** with current mathlib. Errors exist from line 718 onwards.
-Many mathlib APIs have been renamed/removed since the code was written.
+### Sorried (need correct mathlib API investigation)
+- `isPrincipalIdealRing_integer_FqtInfty`
+- `isDiscreteValuationRing_integer_FqtInfty`
+- `exists_local_approximant`
+- `intValuation_ge_exp_neg_natDegree`
 
-### Error Summary (41 total errors at 38 lines)
+### Remaining ~15 Errors
+1. Line 233: rewrite pattern in `isOpen_ball_le_one_FqtInfty`
+2. Line 343: `HeightOneSpectrum.finite_divisors` type mismatch
+3. Line 422: `Finset.prod_ne_zero` → use `Finset.prod_ne_zero_iff.mpr`
+4. Line 459: simp looping on `RatFunc.algebraMap_apply`
+5. Line 480: `Submodule.Prime` → use `v.isPrime` directly
+6. Lines 709+: Polynomial division (`div_add_mod` → `modByMonic_add_div`)
+7. Lines 709+: `RingHom.map_div₀` → just `map_div₀`
+8. `exists_finite_integral_translate` - complex CRT proof with many issues
 
-**Pre-existing errors (lines 718-1046) - before Cycle 144 changes:**
-- Line 718: Type mismatch in `valued_FqtInfty_eq_inftyValuationDef`
-- Line 878: `isCompact_of_compactSpace_subtype` - unknown identifier
-- Line 896: `Valued.mem_ball_zero_iff` - unknown constant
-- Line 984: `valuation_of_algebraMap_le` - field doesn't exist
-- Line 1046: `Finset.Finite` - field doesn't exist
-- Line 1047: `Multiset.toFinset.finite` - unknown constant
-- Line 1052: `normalizedFactors` - unknown identifier
-
-**Cycle 144 code errors (lines 1100+):**
-- Line 1100: `Polynomial.Irreducible.natDegree_pos` - unknown constant
-- Line 1124: `WithZero.exp_lt_one_iff.mpr` - unknown constant
-- Line 1161: `Finset.prod_ne_zero` - unknown constant
-- Line 1193: `Submodule.Prime` - field doesn't exist
-- Line 1422: `Polynomial.div_add_mod` - unknown constant
-- Line 1463: `RingHom.map_div₀` - unknown constant
-- Line 1540: `Valuation.map_sub_le_max'` - field doesn't exist
-
-### Next Steps
-1. Identify correct current mathlib API names for each missing constant
-2. Fix errors from line 718 onwards systematically
-3. Re-verify with forced rebuild (`touch file && lake build`)
-
-### How to Force Fresh Rebuild
-```bash
-touch RrLean/RiemannRochV2/FullAdelesCompact.lean
-lake build RrLean.RiemannRochV2.FullAdelesCompact 2>&1 | grep "^error:"
-```
+### Next Steps for Cycle 146
+1. Fix `Finset.prod_ne_zero` → `Finset.prod_ne_zero_iff.mpr`
+2. Fix `Submodule.Prime` → `v.isPrime`
+3. Fix polynomial division using `modByMonic_add_div` or EuclideanDomain API
+4. Sorry or simplify `exists_finite_integral_translate`
+5. Get file to compile with sorries, then revisit
 
 ### File Split (for faster builds)
 - **FullAdelesBase.lean** (685 lines) - General defs, basic FqInstance → ✅ COMPILES
-- **FullAdelesCompact.lean** (943 lines) - Compactness, weak approx → ❌ 41 ERRORS
+- **FullAdelesCompact.lean** (~850 lines) - Compactness, weak approx → ❌ ~15 ERRORS
 - **FullAdeles.lean** - Re-export hub (imports Base, Compact commented out)
+
+---
+
+## Cycle 145 Summary - API FIXES (PARTIAL)
+
+**Goal**: Fix 41 build errors in FullAdelesCompact.lean
+
+**Status**: ⚠️ Reduced to ~15 errors, 4 proofs sorried
+
+**Fixed APIs**:
+- `isCompact_of_compactSpace_subtype` → `isCompact_iff_compactSpace.mpr`
+- `valuation_of_algebraMap_le` → `valuation_of_algebraMap` + `intValuation_le_one`
+- `Finset.Finite` → `finite_toSet` (Finsets are always finite)
+- `Valuation.pos_iff` usage corrected
+- Added explicit `completeSpace_FqtInfty` instance
+- Added `open scoped WithZero` for notation
+
+**Sorried** (API mismatch investigation needed):
+- `isPrincipalIdealRing_integer_FqtInfty`
+- `isDiscreteValuationRing_integer_FqtInfty`
+- `exists_local_approximant`
+- `intValuation_ge_exp_neg_natDegree`
+
+**Remaining errors**: ~15, mostly in `exists_finite_integral_translate` and polynomial division
 
 ---
 
