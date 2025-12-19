@@ -167,15 +167,76 @@ The minus sign comes from the differential: d(1/Y) = -Y⁻² dY.
 
 /-- The residue at infinity.
 
-For a rational function f, the residue at infinity is computed by:
-1. Consider f as a Laurent series at X = ∞ (i.e., in powers of 1/X)
-2. Extract the coefficient of (1/X)^{1} = X^{-1}
+For a rational function f = p/q (in lowest terms), the residue at infinity is the
+coefficient of X^{-1} in the Laurent expansion at X = ∞.
 
-Equivalently: res_∞(f) = -res_X(f(1/X) · X⁻²) using change of variables.
+Mathematical derivation:
+- Write f = (polynomial part) + (proper fraction) where the proper fraction is rem/q
+  with deg(rem) < deg(q).
+- The polynomial part has no residue at ∞ (no X^{-1} term when expanded in 1/X).
+- For the proper fraction rem/q:
+  - If deg(rem) = deg(q) - 1, the leading term at ∞ is X^{-1} with coefficient
+    -leadingCoeff(rem)/leadingCoeff(q).
+  - If deg(rem) < deg(q) - 1, there is no X^{-1} term, so residue is 0.
+
+Examples:
+- res_∞(1/(X-1)) = -1  (simple pole at ∞)
+- res_∞(1/(X²-1)) = 0  (no pole at ∞, f → 0 too fast)
+- res_∞(X/(X²-1)) = -1 (simple pole at ∞)
+- res_∞(X) = 0         (pole at ∞ but no X^{-1} term in expansion)
 -/
 def residueAtInfty (f : RatFunc Fq) : Fq :=
-  -- For now, we define this as a placeholder
-  -- The formal definition requires substitution X ↦ 1/X infrastructure
+  let p := f.num
+  let q := f.denom
+  -- Compute the proper fraction part: rem = p mod q
+  let rem := p % q
+  -- Check if deg(rem) + 1 = deg(q), i.e., the proper fraction has a simple pole at ∞
+  if rem.natDegree + 1 = q.natDegree then
+    -(rem.leadingCoeff / q.leadingCoeff)
+  else
+    0
+
+@[simp]
+theorem residueAtInfty_zero : residueAtInfty (0 : RatFunc Fq) = 0 := by
+  simp only [residueAtInfty]
+  -- For f = 0: num = 0, denom = 1
+  -- rem = 0 % 1 = 0, deg(rem) = 0, deg(denom) = 0
+  -- 0 + 1 ≠ 0, so we get 0
+  have h1 : (0 : RatFunc Fq).num = 0 := RatFunc.num_zero
+  have h2 : (0 : RatFunc Fq).denom = 1 := RatFunc.denom_zero
+  simp only [h1, h2, EuclideanDomain.zero_mod, Polynomial.natDegree_zero, Polynomial.natDegree_one]
+  -- The if condition is 0 + 1 = 0, which is false
+  norm_num
+
+/-- The residue at infinity of a polynomial is 0.
+
+This is because polynomials have no pole at infinity in the "residue" sense:
+expanding a polynomial in powers of 1/X gives only non-positive powers of 1/X,
+hence no X^{-1} term.
+-/
+theorem residueAtInfty_polynomial (p : Polynomial Fq) :
+    residueAtInfty (algebraMap (Polynomial Fq) (RatFunc Fq) p) = 0 := by
+  simp only [residueAtInfty]
+  -- For a polynomial: num = normalize(p), denom = 1
+  -- rem = num % 1 = 0
+  have hdenom : (algebraMap (Polynomial Fq) (RatFunc Fq) p).denom = 1 := RatFunc.denom_algebraMap _
+  simp only [hdenom, EuclideanDomain.mod_one, Polynomial.natDegree_zero, Polynomial.natDegree_one]
+  norm_num
+
+/-- The residue at infinity of 1/(X - c) is -1 for any c ∈ Fq.
+
+This is a fundamental test case: 1/(X - c) has a simple pole at X = c (finite)
+and a simple pole at X = ∞. The residue at ∞ is -1, which together with the
+residue +1 at X = c gives a total residue sum of 0.
+
+Proof outline:
+- For 1/(X - c): num = 1, denom = X - c
+- rem = 1 % (X - c) = 1 (since deg(1) < deg(X - c))
+- deg(rem) + 1 = 0 + 1 = 1 = deg(X - c) ✓
+- residue = -leadingCoeff(1) / leadingCoeff(X - c) = -1/1 = -1
+-/
+theorem residueAtInfty_inv_X_sub (c : Fq) :
+    residueAtInfty ((RatFunc.X - RatFunc.C c)⁻¹ : RatFunc Fq) = -1 := by
   sorry
 
 /-- The residue at infinity is additive. -/

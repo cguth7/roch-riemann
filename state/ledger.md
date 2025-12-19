@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ 2375 jobs, compiles cleanly
 **Phase**: 3 - Serre Duality
-**Cycle**: 160 (complete)
+**Cycle**: 161 (complete)
 
-### Sorry Count: 15 (-1 from residueAtX_polynomial filled)
+### Sorry Count: 15 (same: filled residueAtInfty def, added residueAtInfty_inv_X_sub test)
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,49 +18,47 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 4 | X-adic residue core complete ✅ |
+| `Residue.lean` | 4 | residueAtInfty defined ✅ |
 
 ---
 
-## Next Steps (Cycle 161+): RESIDUE APPROACH
+## Next Steps (Cycle 162+): RESIDUE APPROACH
 
-### Progress: Cycle 160 Complete ✅
+### Progress: Cycle 161 Complete ✅
 
-X-adic residue foundation is now complete:
+Both X-adic residue and residue at infinity are now defined:
+
+**X-adic residue** (`residueAtX`):
 - `residueAtX_add` ✅
 - `residueAtX_smul` ✅
-- `residueAtX_polynomial` ✅ (filled this cycle)
+- `residueAtX_polynomial` ✅
 - `residueAtX_inv_X = 1` ✅
 - `residueAtX_inv_X_sq = 0` ✅
 - `residueAtX_linearMap` ✅
 
-### Cycle 161 Task: Define `residueAtInfty`
+**Residue at infinity** (`residueAtInfty`):
+- Definition complete ✅ (uses degree-based formula with polynomial remainder)
+- `residueAtInfty_zero` ✅
+- `residueAtInfty_polynomial` ✅
+- `residueAtInfty_inv_X_sub` - test case with sorry (proof outline documented)
+- `residueAtInfty_add` - sorry (additivity)
 
-The residue at infinity using X ↦ 1/X substitution:
-```lean
--- Mathematical definition: res_∞(f) = -res_X(f(1/X) · X⁻²)
--- For f = P(X)/Q(X), expand at infinity by substituting X ↦ 1/Y
-def residueAtInfty (f : RatFunc Fq) : Fq := ...
-```
+### Cycle 162 Task: Fill `residueAtInfty_inv_X_sub` proof
 
-**Approach options**:
-1. Use `RatFunc.eval₂` with X ↦ X⁻¹ (needs eval on RatFunc)
-2. Define directly on numerator/denominator degrees
-3. Use the fact that for p/q, res_∞ = coefficient of X^{deg q - deg p - 1} in p/q
+Prove that `residueAtInfty (1/(X - c)) = -1` for any c ∈ Fq.
 
-### Key references for Cycle 158
+**Proof strategy** (documented in code):
+1. Use `RatFunc.num_div` and `RatFunc.denom_div` to compute num/denom of 1/(X-c)
+2. Show remainder is 1 since deg(1) < deg(X-c)
+3. Check deg(1) + 1 = deg(X-c) → condition satisfied
+4. Compute -leadingCoeff(1)/leadingCoeff(X-c) = -1
 
-Created `Residue.lean` with:
-- `residueAtX` defined using `HahnSeries.coeff (-1)`
-- Key lemmas proved: `residueAtX_add`, `residueAtX_inv_X = 1`, `residueAtX_inv_X_sq = 0`
-- Structure in place for `residueAtInfty` and general `residueAt`
+### Remaining Plan (~7-9 cycles)
 
-### Remaining Plan (~9-11 cycles)
-
-**Phase A: Complete Residue Definitions (Cycles 159-161)**
+**Phase A: Complete Residue Definitions ✅**
 - Cycle 159: Fill `residueAtX_smul` proof ✅
 - Cycle 160: Fill `residueAtX_polynomial` proof ✅
-- Cycle 161: Define `residueAtInfty` using X ↦ 1/X substitution
+- Cycle 161: Define `residueAtInfty` ✅
 
 **Phase B: Residue Theorem (Cycles 162-164)**
 ```lean
@@ -152,6 +150,16 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 161 (2025-12-19)
+- **Defined `residueAtInfty`** - Residue at infinity using degree-based formula
+- Definition uses polynomial remainder: for f = p/q, compute rem = p % q
+  - If deg(rem) + 1 = deg(q), then res_∞ = -leadingCoeff(rem)/leadingCoeff(q)
+  - Otherwise res_∞ = 0
+- Proved `residueAtInfty_zero` and `residueAtInfty_polynomial`
+- Added `residueAtInfty_inv_X_sub` test case (proof outline documented, sorry for now)
+- **Residue definitions now complete**: both residueAtX and residueAtInfty defined ✅
+- Sorry count: 15→15 (filled definition, added test case sorry)
 
 ### Cycle 160 (2025-12-19)
 - **Filled `residueAtX_polynomial` proof** - Polynomials have zero residue at X=0
