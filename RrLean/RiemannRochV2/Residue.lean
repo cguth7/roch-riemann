@@ -237,7 +237,32 @@ Proof outline:
 -/
 theorem residueAtInfty_inv_X_sub (c : Fq) :
     residueAtInfty ((RatFunc.X - RatFunc.C c)⁻¹ : RatFunc Fq) = -1 := by
-  sorry
+  -- Express the inverse as 1 / (X - C c)
+  have hXc_ne : (Polynomial.X - Polynomial.C c) ≠ (0 : Polynomial Fq) := by
+    intro h
+    have hdeg := congr_arg Polynomial.natDegree h
+    simp only [Polynomial.natDegree_X_sub_C, Polynomial.natDegree_zero] at hdeg
+    omega
+  have hinv_eq : (RatFunc.X - RatFunc.C c)⁻¹ =
+      (algebraMap (Polynomial Fq) (RatFunc Fq) 1) /
+      (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c)) := by
+    rw [map_one, RatFunc.X, (RatFunc.algebraMap_C c).symm, ← map_sub]
+    ring
+  simp only [residueAtInfty, hinv_eq]
+  -- Compute num and denom using the simp lemmas
+  rw [RatFunc.num_div, RatFunc.denom_div (1 : Polynomial Fq) hXc_ne]
+  -- Simplify gcd and div_one
+  simp only [gcd_one_left, EuclideanDomain.div_one]
+  -- leadingCoeff(X - C c) = 1
+  simp only [Polynomial.leadingCoeff_X_sub_C, inv_one, Polynomial.C_1, one_mul]
+  -- Now rem = 1 % (X - C c) = 1
+  have hrem : (1 : Polynomial Fq) % (Polynomial.X - Polynomial.C c) = 1 := by
+    rw [Polynomial.mod_eq_self_iff hXc_ne]
+    rw [Polynomial.degree_one, Polynomial.degree_X_sub_C]
+    exact zero_lt_one
+  simp only [hrem, Polynomial.natDegree_one, Polynomial.natDegree_X_sub_C, zero_add]
+  -- if 1 = 1 then ... else ... = -1
+  norm_num
 
 /-- The residue at infinity is additive. -/
 theorem residueAtInfty_add (f g : RatFunc Fq) :

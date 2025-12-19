@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ 2375 jobs, compiles cleanly
 **Phase**: 3 - Serre Duality
-**Cycle**: 161 (complete)
+**Cycle**: 162 (complete)
 
-### Sorry Count: 15 (same: filled residueAtInfty def, added residueAtInfty_inv_X_sub test)
+### Sorry Count: 14 (down from 15: filled residueAtInfty_inv_X_sub)
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,15 +18,15 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 4 | residueAtInfty defined ✅ |
+| `Residue.lean` | 3 | residueAtInfty_inv_X_sub filled ✅ |
 
 ---
 
-## Next Steps (Cycle 162+): RESIDUE APPROACH
+## Next Steps (Cycle 163+): RESIDUE APPROACH
 
-### Progress: Cycle 161 Complete ✅
+### Progress: Cycle 162 Complete ✅
 
-Both X-adic residue and residue at infinity are now defined:
+Both X-adic residue and residue at infinity are now defined with key test cases proved:
 
 **X-adic residue** (`residueAtX`):
 - `residueAtX_add` ✅
@@ -40,18 +40,15 @@ Both X-adic residue and residue at infinity are now defined:
 - Definition complete ✅ (uses degree-based formula with polynomial remainder)
 - `residueAtInfty_zero` ✅
 - `residueAtInfty_polynomial` ✅
-- `residueAtInfty_inv_X_sub` - test case with sorry (proof outline documented)
+- `residueAtInfty_inv_X_sub = -1` ✅ (just filled!)
 - `residueAtInfty_add` - sorry (additivity)
 
-### Cycle 162 Task: Fill `residueAtInfty_inv_X_sub` proof
+### Cycle 163 Task: Fill `residueAtInfty_add` proof
 
-Prove that `residueAtInfty (1/(X - c)) = -1` for any c ∈ Fq.
+Prove additivity: `residueAtInfty (f + g) = residueAtInfty f + residueAtInfty g`
 
-**Proof strategy** (documented in code):
-1. Use `RatFunc.num_div` and `RatFunc.denom_div` to compute num/denom of 1/(X-c)
-2. Show remainder is 1 since deg(1) < deg(X-c)
-3. Check deg(1) + 1 = deg(X-c) → condition satisfied
-4. Compute -leadingCoeff(1)/leadingCoeff(X-c) = -1
+**Challenge:** The degree-based formula doesn't immediately yield additivity.
+Need to work through the algebra of num/denom for sums.
 
 ### Remaining Plan (~7-9 cycles)
 
@@ -150,6 +147,18 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 162 (2025-12-19)
+- **Filled `residueAtInfty_inv_X_sub` proof** - Key test case for residue at infinity
+- Proves that `residueAtInfty (1/(X - c)) = -1` for any c ∈ Fq
+- Proof technique:
+  1. Express `(X - C c)⁻¹` as `1 / (X - C c)` using algebraMap
+  2. Use `RatFunc.num_div` and `RatFunc.denom_div` to get num = 1, denom = X - C c
+  3. Show gcd(1, X - C c) = 1 with `gcd_one_left`
+  4. Prove remainder `1 % (X - C c) = 1` via `mod_eq_self_iff` and degree comparison
+  5. Verify deg(1) + 1 = deg(X - C c), so the if-condition is true
+  6. Compute `-leadingCoeff(1)/leadingCoeff(X-C c) = -1/1 = -1`
+- Sorry count: 15 → 14
 
 ### Cycle 161 (2025-12-19)
 - **Defined `residueAtInfty`** - Residue at infinity using degree-based formula
