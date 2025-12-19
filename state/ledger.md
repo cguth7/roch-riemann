@@ -50,9 +50,14 @@ Many mathlib APIs have been renamed/removed since the code was written.
 
 ### How to Force Fresh Rebuild
 ```bash
-touch RrLean/RiemannRochV2/FullAdeles.lean
-lake build RrLean.RiemannRochV2.FullAdeles 2>&1 | grep "^error:"
+touch RrLean/RiemannRochV2/FullAdelesCompact.lean
+lake build RrLean.RiemannRochV2.FullAdelesCompact 2>&1 | grep "^error:"
 ```
+
+### File Split (for faster builds)
+- **FullAdelesBase.lean** (685 lines) - General defs, basic FqInstance → ✅ COMPILES
+- **FullAdelesCompact.lean** (943 lines) - Compactness, weak approx → ❌ 41 ERRORS
+- **FullAdeles.lean** - Re-export hub (imports Base, Compact commented out)
 
 ---
 
