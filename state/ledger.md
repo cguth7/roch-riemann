@@ -10,52 +10,60 @@
 
 ---
 
-## 🎯 NEXT CLAUDE: Start Here (Cycle 154)
+## 🎯 NEXT CLAUDE: Start Here (Cycle 155)
 
 ### Current State
-Build: ✅ **COMPILES** with **1 sorry** in FullAdelesCompact.lean (line ~868)
+Build: ✅ **COMPILES** with **1 sorry** in FullAdelesCompact.lean (line ~983)
 
-### What Cycle 153 Did - MAJOR PROGRESS (4→1 sorries!)
-- ✅ **FILLED sorry #1**: `hDy_in_R` - D * y_v is polynomial
-  - Key APIs: `RatFunc.num_div_denom`, `RatFunc.algebraMap_ne_zero`, `mul_div_cancel₀`
-  - Pattern: D = q * denom, so D * y = q * num
-- ✅ **FILLED sorry #2**: `hky_int` - v ∈ S case valuation bound
-  - Key APIs: `div_le_iff₀`, `intValuation_le_pow_iff_mem`, `intValuation_ge_exp_neg_natDegree`
-  - Coercion: `(algebraMap K Completion).map_sub` for subtraction preservation
-- ✅ **FILLED sorry #3**: `hk_int` - v ∈ T\S case valuation bound
-  - Same pattern as #2 (simpler, no y subtraction)
-- 🔄 **Sorry #4 strategy documented**: `exists_finite_integral_translate_with_infty_bound`
-  - Proof ~90% complete for bound ≥ 1 case (see code comments at line ~840)
-  - Uses Euclidean division to extract fractional part with |·|_∞ < 1
+**The remaining sorry is for `bound < 1` case only - NOT on critical path!**
+The main theorem `exists_translate_in_integralFullAdeles` uses `bound = 1`, which is fully proven.
 
-### Remaining Sorry (1 total)
-**Line ~868**: `exists_finite_integral_translate_with_infty_bound`
+### What Cycle 154 Did - FILLED bound ≥ 1 case!
+- ✅ **FILLED**: `exists_finite_integral_translate_with_infty_bound` for `bound ≥ 1`
+  - Uses Euclidean division: k₀ = q + r/denom where q = num/denom, r = num % denom
+  - k = r/denom = k₀ - q (fractional part)
+  - **Finite integrality**: (a.val v - k) = (a.val v - k₀) + q ∈ O_v (q is polynomial → integral)
+  - **Infinity bound**: |r/denom|_∞ = exp(deg(r) - deg(denom)) < 1 ≤ bound
+  - Key APIs: `Polynomial.degree_mod_lt`, `Polynomial.natDegree_lt_natDegree`, `WithZero.exp_lt_exp.mpr`
+- 🔶 **Remaining sorry**: `bound < 1` case (line ~983)
+  - Not needed for main theorem (uses bound = 1)
+  - Could be filled with more refined Euclidean iteration if needed
 
-**Strategy (documented in code)**:
+### Key APIs Used in Cycle 154
+- `EuclideanDomain.div_add_mod num denom`: denom * (num / denom) + num % denom = num
+- `RatFunc.num_div_denom k₀`: k₀ = num/denom
+- `Polynomial.degree_mod_lt`: deg(r) < deg(denom) when denom ≠ 0
+- `Polynomial.natDegree_lt_natDegree hr hdeg_lt`: convert degree < to natDegree <
+- `FunctionField.inftyValuation.polynomial Fq hr`: |p|_∞ = exp(natDegree p) for p ≠ 0
+- `WithZero.exp_lt_exp.mpr hneg`: exp(n) < exp(m) when n < m
+- `mul_div_cancel_left₀ _ hmap_denom_ne`: cancel denom in numerator
+
+### Proof Pattern for Euclidean Division
 ```lean
--- For bound ≥ 1 (only case needed for main theorem):
-let num := k₀.num, denom := k₀.denom
-let q := num / denom  -- EuclideanDomain quotient
-let r := num % denom  -- remainder, deg(r) < deg(denom)
-let k := r / denom    -- fractional part, |k|_∞ < 1
--- Finite integrality: a - k = (a - k₀) + q, q is polynomial → integral
--- Infinity: |r/denom|_∞ = exp(deg(r) - deg(denom)) < 1 ≤ bound
+-- k₀ = num/denom, we want k with |k|_∞ < 1
+let q := num / denom  -- polynomial quotient
+let r := num % denom  -- remainder with deg(r) < deg(denom)
+let k := r/denom      -- fractional part
+
+-- Key equation: num = denom * q + r, so k₀ = q + r/denom, hence k = k₀ - q
+have hk_eq : k = k₀ - algebraMap Fq[X] (RatFunc Fq) q := by
+  -- Use EuclideanDomain.div_add_mod and RatFunc.num_div_denom
+  ...
+
+-- Finite integrality preserved: a.val v - k = (a.val v - k₀) + q
+-- q is polynomial → integral at finite places by polynomial_integral_at_finite_places
+
+-- Infinity bound: |r/denom|_∞ < 1
+-- deg(r) < deg(denom) → natDegree r < natDegree denom → exp(diff) < 1
 ```
 
-### API Issues for Next Claude
-1. **WithZero.exp comparison**: Need `exp(n) < 1` when `n < 0`
-   - Try `WithZero.exp_lt_exp.mpr` or construct via `exp(neg) < exp(0) = 1`
-2. **ValuationSubring.add_mem**: Syntax is `add_mem _ _ h1 h2`
-3. **Ring tactic with coercions**: Use `calc` or explicit `show` for type unification
+---
 
-### Key APIs Discovered in Cycle 153
-- `RatFunc.num_div_denom k₀`: k₀ = num/denom in RatFunc
-- `RatFunc.monic_denom`, `RatFunc.denom_ne_zero`: denominator properties
-- `EuclideanDomain.div_add_mod`: denom * q + r = num
-- `Polynomial.degree_mod_lt`: deg(remainder) < deg(divisor)
-- `Polynomial.natDegree_lt_natDegree`: convert degree to natDegree
-- `FunctionField.inftyValuation.polynomial`: |p|_∞ = exp(natDegree p)
-- `(algebraMap K Completion).map_sub k (y v)` for subtraction coercion
+## Cycle 153 Summary - MAJOR PROGRESS (4→1 sorries!)
+- ✅ **FILLED sorry #1**: `hDy_in_R` - D * y_v is polynomial
+- ✅ **FILLED sorry #2**: `hky_int` - v ∈ S case valuation bound
+- ✅ **FILLED sorry #3**: `hk_int` - v ∈ T\S case valuation bound
+- 🔄 **Sorry #4 strategy documented**: `exists_finite_integral_translate_with_infty_bound`
 
 ### 🔑 KEY INSIGHT (from previous cycles)
 
