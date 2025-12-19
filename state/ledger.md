@@ -6,11 +6,11 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ COMPILES - Residue.lean fixed
+**Build**: ✅ COMPILES
 **Phase**: 3 - Serre Duality
-**Cycle**: 165 (ready for next)
+**Cycle**: 166 (ready for next)
 
-### Sorry Count: 15
+### Sorry Count: 13
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,36 +18,37 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 4 | residueAtInfty_add + mul_monic + placeholders |
+| `Residue.lean` | 2 | residueAt + residue_sum_eq_zero (placeholders) |
 
 ---
 
-## CYCLE 165 - residueAtInfty_add Completion
+## CYCLE 166 - residueAtInfty_add Proof Completed
 
-### What's Working Now
-1. **Lemma ordering fixed** - `residueAtInfty_eq_neg_coeff` and `coeff_mul_at_sum_sub_one` now before aux definitions
-2. **Auxiliary function defined** - `residueAtInftyAux` with classical decidability
-3. **Additivity proved** - `residueAtInftyAux_add` ✅
-4. **Connection lemma** - `residueAtInfty_eq_aux` ✅
+### Achievements
+1. **`residueAtInftyAux_mul_monic` ✅** - Scaling lemma proved
+   - Key insight: Use `Polynomial.div_modByMonic_unique` for `(p*k) %ₘ (q*k) = (p%ₘ q) * k`
+   - `modByMonic_eq_mod` converts `%` to `%ₘ` for monic divisors
+   - `Monic.of_mul_monic_left` proves quotient k is monic
+2. **`residueAtInfty_add` ✅** - Main additivity theorem proved
+   - Scale f and g to common denominator using `residueAtInftyAux_mul_monic`
+   - Use `residueAtInftyAux_add` for numerator additivity
+   - `RatFunc.num_denom_add` + `isCoprime_num_denom` relate reduced to unreduced form
+   - The gcd factor k dividing out is monic, so residue is preserved
 
-### Remaining Sorries in Residue.lean (4)
-1. **`residueAtInftyAux_mul_monic`** (line 362) - Scaling lemma: `(p*k) % (q*k) = (p%q) * k` for monic k
-   - Proof sketch documented, needs Polynomial.mod uniqueness
-2. **`residueAtInfty_add`** (line 387) - Main additivity theorem
-   - Strategy: Use aux function approach via scaling and numerator additivity
-3. **`residueAt`** (line 422) - Placeholder for general finite place
-4. **`residue_sum_eq_zero`** (line 444) - Residue theorem (placeholder)
+### Key Lemmas Used
+- `Polynomial.div_modByMonic_unique`: uniqueness of polynomial division
+- `Polynomial.modByMonic_eq_mod`: `%ₘ = %` for monic divisors
+- `RatFunc.num_denom_add`: `(f+g).num * (f.denom * g.denom) = (f.num * g.denom + f.denom * g.num) * (f+g).denom`
+- `RatFunc.isCoprime_num_denom`: num and denom are coprime
+- `WithBot.add_lt_add_right`: degree arithmetic in WithBot
 
-### Strategy for residueAtInfty_add
-```lean
--- Convert to aux: residueAtInfty f = residueAtInftyAux f.num f.denom
--- Scale to common denom: residueAtInftyAux n_f d_f = residueAtInftyAux (n_f * d_g) (d_f * d_g)
--- Use additivity: residueAtInftyAux (a + b) q = residueAtInftyAux a q + residueAtInftyAux b q
--- Connect back to (f+g).num / (f+g).denom via gcd invariance
-```
+### Remaining Sorries in Residue.lean (2)
+1. **`residueAt`** (line 523) - Placeholder for general finite place
+2. **`residue_sum_eq_zero`** (line 549) - Residue theorem (placeholder)
 
-Key insight: The reduced form of f+g may differ from the unreduced form by a monic factor,
-but `residueAtInftyAux_mul_monic` shows this doesn't affect the residue.
+### Sorry Reduction
+- Before: 15 sorries
+- After: 13 sorries (-2)
 
 ---
 
@@ -152,6 +153,19 @@ lake build RrLean.RiemannRochV2.DifferentIdealBridge
 ---
 
 ## Recent Cycles
+
+### Cycle 166 (2025-12-19)
+- **Completed `residueAtInfty_add` proof** - Main additivity for residue at infinity
+- **Proved `residueAtInftyAux_mul_monic`** - Scaling lemma using `div_modByMonic_unique`
+  - Key: `(p*k) %ₘ (q*k) = (p %ₘ q) * k` via uniqueness of polynomial division
+  - Uses `modByMonic_eq_mod` to convert `%` to `%ₘ` for monic divisors
+- **Proved `residueAtInfty_add`** - Full additivity using auxiliary function approach
+  - Scale to common denominator via `residueAtInftyAux_mul_monic`
+  - Use `residueAtInftyAux_add` for numerator additivity
+  - Connect reduced and unreduced forms via `RatFunc.num_denom_add` + coprimality
+- Key Mathlib tools: `div_modByMonic_unique`, `Monic.of_mul_monic_left`, `isCoprime_num_denom`
+- Sorry count: 15 → 13 (filled 2 proofs)
+- Build status: ✅ COMPILES
 
 ### Cycle 165 (2025-12-19)
 - **Fixed Residue.lean build** - File now compiles cleanly

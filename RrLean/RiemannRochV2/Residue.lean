@@ -365,12 +365,55 @@ lemma residueAtInftyAux_mul_monic (p q k : Polynomial Fq)
   unfold residueAtInftyAux
   have hqk_ne : q * k ≠ 0 := mul_ne_zero hq hk_ne
   simp only [if_neg hqk_ne, if_neg hq]
-  -- Need: -((p * k) % (q * k)).coeff((q * k).natDegree - 1) = -(p % q).coeff(q.natDegree - 1)
-  -- This follows from:
-  -- 1. (p * k) % (q * k) = (p % q) * k (by uniqueness of polynomial division)
-  -- 2. (q * k).natDegree = q.natDegree + k.natDegree (for monic q, k)
-  -- 3. coeff_mul_at_sum_sub_one: ((p % q) * k).coeff(q.natDegree - 1 + k.natDegree) = (p % q).coeff(q.natDegree - 1)
-  sorry
+  -- Key lemma: (p * k) % (q * k) = (p % q) * k for monic q, k
+  -- This follows from uniqueness of polynomial division
+  have hqk_monic : (q * k).Monic := hq_monic.mul hk
+  -- Step 1: Express mod using modByMonic (they're equal for monic divisors)
+  rw [← Polynomial.modByMonic_eq_mod p hq_monic]
+  rw [← Polynomial.modByMonic_eq_mod (p * k) hqk_monic]
+  -- Step 2: Prove (p * k) %ₘ (q * k) = (p %ₘ q) * k using uniqueness
+  -- We have: p = (p /ₘ q) * q + (p %ₘ q) (modByMonic_add_div)
+  -- Multiply by k: p * k = (p /ₘ q) * (q * k) + (p %ₘ q) * k
+  have hdiv : (p %ₘ q) * k + (q * k) * (p /ₘ q) = p * k := by
+    have h := Polynomial.modByMonic_add_div p hq_monic
+    calc (p %ₘ q) * k + (q * k) * (p /ₘ q)
+        = (p %ₘ q) * k + q * (p /ₘ q) * k := by ring
+      _ = (p %ₘ q + q * (p /ₘ q)) * k := by ring
+      _ = p * k := by rw [h]
+  -- Step 3: Check degree condition: deg((p %ₘ q) * k) < deg(q * k)
+  have hdeg : ((p %ₘ q) * k).degree < (q * k).degree := by
+    by_cases hp_mod : p %ₘ q = 0
+    · simp only [hp_mod, zero_mul]
+      exact Ne.bot_lt (fun h => hqk_monic.ne_zero (Polynomial.degree_eq_bot.mp h))
+    · rw [hk.degree_mul, hk.degree_mul]
+      have hk_deg_ne_bot : k.degree ≠ ⊥ := Polynomial.degree_eq_bot.not.mpr hk_ne
+      exact WithBot.add_lt_add_right hk_deg_ne_bot (Polynomial.degree_modByMonic_lt p hq_monic)
+  -- Step 4: Apply uniqueness
+  -- div_modByMonic_unique {f g} (q r) (hg : Monic g) (h : r + g * q = f ∧ deg r < deg g)
+  -- gives: f /ₘ g = q ∧ f %ₘ g = r
+  -- Here: f = p * k, g = q * k, quotient = p /ₘ q, remainder = (p %ₘ q) * k
+  have huniq := Polynomial.div_modByMonic_unique (p /ₘ q) ((p %ₘ q) * k) hqk_monic ⟨hdiv, hdeg⟩
+  rw [huniq.2]
+  -- Now prove the coefficient extraction gives the same result
+  -- (q * k).natDegree = q.natDegree + k.natDegree and use coeff_mul_at_sum_sub_one
+  have hdeg_eq : (q * k).natDegree = q.natDegree + k.natDegree := hq_monic.natDegree_mul hk
+  rw [hdeg_eq]
+  -- Need: ((p %ₘ q) * k).coeff(q.natDegree + k.natDegree - 1) = (p %ₘ q).coeff(q.natDegree - 1)
+  by_cases hq_deg : q.natDegree = 0
+  · -- If q has degree 0, then q = 1 (since monic), so p %ₘ q = 0
+    have hq_eq : q = 1 := Polynomial.eq_one_of_monic_natDegree_zero hq_monic hq_deg
+    simp only [hq_eq, Polynomial.modByMonic_one, zero_mul, Polynomial.coeff_zero]
+  · -- q.natDegree ≥ 1, so we can use coeff_mul_at_sum_sub_one
+    have hq_pos : 0 < q.natDegree := Nat.pos_of_ne_zero hq_deg
+    -- q ≠ 1 since q.natDegree ≠ 0
+    have hq_ne_one : q ≠ 1 := fun h => hq_deg (by simp [h])
+    have hmod_deg : (p %ₘ q).natDegree < q.natDegree := by
+      by_cases hp_mod : p %ₘ q = 0
+      · simp only [hp_mod, Polynomial.natDegree_zero]; exact hq_pos
+      · exact Polynomial.natDegree_modByMonic_lt p hq_monic hq_ne_one
+    -- Rewrite: q.natDegree + k.natDegree - 1 = (q.natDegree - 1) + k.natDegree (for q.natDegree ≥ 1)
+    have hsub : q.natDegree + k.natDegree - 1 = (q.natDegree - 1) + k.natDegree := by omega
+    rw [hsub, coeff_mul_at_sum_sub_one hmod_deg hk]
 
 /-- The residue at infinity is additive.
 
@@ -386,19 +429,77 @@ but the residue is invariant under multiplying num/denom by the same monic polyn
 -/
 theorem residueAtInfty_add (f g : RatFunc Fq) :
     residueAtInfty (f + g) = residueAtInfty f + residueAtInfty g := by
-  -- Strategy: Use the auxiliary function which is additive in the numerator
-  -- residueAtInfty f = residueAtInftyAux f.num f.denom (by residueAtInfty_eq_aux)
-  -- We want to show the residue is additive by expressing everything over common denominator
-  --
-  -- Key facts:
-  -- 1. f = f.num / f.denom, g = g.num / g.denom (reduced forms)
-  -- 2. f + g as an unreduced fraction is (f.num * g.denom + g.num * f.denom) / (f.denom * g.denom)
-  -- 3. The reduced form (f+g).num / (f+g).denom divides out the gcd
-  -- 4. Dividing by a monic factor preserves residue (by residueAtInftyAux_mul_monic)
-  -- 5. residueAtInftyAux is additive in the numerator
-  --
-  -- The proof combines these facts to show additivity.
-  sorry
+  -- Convert to auxiliary function
+  rw [residueAtInfty_eq_aux f, residueAtInfty_eq_aux g, residueAtInfty_eq_aux (f + g)]
+  -- Scale f and g to common denominator
+  have hf_denom_monic : f.denom.Monic := RatFunc.monic_denom f
+  have hg_denom_monic : g.denom.Monic := RatFunc.monic_denom g
+  have hfg_denom_monic : (f + g).denom.Monic := RatFunc.monic_denom (f + g)
+  have hf_denom_ne : f.denom ≠ 0 := RatFunc.denom_ne_zero f
+  have hg_denom_ne : g.denom ≠ 0 := RatFunc.denom_ne_zero g
+  have hfg_denom_ne : (f + g).denom ≠ 0 := RatFunc.denom_ne_zero (f + g)
+  -- Scale f by g.denom and g by f.denom
+  have h1 : residueAtInftyAux f.num f.denom = residueAtInftyAux (f.num * g.denom) (f.denom * g.denom) :=
+    (residueAtInftyAux_mul_monic f.num f.denom g.denom hf_denom_ne hf_denom_monic hg_denom_monic hg_denom_ne).symm
+  have h2 : residueAtInftyAux g.num g.denom = residueAtInftyAux (g.num * f.denom) (g.denom * f.denom) :=
+    (residueAtInftyAux_mul_monic g.num g.denom f.denom hg_denom_ne hg_denom_monic hf_denom_monic hf_denom_ne).symm
+  -- Rewrite g.denom * f.denom = f.denom * g.denom
+  rw [mul_comm g.denom f.denom] at h2
+  rw [h1, h2]
+  -- Use additivity: the sum is residueAtInftyAux (f.num * g.denom + g.num * f.denom) (f.denom * g.denom)
+  rw [← residueAtInftyAux_add]
+  -- Now relate unreduced form to reduced form using num_denom_add
+  -- From num_denom_add: (f + g).num * (f.denom * g.denom) = (f.num * g.denom + f.denom * g.num) * (f + g).denom
+  have hrel := RatFunc.num_denom_add f g
+  -- This is: (f + g).num * (f.denom * g.denom) = (f.num * g.denom + f.denom * g.num) * (f + g).denom
+  -- Reorder the unreduced numerator to match
+  have hreorder : f.num * g.denom + g.num * f.denom = f.num * g.denom + f.denom * g.num := by ring
+  rw [hreorder]
+  -- Let d = f.denom * g.denom (unreduced denom), d' = (f+g).denom (reduced denom)
+  -- Let n = f.num * g.denom + f.denom * g.num (unreduced num), n' = (f+g).num (reduced num)
+  -- From hrel: n' * d = n * d'
+  -- Since gcd(n', d') = 1, we have d' | d. Let k = d / d'.
+  -- Then d = d' * k and n = n' * k.
+  -- By residueAtInftyAux_mul_monic: residueAtInftyAux (n' * k) (d' * k) = residueAtInftyAux n' d'
+  -- Need to show (f+g).denom divides (f.denom * g.denom)
+  have hdiv : (f + g).denom ∣ f.denom * g.denom := by
+    -- Since (f+g).num and (f+g).denom are coprime and n' * d = n * d', we have d' | d
+    have hcoprime : IsCoprime (f + g).num (f + g).denom := RatFunc.isCoprime_num_denom (f + g)
+    -- From hrel: (f + g).num * (f.denom * g.denom) = n * (f + g).denom
+    -- So (f + g).denom | (f + g).num * (f.denom * g.denom)
+    -- Since gcd((f+g).num, (f+g).denom) = 1, (f+g).denom | (f.denom * g.denom)
+    have hdvd : (f + g).denom ∣ (f + g).num * (f.denom * g.denom) := by
+      rw [hrel]; exact dvd_mul_left _ _
+    exact (hcoprime.symm.dvd_of_dvd_mul_left hdvd)
+  -- Get the quotient k
+  obtain ⟨k, hk_eq⟩ := hdiv
+  -- Show k is monic (since d and d' are monic)
+  have hk_monic : k.Monic := by
+    have hd_monic : (f.denom * g.denom).Monic := hf_denom_monic.mul hg_denom_monic
+    rw [hk_eq] at hd_monic
+    exact Polynomial.Monic.of_mul_monic_left hfg_denom_monic hd_monic
+  have hk_ne : k ≠ 0 := hk_monic.ne_zero
+  -- From hrel: (f + g).num * (f.denom * g.denom) = n * (f + g).denom
+  -- Substitute (f.denom * g.denom) = (f + g).denom * k:
+  -- (f + g).num * ((f + g).denom * k) = n * (f + g).denom
+  -- (f + g).num * k * (f + g).denom = n * (f + g).denom
+  -- Cancel (f + g).denom (nonzero): (f + g).num * k = n
+  have hn_eq : f.num * g.denom + f.denom * g.num = (f + g).num * k := by
+    have h := hrel
+    rw [hk_eq] at h
+    -- h : (f + g).num * ((f + g).denom * k) = (f.num * g.denom + f.denom * g.num) * (f + g).denom
+    -- Need to cancel (f + g).denom from both sides
+    have hne : (f + g).denom ≠ 0 := RatFunc.denom_ne_zero (f + g)
+    -- Rearrange h: (f + g).num * k * (f + g).denom = (f.num * g.denom + f.denom * g.num) * (f + g).denom
+    have h' : (f.num * g.denom + f.denom * g.num) * (f + g).denom = (f + g).num * k * (f + g).denom := by
+      calc (f.num * g.denom + f.denom * g.num) * (f + g).denom
+          = (f + g).num * ((f + g).denom * k) := h.symm
+        _ = (f + g).num * (k * (f + g).denom) := by ring
+        _ = (f + g).num * k * (f + g).denom := by ring
+    exact mul_right_cancel₀ hne h'
+  -- Now use residueAtInftyAux_mul_monic
+  rw [hn_eq, hk_eq]
+  exact (residueAtInftyAux_mul_monic (f + g).num (f + g).denom k hfg_denom_ne hfg_denom_monic hk_monic hk_ne).symm
 
 /-! ## Section 3: Residue at General Finite Place
 
