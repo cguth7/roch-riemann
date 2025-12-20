@@ -6,9 +6,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Full build compiles (2559 jobs)
+**Build**: ✅ Full build compiles (2804 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 180
+**Cycle**: 181
 
 ### Residue.lean Status
 
@@ -33,17 +33,55 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `finrank_eq_of_perfect_pairing` | ✅ proved | Cycle 178 |
 | `residueSumTotal_polynomial` | ✅ proved | Cycle 177 |
 | `residueSumTotal_two_poles` | ✅ proved | Cycle 180 |
+| `residueSumTotal_n_poles_finset` | ✅ proved | Cycle 181 |
+| `residueSumTotal_splits` | ✅ proved | Cycle 181 |
 | Other infrastructure | ✅ proved | residueSumFinite, residueSumTotal, etc. |
 
-### Next Steps (Cycle 181)
+### Next Steps (Cycle 182)
 
-1. **Extend to n poles** - Use `div_eq_quo_add_sum_rem_div` for general case
-   - Generalize `residueSumTotal_two_poles` to arbitrary finite number of distinct poles
-   - Use Finset induction matching the structure of partial fractions theorem
+1. **Wire serrePairing** - Define pairing using residue sum infrastructure
+   - For diagonal adele `a = diag(g)` where `g ∈ K`, pairing is `residueSumTotal(g·f)`
+   - Use `residueSumTotal_splits` to show residue theorem applies
 
 2. **Fill non-degeneracy lemmas** - For serrePairing
+   - Left: if ⟨[a], f⟩ = 0 for all f, then [a] = 0
+   - Right: if ⟨[a], f⟩ = 0 for all [a], then f = 0
 
-3. **Wire serrePairing** - Use residue theorem infrastructure
+---
+
+## CYCLE 181 - Extended residue theorem to n poles
+
+### Achievements
+1. **`pairwise_coprime_X_sub_of_injective` ✅** - Helper lemma for coprimality
+   - If poles are injective on finset, linear factors are pairwise coprime
+
+2. **`residueSumTotal_n_poles_finset` ✅** - General residue theorem for n distinct linear poles
+   - Takes `f : Polynomial Fq` and `poles : Finset Fq` (distinct by construction)
+   - Proves `residueSumTotal (f / ∏ α∈poles (X-α)) = 0`
+   - Proof by Finset induction, generalizing over f
+   - Uses `div_eq_quo_add_rem_div_add_rem_div` at each step
+   - Applies `residueSumTotal_polynomial` for quotient
+   - Applies `residueSumTotal_eq_zero_simple` for the extracted pole
+   - IH handles remainder term
+
+3. **`residueSumTotal_splits` ✅** - Corollary for general rational functions
+   - Any f whose denominator splits into distinct linear factors has zero total residue
+
+### Key Technique
+Finset induction with generalization:
+```lean
+induction poles using Finset.induction_on generalizing f with
+| empty => -- f / 1 = f is polynomial
+| insert α s hα ih =>
+  -- Use partial fractions: f/((X-α)*∏s) = q + c/(X-α) + r₂/∏s
+  -- q: polynomial (zero residue)
+  -- c/(X-α): simple pole (zero total residue by existing lemma)
+  -- r₂/∏s: apply IH
+```
+
+### Sorry Count Change
+- Before: 6 sorries (2 Residue + 4 SerreDuality)
+- After: 6 sorries (unchanged - added new theorems, no new sorries)
 
 ---
 

@@ -553,6 +553,133 @@ theorem residueSumTotal_two_poles [Fintype Fq] (f : Polynomial Fq) (α β : Fq) 
   rw [residueSumTotal_eq_zero_simple c₂ β]
   ring
 
+/-- Pairwise coprimality of distinct linear factors.
+
+If all elements of a finset are distinct (injective on indices),
+then the linear factors (X - αᵢ) are pairwise coprime.
+-/
+lemma pairwise_coprime_X_sub_of_injective {ι : Type*} (poles : ι → Fq) (s : Finset ι)
+    (hinj : Set.InjOn poles s) :
+    Set.Pairwise (s : Set ι) fun i j => IsCoprime
+      (Polynomial.X - Polynomial.C (poles i))
+      (Polynomial.X - Polynomial.C (poles j)) := by
+  intro i hi j hj hij
+  apply isCoprime_X_sub_of_ne
+  intro heq
+  exact hij (hinj hi hj heq)
+
+/-- The residue theorem for n distinct linear poles (direct version with Finset Fq).
+
+For a finite set of distinct poles (elements of Fq), the total residue is zero.
+This is the most usable form for the Serre duality application.
+-/
+theorem residueSumTotal_n_poles_finset [Fintype Fq] (f : Polynomial Fq) (poles : Finset Fq) :
+    residueSumTotal ((algebraMap _ (RatFunc Fq) f) /
+                     (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) = 0 := by
+  -- Induct on poles, generalizing f so the IH works for r₂
+  induction poles using Finset.induction_on generalizing f with
+  | empty =>
+    -- Empty product is 1, so f/1 = f which is a polynomial
+    simp only [Finset.prod_empty]
+    rw [div_one]
+    exact residueSumTotal_polynomial f
+  | insert α s hα ih =>
+    -- f/((X-α) * ∏ s) = ? We need to show residue is 0
+    -- Strategy: use two-pole decomposition iteratively
+    rw [Finset.prod_insert hα]
+    -- We have f / ((X-α) * ∏_{β∈s} (X-β))
+    -- Use partial fractions: f / (g₁ * g₂) = q + r₁/g₁ + r₂/g₂
+    set g₁ := Polynomial.X - Polynomial.C α with hg₁_def
+    set g₂ := ∏ β ∈ s, (Polynomial.X - Polynomial.C β) with hg₂_def
+    by_cases hs : s = ∅
+    · -- s is empty, so g₂ = 1 and this reduces to f/(X-α)
+      subst hs
+      simp only [Finset.prod_empty, mul_one] at hg₂_def ⊢
+      -- f / (X-α) = q + r/(X-α) where deg r < 1
+      have hmonic1 : g₁.Monic := Polynomial.monic_X_sub_C α
+      have hmonic2 : (1 : Polynomial Fq).Monic := Polynomial.monic_one
+      have hcop : IsCoprime g₁ (1 : Polynomial Fq) := isCoprime_one_right
+      obtain ⟨q, r₁, r₂, hdeg1, _, heq⟩ :=
+        div_eq_quo_add_rem_div_add_rem_div Fq (RatFunc Fq) f hmonic1 hmonic2 hcop
+      have hdeg_g1 : g₁.degree = 1 := Polynomial.degree_X_sub_C α
+      rw [hdeg_g1] at hdeg1
+      obtain ⟨c, hc⟩ := polynomial_degree_lt_one_eq_C r₁ hdeg1
+      rw [hc] at heq
+      -- heq has form: ↑f / (↑g₁ * 1) = ↑q + ↑(C c) / ↑g₁ + ↑r₂ / 1
+      have h_c_div : (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c)) /
+                      (algebraMap (Polynomial Fq) (RatFunc Fq) g₁) =
+                      c • (RatFunc.X - RatFunc.C α)⁻¹ := by
+        rw [hg₁_def]; exact const_div_X_sub_eq_smul c α
+      simp only [mul_one, map_one, div_one] at heq
+      rw [h_c_div] at heq
+      have hXα : RatFunc.X - RatFunc.C α =
+                 (algebraMap (Polynomial Fq) (RatFunc Fq) g₁) := by
+        rw [hg₁_def]; simp only [RatFunc.X, ← RatFunc.algebraMap_C, ← map_sub]
+      rw [hXα, heq, residueSumTotal_add, residueSumTotal_add]
+      rw [residueSumTotal_polynomial q]
+      rw [residueSumTotal_eq_zero_simple c α]
+      rw [residueSumTotal_polynomial r₂]
+      ring
+    · -- s is nonempty
+      -- g₂ is a product of monic coprime linear factors
+      have hmonic1 : g₁.Monic := Polynomial.monic_X_sub_C α
+      have hmonic2 : g₂.Monic := by
+        rw [hg₂_def]
+        apply Polynomial.monic_prod_of_monic
+        intro β _
+        exact Polynomial.monic_X_sub_C β
+      -- g₁ and g₂ are coprime because α ∉ s
+      have hcop : IsCoprime g₁ g₂ := by
+        rw [hg₁_def, hg₂_def]
+        apply IsCoprime.prod_right
+        intro β hβ
+        apply isCoprime_X_sub_of_ne
+        intro heq
+        rw [heq] at hα
+        exact hα hβ
+      obtain ⟨q, r₁, r₂, hdeg1, _, heq⟩ :=
+        div_eq_quo_add_rem_div_add_rem_div Fq (RatFunc Fq) f hmonic1 hmonic2 hcop
+      -- r₁ is constant since deg r₁ < deg g₁ = 1
+      have hdeg_g1 : g₁.degree = 1 := Polynomial.degree_X_sub_C α
+      rw [hdeg_g1] at hdeg1
+      obtain ⟨c, hc⟩ := polynomial_degree_lt_one_eq_C r₁ hdeg1
+      rw [hc] at heq
+      have h_c_div : (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c)) /
+                      (algebraMap (Polynomial Fq) (RatFunc Fq) g₁) =
+                      c • (RatFunc.X - RatFunc.C α)⁻¹ := by
+        rw [hg₁_def]; exact const_div_X_sub_eq_smul c α
+      rw [h_c_div] at heq
+      -- Align goal with heq
+      have hXα : RatFunc.X - RatFunc.C α =
+                 (algebraMap (Polynomial Fq) (RatFunc Fq) g₁) := by
+        rw [hg₁_def]; simp only [RatFunc.X, ← RatFunc.algebraMap_C, ← map_sub]
+      have hprod_eq : ∏ β ∈ s, (RatFunc.X - RatFunc.C β) =
+                      (algebraMap (Polynomial Fq) (RatFunc Fq) g₂) := by
+        rw [hg₂_def, map_prod]
+        apply Finset.prod_congr rfl
+        intro β _
+        simp only [RatFunc.X, ← RatFunc.algebraMap_C, ← map_sub]
+      rw [hXα, hprod_eq, heq]
+      rw [residueSumTotal_add, residueSumTotal_add]
+      rw [residueSumTotal_polynomial q]
+      rw [residueSumTotal_eq_zero_simple c α]
+      -- The remaining term is r₂/g₂ where g₂ = ∏ β∈s (X-β)
+      -- Apply IH with r₂ (now works because we generalized over f)
+      -- The coercion ↑ and algebraMap are the same for polynomials
+      simp only [zero_add]
+      convert (ih r₂) using 1
+      rw [hprod_eq]
+
+/-- Corollary: Any rational function whose denominator splits into distinct linear factors
+has zero total residue. -/
+theorem residueSumTotal_splits [Fintype Fq] (f : RatFunc Fq)
+    (h : ∃ (p : Polynomial Fq) (poles : Finset Fq),
+         f = (algebraMap _ (RatFunc Fq) p) / (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) :
+    residueSumTotal f = 0 := by
+  obtain ⟨p, poles, hf⟩ := h
+  rw [hf]
+  exact residueSumTotal_n_poles_finset p poles
+
 end ConcreteRatFuncPairing
 
 end RiemannRochV2
