@@ -159,7 +159,50 @@ lemma finrank_eq_of_perfect_pairing
               (∀ x, serrePairing k R K canonical D x f = 0) → f = 0) :
     Module.finrank k (AdelicH1v2.SpaceModule k R K D) =
     Module.finrank k (RRSpace_proj k R K (canonical - D)) := by
-  sorry
+  -- The pairing gives us two linear maps:
+  -- φ : V → Dual k W (from serrePairing directly)
+  -- ψ : W → Dual k V (the transpose)
+  -- Left non-deg implies φ is injective ⟹ finrank V ≤ finrank W
+  -- Right non-deg implies ψ is injective ⟹ finrank W ≤ finrank V
+  -- Hence equality.
+  set V := AdelicH1v2.SpaceModule k R K D with hV_def
+  set W := RRSpace_proj k R K (canonical - D) with hW_def
+  -- φ : V →ₗ[k] (W →ₗ[k] k) = serrePairing
+  let φ : V →ₗ[k] (Module.Dual k W) := serrePairing k R K canonical D
+  -- ψ : W →ₗ[k] (V →ₗ[k] k) : flip of the pairing
+  let ψ : W →ₗ[k] (Module.Dual k V) :=
+    LinearMap.flip (serrePairing k R K canonical D)
+  -- hleft says φ is injective
+  have hφ_inj : Function.Injective φ := by
+    intro x y hxy
+    have h : x - y = 0 := hleft (x - y) (fun f => by
+      have heq : φ x = φ y := hxy
+      have := LinearMap.ext_iff.mp heq f
+      simp only [φ] at this
+      rw [map_sub, LinearMap.sub_apply, this, sub_self])
+    exact sub_eq_zero.mp h
+  -- hright says ψ is injective
+  have hψ_inj : Function.Injective ψ := by
+    intro f g hfg
+    have h : f - g = 0 := hright (f - g) (fun x => by
+      have heq : ψ f = ψ g := hfg
+      have := LinearMap.ext_iff.mp heq x
+      simp only [ψ, LinearMap.flip_apply] at this
+      rw [(serrePairing k R K canonical D x).map_sub, this, sub_self])
+    exact sub_eq_zero.mp h
+  -- finrank V ≤ finrank (Dual k W) = finrank W
+  have h1 : Module.finrank k V ≤ Module.finrank k W := by
+    calc Module.finrank k V
+        ≤ Module.finrank k (Module.Dual k W) :=
+          LinearMap.finrank_le_finrank_of_injective hφ_inj
+      _ = Module.finrank k W := Subspace.dual_finrank_eq
+  -- finrank W ≤ finrank (Dual k V) = finrank V
+  have h2 : Module.finrank k W ≤ Module.finrank k V := by
+    calc Module.finrank k W
+        ≤ Module.finrank k (Module.Dual k V) :=
+          LinearMap.finrank_le_finrank_of_injective hψ_inj
+      _ = Module.finrank k V := Subspace.dual_finrank_eq
+  exact Nat.le_antisymm h1 h2
 
 /-- Serre duality: h¹(D) = ℓ(K - D).
 

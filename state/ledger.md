@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles (2803 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 177
+**Cycle**: 178
 
 ### Residue.lean Status
 
@@ -30,11 +30,11 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `serrePairing_wellDefined` | ❌ sorry | Placeholder |
 | `serrePairing_left_nondegen` | ❌ sorry | Placeholder |
 | `serrePairing_right_nondegen` | ❌ sorry | Placeholder |
-| `finrank_eq_of_perfect_pairing` | ❌ sorry | Linear algebra fact |
+| `finrank_eq_of_perfect_pairing` | ✅ proved | Cycle 178 |
 | `residueSumTotal_polynomial` | ✅ proved | Cycle 177 |
 | Other infrastructure | ✅ proved | residueSumFinite, residueSumTotal, etc. |
 
-### Next Steps (Cycle 178)
+### Next Steps (Cycle 179)
 
 1. **Work toward serrePairing construction** - Main goal
    - Use residue sum infrastructure for the pairing
@@ -44,8 +44,30 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
    - Extend beyond simple poles to full residue theorem
    - Would use partial fractions decomposition
 
-3. **Fill finrank_eq_of_perfect_pairing**
-   - Standard linear algebra lemma about perfect pairings
+3. **Fill non-degeneracy lemmas**
+   - serrePairing_left_nondegen, serrePairing_right_nondegen
+
+---
+
+## CYCLE 178 - Perfect Pairing Dimension Equality
+
+### Achievements
+1. **`finrank_eq_of_perfect_pairing` ✅** - Proved dimension equality from perfect pairing
+   - Key technique: Use `LinearMap.flip` to get transpose map ψ : W → Dual k V
+   - Left non-degeneracy ⟹ φ : V → Dual k W is injective ⟹ finrank V ≤ finrank W
+   - Right non-degeneracy ⟹ ψ injective ⟹ finrank W ≤ finrank V
+   - Uses `Subspace.dual_finrank_eq` to relate dual space dimension to original
+   - Uses `LinearMap.finrank_le_finrank_of_injective` for the inequalities
+
+### Key Mathlib Lemmas Used
+- `Subspace.dual_finrank_eq`: finrank (V →ₗ[k] k) = finrank V
+- `LinearMap.finrank_le_finrank_of_injective`: injective f ⟹ finrank dom ≤ finrank cod
+- `LinearMap.flip`: converts V →ₗ[k] (W →ₗ[k] k) to W →ₗ[k] (V →ₗ[k] k)
+
+### Sorry Count Change
+- Before: 7 sorries (2 in Residue.lean + 5 in SerreDuality.lean)
+- After: 6 sorries (2 in Residue.lean + 4 in SerreDuality.lean)
+- Net: -1
 
 ---
 
