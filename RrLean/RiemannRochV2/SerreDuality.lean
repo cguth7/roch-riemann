@@ -1,6 +1,7 @@
 import RrLean.RiemannRochV2.AdelicH1v2
 import RrLean.RiemannRochV2.DifferentIdealBridge
 import RrLean.RiemannRochV2.Residue
+import Mathlib.Algebra.Polynomial.PartialFractions
 
 /-!
 # Serre Duality Pairing
@@ -454,6 +455,100 @@ theorem residueSumTotal_polynomial [Fintype Fq] (p : Polynomial Fq) :
     intro α _
     exact residueAt_polynomial α p
   rw [h_finite, residueAtInfty_polynomial, add_zero]
+
+/-! ## Residue Theorem via Partial Fractions
+
+For rational functions whose denominator splits into distinct linear factors,
+we can prove the residue theorem using partial fractions decomposition.
+
+The key theorem from Mathlib is `div_eq_quo_add_sum_rem_div`:
+If f, g₁, ..., gₙ ∈ R[X] and the gᵢ are monic and pairwise coprime, then
+f / (g₁ ⋯ gₙ) = q + r₁/g₁ + ... + rₙ/gₙ where deg(rᵢ) < deg(gᵢ).
+
+For linear factors (X - αᵢ), deg(rᵢ) < 1 means rᵢ is a constant.
+-/
+
+/-- Coprimality of distinct linear factors: if α ≠ β, then (X - α) and (X - β) are coprime. -/
+lemma isCoprime_X_sub_of_ne (α β : Fq) (h : α ≠ β) :
+    IsCoprime (Polynomial.X - Polynomial.C α) (Polynomial.X - Polynomial.C β) :=
+  Polynomial.isCoprime_X_sub_C_of_isUnit_sub (sub_ne_zero.mpr h).isUnit
+
+/-- For a constant polynomial c (viewed as degree < 1), c/(X - α) = c • (X - α)⁻¹. -/
+lemma const_div_X_sub_eq_smul (c α : Fq) :
+    (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c)) /
+    (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α)) =
+    c • (RatFunc.X - RatFunc.C α)⁻¹ := by
+  rw [div_eq_mul_inv, Algebra.smul_def, RatFunc.algebraMap_eq_C]
+  congr 1
+  simp only [RatFunc.X, ← RatFunc.algebraMap_C, ← map_sub]
+
+/-- A polynomial of degree < 1 is a constant. -/
+lemma polynomial_degree_lt_one_eq_C (p : Polynomial Fq) (h : p.degree < 1) :
+    ∃ c : Fq, p = Polynomial.C c := by
+  have hle : p.degree ≤ 0 := by
+    by_cases hp : p = 0
+    · simp only [hp, Polynomial.degree_zero, bot_le]
+    · have hne : p.degree ≠ ⊥ := Polynomial.degree_ne_bot.mpr hp
+      obtain ⟨n, hn⟩ := WithBot.ne_bot_iff_exists.mp hne
+      rw [← hn] at h ⊢
+      have h' : n < 1 := by simpa using h
+      have h'' : n = 0 := Nat.lt_one_iff.mp h'
+      simp [h'']
+  exact ⟨p.coeff 0, Polynomial.eq_C_of_degree_le_zero hle⟩
+
+/-- The residue theorem for simple linear poles: version with two poles.
+
+If a rational function has poles only at α and β (both simple, α ≠ β),
+then its total residue is zero.
+
+Proof approach:
+1. Use partial fractions (div_eq_quo_add_rem_div_add_rem_div) to decompose:
+   f/((X-α)(X-β)) = q + c₁/(X-α) + c₂/(X-β)
+2. Apply residueSumTotal_polynomial to q (contributes 0)
+3. Apply residueSumTotal_eq_zero_simple to each simple pole term (contributes 0)
+-/
+theorem residueSumTotal_two_poles [Fintype Fq] (f : Polynomial Fq) (α β : Fq) (hne : α ≠ β) :
+    residueSumTotal ((algebraMap _ (RatFunc Fq) f) /
+                     ((RatFunc.X - RatFunc.C α) * (RatFunc.X - RatFunc.C β))) = 0 := by
+  -- Apply partial fractions: f/((X-α)(X-β)) = q + r₁/(X-α) + r₂/(X-β)
+  have hcop : IsCoprime (Polynomial.X - Polynomial.C α) (Polynomial.X - Polynomial.C β) :=
+    isCoprime_X_sub_of_ne α β hne
+  have hmonic1 : (Polynomial.X - Polynomial.C α).Monic := Polynomial.monic_X_sub_C α
+  have hmonic2 : (Polynomial.X - Polynomial.C β).Monic := Polynomial.monic_X_sub_C β
+  obtain ⟨q, r₁, r₂, hdeg1, hdeg2, heq⟩ :=
+    div_eq_quo_add_rem_div_add_rem_div Fq (RatFunc Fq) f hmonic1 hmonic2 hcop
+  -- r₁ and r₂ are constants since deg < 1
+  have hdeg_Xα : (Polynomial.X - Polynomial.C α).degree = 1 := Polynomial.degree_X_sub_C α
+  have hdeg_Xβ : (Polynomial.X - Polynomial.C β).degree = 1 := Polynomial.degree_X_sub_C β
+  rw [hdeg_Xα] at hdeg1
+  rw [hdeg_Xβ] at hdeg2
+  obtain ⟨c₁, hc₁⟩ := polynomial_degree_lt_one_eq_C r₁ hdeg1
+  obtain ⟨c₂, hc₂⟩ := polynomial_degree_lt_one_eq_C r₂ hdeg2
+  -- Substitute constants into heq
+  rw [hc₁, hc₂] at heq
+  -- Convert const_div_X_sub to smul form
+  have h_c₁_div : (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c₁)) /
+                  (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α)) =
+                  c₁ • (RatFunc.X - RatFunc.C α)⁻¹ := const_div_X_sub_eq_smul c₁ α
+  have h_c₂_div : (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c₂)) /
+                  (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C β)) =
+                  c₂ • (RatFunc.X - RatFunc.C β)⁻¹ := const_div_X_sub_eq_smul c₂ β
+  rw [h_c₁_div, h_c₂_div] at heq
+  -- heq: ↑f / (↑(X-α) * ↑(X-β)) = ↑q + c₁ • (RatFunc.X - RatFunc.C α)⁻¹ + c₂ • (RatFunc.X - RatFunc.C β)⁻¹
+  -- Goal: residueSumTotal (algebraMap f / ((RatFunc.X - RatFunc.C α) * (RatFunc.X - RatFunc.C β))) = 0
+  --
+  -- HANDOFF FOR NEXT CLAUDE:
+  -- The proof is 99% complete. We have:
+  -- 1. heq gives f/((X-α)(X-β)) = q + c₁/(X-α) + c₂/(X-β) via partial fractions
+  -- 2. c₁, c₂ are constants (from polynomial_degree_lt_one_eq_C)
+  -- 3. residueSumTotal_polynomial: residueSumTotal (algebraMap p) = 0
+  -- 4. residueSumTotal_eq_zero_simple: residueSumTotal (c • (X - C α)⁻¹) = 0
+  --
+  -- The remaining issue is coercion alignment:
+  -- - heq uses ↑ (coercion), goal uses RatFunc.X/RatFunc.C and algebraMap
+  -- - These are definitionally equal: ↑p = algebraMap p, RatFunc.X = algebraMap Polynomial.X
+  -- - Need to use rfl or show/change to unify, then apply residueSumTotal_add + above lemmas
+  sorry
 
 end ConcreteRatFuncPairing
 

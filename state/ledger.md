@@ -6,9 +6,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Full build compiles (2803 jobs)
+**Build**: ✅ Full build compiles (2804 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 178
+**Cycle**: 179
 
 ### Residue.lean Status
 
@@ -32,20 +32,59 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `serrePairing_right_nondegen` | ❌ sorry | Placeholder |
 | `finrank_eq_of_perfect_pairing` | ✅ proved | Cycle 178 |
 | `residueSumTotal_polynomial` | ✅ proved | Cycle 177 |
+| `residueSumTotal_two_poles` | ❌ 99% done | Cycle 179 - coercion issue |
 | Other infrastructure | ✅ proved | residueSumFinite, residueSumTotal, etc. |
 
-### Next Steps (Cycle 179)
+### Next Steps (Cycle 180)
 
-1. **Work toward serrePairing construction** - Main goal
-   - Use residue sum infrastructure for the pairing
-   - Need to connect adelic elements to RatFunc
+1. **FINISH `residueSumTotal_two_poles`** - 99% complete!
+   - The proof structure is done via partial fractions
+   - Just need to align ↑ coercion with algebraMap/RatFunc.X/RatFunc.C
+   - See detailed HANDOFF comments in SerreDuality.lean:540-550
 
-2. **Consider residueSumTotal_eq_zero for general f**
-   - Extend beyond simple poles to full residue theorem
-   - Would use partial fractions decomposition
+2. **Extend to n poles** - Use `div_eq_quo_add_sum_rem_div` for general case
 
 3. **Fill non-degeneracy lemmas**
-   - serrePairing_left_nondegen, serrePairing_right_nondegen
+
+---
+
+## CYCLE 179 - Partial Fractions Infrastructure (INCOMPLETE - 99%)
+
+### Achievements
+1. **Added `import Mathlib.Algebra.Polynomial.PartialFractions`** - Unlocks partial fractions
+2. **Proved `isCoprime_X_sub_of_ne`** - Distinct linear factors are coprime
+3. **Proved `const_div_X_sub_eq_smul`** - c/(X-α) = c • (X-α)⁻¹
+4. **Proved `polynomial_degree_lt_one_eq_C`** - deg(p) < 1 ⟹ p is constant
+5. **Started `residueSumTotal_two_poles`** - Residue theorem for two-pole case
+
+### CRITICAL HANDOFF for `residueSumTotal_two_poles`
+
+The proof is 99% complete at SerreDuality.lean:510-551. We have:
+
+```lean
+-- heq from partial fractions:
+heq : ↑f / (↑(X-α) * ↑(X-β)) = ↑q + c₁ • (RatFunc.X - RatFunc.C α)⁻¹ + c₂ • (RatFunc.X - RatFunc.C β)⁻¹
+
+-- Goal:
+⊢ residueSumTotal (algebraMap f / ((RatFunc.X - RatFunc.C α) * (RatFunc.X - RatFunc.C β))) = 0
+```
+
+**The issue**: `↑` vs `algebraMap` and `↑(X-α)` vs `RatFunc.X - RatFunc.C α`
+
+**Key facts** (all definitional):
+- `↑p = algebraMap (Polynomial Fq) (RatFunc Fq) p`
+- `RatFunc.X = algebraMap Polynomial.X`
+- `RatFunc.C α = algebraMap (Polynomial.C α)` (via `RatFunc.algebraMap_C`)
+
+**Strategy to finish**:
+1. Use `show` or `change` to rewrite goal to match heq's LHS form
+2. Apply `heq` to get `residueSumTotal (↑q + c₁ • ... + c₂ • ...)`
+3. Use `residueSumTotal_add` to split
+4. Apply `residueSumTotal_polynomial` (for q) and `residueSumTotal_eq_zero_simple` (for c₁, c₂)
+
+### Sorry Count Change
+- Before: 6 sorries (2 Residue + 4 SerreDuality)
+- After: 7 sorries (+1 from residueSumTotal_two_poles, but proof is 99% done)
 
 ---
 
