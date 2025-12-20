@@ -501,6 +501,7 @@ theorem residueAtInfty_add (f g : RatFunc Fq) :
   rw [hn_eq, hk_eq]
   exact (residueAtInftyAux_mul_monic (f + g).num (f + g).denom k hfg_denom_ne hfg_denom_monic hk_monic hk_ne).symm
 
+open Classical in
 /-- The residue at infinity of c • (1/(X - α)) is -c.
 
 This is a key test case for scalar multiplication of residue at infinity.
@@ -510,9 +511,36 @@ theorem residueAtInfty_smul_inv_X_sub (α c : Fq) :
     residueAtInfty (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = -c := by
   by_cases hc : c = 0
   · simp only [hc, zero_smul, residueAtInfty_zero, neg_zero]
-  · -- For c ≠ 0, this follows from computing on the reduced fraction c/(X-α)
-    -- The proof involves showing num = C c, denom = X - C α, then computing the residue
-    -- Similar structure to residueAtInfty_inv_X_sub but with coefficient c
+  · -- For c ≠ 0, express as (C c) / (X - C α) and compute directly
+    have hXa_ne : (Polynomial.X - Polynomial.C α) ≠ (0 : Polynomial Fq) := by
+      intro h
+      have hdeg := congr_arg Polynomial.natDegree h
+      simp only [Polynomial.natDegree_X_sub_C, Polynomial.natDegree_zero] at hdeg
+      omega
+    have hCc_ne : (Polynomial.C c : Polynomial Fq) ≠ 0 := Polynomial.C_ne_zero.mpr hc
+    -- Express c • (X - α)⁻¹ as (C c) / (X - C α)
+    have hinv_eq : (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) =
+        (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c)) /
+        (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α)) := by
+      rw [Algebra.smul_def, RatFunc.algebraMap_eq_C]
+      rw [← RatFunc.algebraMap_C c, RatFunc.X, ← RatFunc.algebraMap_C α, ← map_sub]
+      rw [div_eq_mul_inv]
+    simp only [residueAtInfty, hinv_eq]
+    -- Compute num and denom
+    rw [RatFunc.num_div, RatFunc.denom_div (Polynomial.C c) hXa_ne]
+    -- gcd(C c, X - C α) = 1: C c is a unit (c ≠ 0), gcd divides unit → gcd is unit → gcd = 1
+    -- For NormalizedGCDMonoid: gcd = normalize(gcd), and normalize(unit) = 1
+    have hgcd : gcd (Polynomial.C c) (Polynomial.X - Polynomial.C α) = 1 := by
+      have hunit : IsUnit (Polynomial.C c) := Polynomial.isUnit_C.mpr (Ne.isUnit hc)
+      have hdvd := gcd_dvd_left (Polynomial.C c) (Polynomial.X - Polynomial.C α)
+      have hgcd_unit : IsUnit (gcd (Polynomial.C c) (Polynomial.X - Polynomial.C α)) :=
+        isUnit_of_dvd_unit hdvd hunit
+      rw [← normalize_gcd (Polynomial.C c) (Polynomial.X - Polynomial.C α)]
+      exact normalize_eq_one.mpr hgcd_unit
+    simp only [hgcd, div_one, Polynomial.leadingCoeff_X_sub_C, inv_one, Polynomial.C_1, one_mul]
+    -- After simplification: goal involves remainder and leading coefficients
+    -- This is routine simplification that should close the goal
+    -- TODO Cycle 169: Complete this computational simplification
     sorry
 
 /-! ## Section 3: Residue at Linear Places (X - α)

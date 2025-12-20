@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ COMPILES
 **Phase**: 3 - Serre Duality
-**Cycle**: 167 (ready for next)
+**Cycle**: 168 (ready for next)
 
 ### Sorry Count: 15
 
@@ -19,6 +19,37 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
 | `Residue.lean` | 4 | residueAtInfty_smul, residueAt, residueAtLinear_ne, residue_sum |
+
+---
+
+## CYCLE 168 - residueAtInfty_smul_inv_X_sub Progress
+
+### Achievements
+1. **Fixed `residueAtInfty_smul_inv_X_sub` structure** - Proof nearly complete
+   - Expressed `c • (X - α)⁻¹` as division form using `RatFunc.algebraMap_C`, `div_eq_mul_inv`
+   - Used `RatFunc.num_div` and `RatFunc.denom_div` to extract num/denom
+   - **Key breakthrough**: `gcd(C c, X - C α) = 1` via `normalize_gcd` + `normalize_eq_one`
+     - gcd divides C c (a unit) → gcd is a unit → normalize(gcd) = 1 → gcd = 1
+
+### Remaining Sorries in residueAtInfty_smul_inv_X_sub (1)
+- Line 544: Computational simplification after gcd = 1 substitution
+  - Goal involves `(C c) % (X - C α)` and leading coefficients
+  - Should be routine simp once the right lemmas are identified
+
+### Key Discoveries
+- `Polynomial Fq` requires `open Classical` for `GCDMonoid` instance
+- `gcd` (from GCDMonoid) ≠ `EuclideanDomain.gcd` definitionally, but they agree
+- For NormalizedGCDMonoid: `gcd = normalize(gcd)` via `normalize_gcd`
+- Unit gcd → 1 via `normalize_eq_one.mpr`
+
+### Next Steps (Cycle 169)
+1. Complete `residueAtInfty_smul_inv_X_sub` computational simplification
+2. Fill `residueAtLinear_inv_X_sub_ne` (res_β(c/(X-α)) = 0 for β ≠ α)
+3. Wire `residue_sum_simple_pole` fully (depends on above)
+
+### Sorry Count Change
+- Before: 15 sorries
+- After: 15 sorries (restructured, main gcd hurdle solved)
 
 ---
 
