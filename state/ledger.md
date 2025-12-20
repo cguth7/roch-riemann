@@ -8,13 +8,12 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles (2804 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 182
+**Cycle**: 183
 
-### Active Sorries (8 total)
+### Active Sorries (7 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| Residue.lean | `residueAtInfty_smul` | HIGH | Scalar mult for res_∞ - proof documented |
 | Residue.lean | `residueAtIrreducible` | LOW | Placeholder for higher-degree places |
 | Residue.lean | `residue_sum_eq_zero` | MED | General residue theorem |
 | SerreDuality.lean | `serrePairing` | HIGH | Main pairing construction |
@@ -37,17 +36,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Next Steps (Cycle 183)
+## Next Steps (Cycle 184)
 
-1. **Fill `residueAtInfty_smul`** - Prove scalar multiplication for residue at infinity
-   - Needs: lemma about num/denom of scalar multiplication
-   - Uses: leadingCoeff_C_mul_of_isUnit, natDegree_C_mul_of_isUnit
-
-2. **Wire serrePairing** - Replace sorry with actual construction
+1. **Wire serrePairing** - Replace sorry with actual construction
    - Use `residuePairing_bilinear` for diagonal elements
    - Need to extend to full adele ring
 
-3. **Fill non-degeneracy lemmas** - For serrePairing
+2. **Fill non-degeneracy lemmas** - For serrePairing
    - Left: if ⟨[a], f⟩ = 0 for all f, then [a] = 0
    - Right: if ⟨[a], f⟩ = 0 for all [a], then f = 0
 
@@ -55,13 +50,18 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Recent Progress
 
+### Cycle 183 - Scalar multiplication for residue at infinity
+- `residueAtInfty_smul` ✅ - Proved res_∞(c • f) = c * res_∞(f)
+  - Key steps: (c • f).num = C c * f.num, (c • f).denom = f.denom
+  - Used: isCoprime_mul_unit_left_left, smul_modByMonic, natDegree_smul_of_smul_regular
+- Sorries reduced: 8 → 7
+
 ### Cycle 182 - Bilinear pairing infrastructure
 - `residueSumTotal_smul` ✅ - Scalar multiplication for total residue sum
 - `residueSumTotal_linearMap` ✅ - Total residue as linear map
 - `residuePairing` ✅ - Bilinear pairing via product
 - `residuePairing_bilinear` ✅ - Full bilinear map structure
 - `residuePairing_eq_zero_of_splits` ✅ - Residue theorem for pairing
-- NEW sorry: `residueAtInfty_smul` (proof documented)
 
 ### Cycle 181 - Extended residue theorem to n poles
 - `pairwise_coprime_X_sub_of_injective` ✅

@@ -552,6 +552,7 @@ theorem residueAtInfty_add (f g : RatFunc Fq) :
   rw [hn_eq, hk_eq]
   exact (residueAtInftyAux_mul_monic (f + g).num (f + g).denom k hfg_denom_ne hfg_denom_monic hk_monic hk_ne).symm
 
+open Classical in
 /-- The residue at infinity respects scalar multiplication.
 
 For c ∈ Fq and f ∈ RatFunc Fq, res_∞(c • f) = c * res_∞(f).
@@ -569,9 +570,64 @@ theorem residueAtInfty_smul (c : Fq) (f : RatFunc Fq) :
   · simp only [hc, zero_smul, residueAtInfty_zero, zero_mul]
   by_cases hf : f = 0
   · simp only [hf, smul_zero, residueAtInfty_zero, mul_zero]
-  -- Full proof requires lemmas about scalar multiplication of num/denom
-  -- For now, we leave this as sorry and use it as needed
-  sorry
+  -- c is a unit, hence scalar multiplication by c is regular
+  have hc_unit : IsUnit c := Ne.isUnit hc
+  have hCc_unit : IsUnit (Polynomial.C c) := Polynomial.isUnit_C.mpr hc_unit
+  have hc_reg : IsSMulRegular Fq c := hc_unit.isSMulRegular Fq
+  -- Express c • f as (C c * f.num) / f.denom via the algebra structure
+  have hsmul_eq : (c • f : RatFunc Fq) =
+      algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c * f.num) /
+      algebraMap (Polynomial Fq) (RatFunc Fq) f.denom := by
+    conv_lhs => rw [Algebra.smul_def c f, RatFunc.algebraMap_eq_C, ← RatFunc.num_div_denom f]
+    rw [← RatFunc.algebraMap_C c, mul_div_assoc', ← map_mul]
+  -- Key: gcd(C c * f.num, f.denom) = 1 since C c is a unit and gcd(f.num, f.denom) = 1
+  have hgcd : gcd (Polynomial.C c * f.num) f.denom = 1 := by
+    have hcoprime := RatFunc.isCoprime_num_denom f
+    -- gcd(unit * a, b) = gcd(a, b) = 1 when gcd(a, b) = 1
+    have h : IsCoprime (Polynomial.C c * f.num) f.denom :=
+      (isCoprime_mul_unit_left_left hCc_unit f.num f.denom).mpr hcoprime
+    rw [← normalize_gcd]
+    exact normalize_eq_one.mpr (h.isUnit_of_dvd' (gcd_dvd_left _ _) (gcd_dvd_right _ _))
+  -- Get num and denom of c • f
+  have hdenom_ne : f.denom ≠ 0 := RatFunc.denom_ne_zero f
+  have hmonic : (f.denom).Monic := RatFunc.monic_denom f
+  have hnum_smul : (c • f).num = Polynomial.C c * f.num := by
+    rw [hsmul_eq, RatFunc.num_div, hgcd]
+    simp only [EuclideanDomain.div_one, hmonic, Polynomial.Monic.leadingCoeff, inv_one,
+               Polynomial.C_1, one_mul]
+  have hdenom_smul : (c • f).denom = f.denom := by
+    rw [hsmul_eq, RatFunc.denom_div _ hdenom_ne, hgcd]
+    simp only [EuclideanDomain.div_one, hmonic, Polynomial.Monic.leadingCoeff, inv_one,
+               Polynomial.C_1, one_mul]
+  -- Now compute residueAtInfty
+  simp only [residueAtInfty, hnum_smul, hdenom_smul]
+  -- Key lemma: (C c * p) % q = C c * (p % q) using smul_modByMonic
+  have hmod : Polynomial.C c * f.num % f.denom = Polynomial.C c * (f.num % f.denom) := by
+    rw [← Polynomial.smul_eq_C_mul, ← Polynomial.smul_eq_C_mul]
+    rw [← Polynomial.modByMonic_eq_mod _ hmonic]
+    rw [← Polynomial.modByMonic_eq_mod _ hmonic]
+    exact Polynomial.smul_modByMonic c f.num
+  rw [hmod]
+  -- The degree conditions are equivalent since natDegree(C c * p) = natDegree(p) for c ≠ 0
+  have hdeg_equiv : (Polynomial.C c * (f.num % f.denom)).natDegree = (f.num % f.denom).natDegree := by
+    rw [← Polynomial.smul_eq_C_mul, Polynomial.natDegree_smul_of_smul_regular _ hc_reg]
+  -- Case analysis on the degree condition
+  by_cases hdeg : (Polynomial.C c * (f.num % f.denom)).natDegree + 1 = f.denom.natDegree
+  · -- Condition holds for both
+    have hdeg_eq : (f.num % f.denom).natDegree + 1 = f.denom.natDegree := by
+      rw [← hdeg_equiv]; exact hdeg
+    simp only [hdeg, ↓reduceIte, hdeg_eq]
+    -- leadingCoeff(C c * p) = c * leadingCoeff(p)
+    rw [← Polynomial.smul_eq_C_mul, Polynomial.leadingCoeff_smul_of_smul_regular _ hc_reg]
+    simp only [smul_eq_mul]
+    -- Since f.denom is monic, leadingCoeff = 1
+    simp only [hmonic, Polynomial.Monic.leadingCoeff, div_one]
+    ring
+  · -- Condition fails for c • f version
+    -- Need to show it also fails for f version, making both sides 0
+    have hdeg' : ¬((f.num % f.denom).natDegree + 1 = f.denom.natDegree) := by
+      intro h; apply hdeg; rw [hdeg_equiv]; exact h
+    simp only [hdeg, ↓reduceIte, hdeg', mul_zero]
 
 open Classical in
 /-- The residue at infinity of c • (1/(X - α)) is -c.
