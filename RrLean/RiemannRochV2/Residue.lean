@@ -860,15 +860,106 @@ def translateBy (α : Fq) (f : RatFunc Fq) : RatFunc Fq :=
   let q' := f.denom.comp (Polynomial.X + Polynomial.C α)
   algebraMap (Polynomial Fq) (RatFunc Fq) p' / algebraMap (Polynomial Fq) (RatFunc Fq) q'
 
+/-- Helper: composition with X + C α preserves non-zero monic polynomials. -/
+private lemma comp_shift_ne_zero (α : Fq) (p : Polynomial Fq) (hp : p.Monic) :
+    p.comp (Polynomial.X + Polynomial.C α) ≠ 0 := by
+  intro h
+  -- p is monic, so p ≠ 0
+  have hp_ne : p ≠ 0 := hp.ne_zero
+  -- (X + C α) has degree 1
+  have hshift_deg : (Polynomial.X + Polynomial.C α).natDegree = 1 := Polynomial.natDegree_X_add_C α
+  -- (p.comp (X + C α)).natDegree = p.natDegree * 1 = p.natDegree
+  have hdeg : (p.comp (Polynomial.X + Polynomial.C α)).natDegree = p.natDegree := by
+    rw [Polynomial.natDegree_comp, hshift_deg, mul_one]
+  rw [h, Polynomial.natDegree_zero] at hdeg
+  -- If p.natDegree = 0 and p is monic, then p = 1
+  -- And 1.comp q = 1 ≠ 0 for any q, so h would be false
+  have h1 : p = 1 := Polynomial.eq_one_of_monic_natDegree_zero hp hdeg.symm
+  rw [h1, Polynomial.one_comp] at h
+  exact one_ne_zero h
+
 /-- Translation by α is additive. -/
 theorem translateBy_add (α : Fq) (f g : RatFunc Fq) :
     translateBy α (f + g) = translateBy α f + translateBy α g := by
-  sorry  -- Proof requires showing composition distributes over the fraction addition
+  simp only [translateBy]
+  -- Let shift = X + C α for readability
+  set shift := Polynomial.X + Polynomial.C α with hshift_def
+  -- Use num_denom_add: (f + g).num * (f.denom * g.denom) = (f.num * g.denom + f.denom * g.num) * (f + g).denom
+  have hrel := RatFunc.num_denom_add f g
+  -- Compose both sides with shift
+  have hrel_comp := congr_arg (fun p => p.comp shift) hrel
+  simp only [Polynomial.mul_comp, Polynomial.add_comp] at hrel_comp
+  -- Show both LHS and RHS denominators are nonzero
+  have hf_denom_comp_ne : f.denom.comp shift ≠ 0 := comp_shift_ne_zero α f.denom (RatFunc.monic_denom f)
+  have hg_denom_comp_ne : g.denom.comp shift ≠ 0 := comp_shift_ne_zero α g.denom (RatFunc.monic_denom g)
+  have hfg_denom_comp_ne : (f + g).denom.comp shift ≠ 0 :=
+    comp_shift_ne_zero α (f + g).denom (RatFunc.monic_denom (f + g))
+  have hf_denom_ne : (algebraMap (Polynomial Fq) (RatFunc Fq) (f.denom.comp shift)) ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hf_denom_comp_ne
+  have hg_denom_ne : (algebraMap (Polynomial Fq) (RatFunc Fq) (g.denom.comp shift)) ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hg_denom_comp_ne
+  have hfg_denom_ne : (algebraMap (Polynomial Fq) (RatFunc Fq) ((f + g).denom.comp shift)) ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hfg_denom_comp_ne
+  -- Goal: algebraMap _ _ ((f+g).num.comp shift) / algebraMap _ _ ((f+g).denom.comp shift) =
+  --       algebraMap _ _ (f.num.comp shift) / algebraMap _ _ (f.denom.comp shift) +
+  --       algebraMap _ _ (g.num.comp shift) / algebraMap _ _ (g.denom.comp shift)
+  rw [div_add_div _ _ hf_denom_ne hg_denom_ne]
+  rw [div_eq_div_iff hfg_denom_ne (mul_ne_zero hf_denom_ne hg_denom_ne)]
+  simp only [← map_mul, ← map_add]
+  -- Goal closes with congr because hrel_comp provides the polynomial equality
+  congr 1
 
 /-- Translation by α respects scalar multiplication. -/
 theorem translateBy_smul (α : Fq) (c : Fq) (f : RatFunc Fq) :
     translateBy α (c • f) = c • translateBy α f := by
-  sorry  -- Proof requires showing c • (p/q) translates to c • (p'/q')
+  simp only [translateBy]
+  set shift := Polynomial.X + Polynomial.C α with hshift_def
+  -- c • f = RatFunc.C c * f = algebraMap _ _ (Polynomial.C c) * f
+  rw [Algebra.smul_def, Algebra.smul_def]
+  simp only [RatFunc.algebraMap_eq_C]
+  -- RatFunc.C c = algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c)
+  simp only [← RatFunc.algebraMap_C c]
+  -- h := algebraMap _ _ (Polynomial.C c)
+  set h := algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.C c) with hh_def
+  -- h.num = Polynomial.C c, h.denom = 1
+  have hC_num : h.num = Polynomial.C c := RatFunc.num_algebraMap _
+  have hC_denom : h.denom = 1 := RatFunc.denom_algebraMap _
+  -- (Polynomial.C c).comp shift = Polynomial.C c
+  have hC_comp : (Polynomial.C c).comp shift = Polynomial.C c := Polynomial.C_comp
+  -- num_denom_mul: (h * f).num * (h.denom * f.denom) = h.num * f.num * (h * f).denom
+  have hmul := RatFunc.num_denom_mul h f
+  rw [hC_num, hC_denom, one_mul] at hmul
+  -- Compose both sides with shift
+  have hmul_comp := congr_arg (fun p => p.comp shift) hmul
+  simp only [Polynomial.mul_comp] at hmul_comp
+  rw [hC_comp] at hmul_comp
+  -- hmul_comp : (h * f).num.comp shift * f.denom.comp shift =
+  --             Polynomial.C c * f.num.comp shift * (h * f).denom.comp shift
+  -- Show denominators are nonzero
+  have hf_denom_comp_ne : f.denom.comp shift ≠ 0 := comp_shift_ne_zero α f.denom (RatFunc.monic_denom f)
+  have hhf_denom_comp_ne : (h * f).denom.comp shift ≠ 0 :=
+    comp_shift_ne_zero α (h * f).denom (RatFunc.monic_denom (h * f))
+  have hf_denom_ne : (algebraMap (Polynomial Fq) (RatFunc Fq) (f.denom.comp shift)) ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hf_denom_comp_ne
+  have hhf_denom_ne : (algebraMap (Polynomial Fq) (RatFunc Fq) ((h * f).denom.comp shift)) ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hhf_denom_comp_ne
+  -- Goal: algebraMap _ _ ((h * f).num.comp shift) / algebraMap _ _ ((h * f).denom.comp shift) =
+  --       h * (algebraMap _ _ (f.num.comp shift) / algebraMap _ _ (f.denom.comp shift))
+  -- Expand h on RHS using num_div_denom
+  conv_rhs => rw [← RatFunc.num_div_denom h, hC_num, hC_denom]
+  -- Now: ... = (algebraMap _ _ (Polynomial.C c) / algebraMap _ _ 1) * (...)
+  simp only [map_one, div_one]
+  -- Now: ... = algebraMap _ _ (Polynomial.C c) * (...)
+  rw [← hC_comp]
+  -- ... = algebraMap _ _ ((Polynomial.C c).comp shift) * (...)
+  rw [mul_div_assoc']
+  rw [div_eq_div_iff hhf_denom_ne hf_denom_ne]
+  simp only [← map_mul]
+  congr 1
+  -- Goal: (h * f).num.comp shift * f.denom.comp shift =
+  --       (Polynomial.C c).comp shift * f.num.comp shift * (h * f).denom.comp shift
+  rw [hC_comp]
+  exact hmul_comp
 
 /-- Translation of zero is zero. -/
 @[simp]
@@ -928,13 +1019,49 @@ This bridges the computational formula with the abstract definition.
 -/
 theorem residueAt_eq_residueAtLinear_simple (α c : Fq) :
     residueAt α (c • (RatFunc.X - RatFunc.C α)⁻¹) = c := by
-  simp only [residueAt, translateBy]
-  -- f = c • (X - C α)⁻¹ has num = C c (up to normalization) and denom = X - C α
-  -- After translation: num' = (C c).comp(X + C α) = C c
-  --                    denom' = (X - C α).comp(X + C α) = X
-  -- So translated f = C c / X = c • X⁻¹
-  -- Key insight: need to work with the actual num/denom of c • (X - C α)⁻¹
-  sorry  -- Proof requires careful analysis of smul and inv num/denom
+  simp only [residueAt]
+  -- Use translateBy_smul to pull out the scalar
+  rw [translateBy_smul]
+  -- Now: residueAtX (c • translateBy α (X - C α)⁻¹) = c
+  rw [residueAtX_smul, smul_eq_mul]
+  -- Need: c * residueAtX (translateBy α (X - C α)⁻¹) = c
+  -- Suffices to show: residueAtX (translateBy α (X - C α)⁻¹) = 1
+  suffices h : residueAtX (translateBy α (RatFunc.X - RatFunc.C α)⁻¹) = 1 by
+    rw [h, mul_one]
+  -- Show translateBy α (X - C α)⁻¹ = X⁻¹
+  -- translateBy α (X - C α)⁻¹ = ((X - C α)⁻¹.num.comp shift) / ((X - C α)⁻¹.denom.comp shift)
+  simp only [translateBy]
+  set shift := Polynomial.X + Polynomial.C α with hshift_def
+  set f := (RatFunc.X - RatFunc.C α)⁻¹ with hf_def
+  -- (X - C α)⁻¹ = 1 / (X - C α) = algebraMap 1 / algebraMap (X - C α)
+  have hXa_ne : (Polynomial.X - Polynomial.C α) ≠ (0 : Polynomial Fq) := by
+    intro h; have hdeg := congr_arg Polynomial.natDegree h; simp at hdeg
+  have hf_eq : f = algebraMap (Polynomial Fq) (RatFunc Fq) 1 /
+                   algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α) := by
+    simp only [hf_def, RatFunc.X, ← RatFunc.algebraMap_C α, ← map_sub]
+    rw [map_one, one_div]
+  -- num and denom of 1/(X - C α)
+  -- leadingCoeff (X - C α) = 1, so the normalization factor is C 1⁻¹ = C 1 = 1
+  have hlc : (Polynomial.X - Polynomial.C α).leadingCoeff = 1 := Polynomial.leadingCoeff_X_sub_C α
+  have hf_num : f.num = 1 := by
+    rw [hf_eq, RatFunc.num_div]
+    simp only [gcd_one_left, EuclideanDomain.div_one, hlc, inv_one, Polynomial.C_1, mul_one]
+  have hf_denom : f.denom = Polynomial.X - Polynomial.C α := by
+    rw [hf_eq, RatFunc.denom_div (1 : Polynomial Fq) hXa_ne]
+    simp only [gcd_one_left, EuclideanDomain.div_one, hlc, inv_one, Polynomial.C_1, one_mul]
+  -- After composition:
+  -- 1.comp shift = 1
+  -- (X - C α).comp shift = X + C α - C α = X
+  have h1_comp : (1 : Polynomial Fq).comp shift = 1 := Polynomial.one_comp
+  have hXa_comp : (Polynomial.X - Polynomial.C α).comp shift = Polynomial.X := by
+    simp only [hshift_def, Polynomial.sub_comp, Polynomial.X_comp, Polynomial.C_comp]
+    ring
+  -- So translateBy α f = 1 / X = X⁻¹
+  rw [hf_num, hf_denom, h1_comp, hXa_comp]
+  -- algebraMap 1 / algebraMap X = 1 / X = X⁻¹
+  simp only [map_one, RatFunc.algebraMap_X, one_div]
+  -- residueAtX X⁻¹ = 1
+  exact residueAtX_inv_X
 
 /-- Placeholder for residue at an arbitrary irreducible polynomial place.
 

@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ COMPILES
 **Phase**: 3 - Serre Duality
-**Cycle**: 171 (ready for next)
+**Cycle**: 172 (ready for next)
 
-### Sorry Count: 16
+### Sorry Count: 13
 
 | File | Count | Notes |
 |------|-------|-------|
@@ -18,7 +18,50 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `FqPolynomialInstance.lean` | 4 | concrete Fq[X] instance |
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
-| `Residue.lean` | 5 | translateBy lemmas (2), residueAt_eq simple (1), residueAtIrreducible (1), residue_sum_eq_zero (1) |
+| `Residue.lean` | 2 | residueAtIrreducible (1), residue_sum_eq_zero (1) |
+
+---
+
+## CYCLE 172 - Translation Lemmas Completed
+
+### Achievements
+1. **`translateBy_add` ✅** - Translation preserves addition
+   - Used `RatFunc.num_denom_add` composed with shift
+   - Helper lemma `comp_shift_ne_zero` for monic polynomial composition
+   - Proof: reduce to polynomial equality via `div_add_div` + `div_eq_div_iff`
+
+2. **`translateBy_smul` ✅** - Translation preserves scalar multiplication
+   - Used `RatFunc.num_denom_mul` for `C c * f`
+   - Key: `(Polynomial.C c).comp shift = Polynomial.C c` (constants are invariant)
+   - Proof: similar structure to addition via `mul_div_assoc'`
+
+3. **`residueAt_eq_residueAtLinear_simple` ✅** - Bridge to computational formula
+   - Key insight: `translateBy α (c • (X - C α)⁻¹) = c • X⁻¹`
+   - Uses `translateBy_smul` to factor out scalar
+   - Shows `(X - C α).comp(X + C α) = X` (translation cancels)
+   - Concludes via `residueAtX_inv_X = 1`
+
+### Helper Lemma Added
+```lean
+private lemma comp_shift_ne_zero (α : Fq) (p : Polynomial Fq) (hp : p.Monic) :
+    p.comp (Polynomial.X + Polynomial.C α) ≠ 0
+```
+Key: monic polynomial composed with degree-1 shift has same degree, hence nonzero.
+
+### Sorry Count Change
+- Before: 16 sorries
+- Filled: 3 (translateBy_add, translateBy_smul, residueAt_eq_residueAtLinear_simple)
+- After: 13 sorries
+
+### Architecture Status
+- `residueAt_linearMap` now fully functional ✅
+- All dependencies for Serre pairing are in place
+- Ready to wire to SerreDuality.lean
+
+### Next Steps (Cycle 173)
+1. Wire `residueAt_linearMap` to SerreDuality.lean for the pairing construction
+2. Begin work on `serrePairing` well-definedness using residue theorem
+3. Consider partial fractions approach for `residue_sum_eq_zero`
 
 ---
 
