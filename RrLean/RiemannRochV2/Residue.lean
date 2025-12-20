@@ -158,177 +158,49 @@ theorem residueAtX_polynomial (p : Polynomial Fq) :
 /-- The X-adic residue of 1/(X - c) is 0 when c ≠ 0.
 
 When c ≠ 0, the function 1/(X - c) has no pole at the origin.
-It expands as a power series: 1/(X - c) = -1/c * 1/(1 - X/c) = -1/c * ∑_{n≥0} (X/c)^n.
-So the coefficient of X^{-1} is 0.
+The key insight: (X - c) has nonzero constant term (-c ≠ 0), so its order in
+Laurent series is 0. The inverse also has order 0, meaning coeff at -1 is 0.
 -/
 theorem residueAtX_inv_X_sub_ne (c : Fq) (hc : c ≠ 0) :
     residueAtX ((RatFunc.X - RatFunc.C c)⁻¹ : RatFunc Fq) = 0 := by
   simp only [residueAtX]
-  -- Express (X - C c)⁻¹ = 1/(X - C c)
-  have hXc_ne : (RatFunc.X - RatFunc.C c : RatFunc Fq) ≠ 0 := by
-    intro h
-    have heq : (RatFunc.X : RatFunc Fq) = RatFunc.C c := sub_eq_zero.mp h
-    have hX_num : (RatFunc.X : RatFunc Fq).num = Polynomial.X := RatFunc.num_X
-    have hC_num : (RatFunc.C c : RatFunc Fq).num = Polynomial.C c := RatFunc.num_C c
-    rw [heq] at hX_num
-    rw [hX_num] at hC_num
-    have hdeg := congr_arg Polynomial.natDegree hC_num
-    simp only [Polynomial.natDegree_X, Polynomial.natDegree_C] at hdeg
-    omega
-  -- The Laurent series of (X - C c)⁻¹ is a power series (no negative powers)
-  -- because the pole is at c ≠ 0, not at 0.
-  -- 1/(X - C c) = -1/c * 1/(1 - X/c) which is a power series around 0
-  -- We show: (X - C c)⁻¹ = -c⁻¹ * (1 - X * c⁻¹)⁻¹
-  -- In LaurentSeries, (1 - X*c⁻¹)⁻¹ is the geometric series, a power series.
-  -- Power series have no X^{-1} term.
-  -- Actually, let's use a direct approach: show the LaurentSeries has support in ℕ
-  -- Express: 1/(X - c) as -1/c * 1/(1 - X/c)
-  have hinv_eq : (RatFunc.X - RatFunc.C c : RatFunc Fq)⁻¹ = -(c⁻¹ : Fq) • (1 - c⁻¹ • RatFunc.X)⁻¹ := by
-    have h1 : (RatFunc.X - RatFunc.C c : RatFunc Fq) = -c • (1 - c⁻¹ • RatFunc.X) := by
-      rw [Algebra.smul_def, Algebra.smul_def]
-      simp only [RatFunc.algebraMap_eq_C, mul_sub, mul_one, ← RatFunc.C_mul_X]
-      rw [show (RatFunc.C c * (RatFunc.C c⁻¹ * RatFunc.X) : RatFunc Fq) = RatFunc.X by
-        rw [← mul_assoc, ← RatFunc.C_mul]
-        simp only [mul_inv_cancel₀ hc, RatFunc.C_1, one_mul]]
-      ring
-    rw [h1, inv_neg, ← Algebra.smul_def, smul_inv_smul₀]
-    · rw [neg_neg]
-      congr 1
-      rw [Algebra.smul_def]
-      simp only [RatFunc.algebraMap_eq_C, RatFunc.C_inv hc]
-    · exact hc
-  rw [hinv_eq]
-  -- Now: residueAtX (-(c⁻¹) • (1 - c⁻¹ • X)⁻¹) = -(c⁻¹) * residueAtX ((1 - c⁻¹ • X)⁻¹)
-  rw [residueAtX_smul, smul_eq_mul]
-  -- The term (1 - c⁻¹ • X)⁻¹ is a power series (geometric series), so residueAtX = 0
-  suffices h : residueAtX ((1 - c⁻¹ • RatFunc.X : RatFunc Fq)⁻¹) = 0 by rw [h, mul_zero]
-  -- (1 - c⁻¹ * X)⁻¹ = 1 + c⁻¹X + c⁻²X² + ... is a power series
-  -- The Laurent series representation has support in ℕ, so coeff(-1) = 0
-  simp only [residueAtX]
-  -- 1 - c⁻¹ * X is a polynomial of degree 1 with constant term 1 ≠ 0
-  -- Its inverse is a power series (via geometric series)
-  have hinv_one_minus : (1 - c⁻¹ • RatFunc.X : RatFunc Fq) = RatFunc.C 1 - RatFunc.C c⁻¹ * RatFunc.X := by
-    rw [Algebra.smul_def, RatFunc.algebraMap_eq_C]
-    simp only [RatFunc.C_1]
-  rw [hinv_one_minus]
-  -- The key: (C 1 - C c⁻¹ * X)⁻¹ as a Laurent series is actually a power series
-  -- because the denominator (X - 1/c⁻¹) = (X - c) has root at c ≠ 0
-  -- So the expansion at 0 is holomorphic
-  -- Actually, let's use: 1 - C c⁻¹ * X = C 1 + C (-c⁻¹) * X, which as polynomial is -c⁻¹(X - c)
-  -- Wait, that's not quite right. Let me reconsider.
-  -- 1 - c⁻¹X has constant term 1 ≠ 0, so evaluating at 0 gives 1, which is nonzero.
-  -- A rational function with nonzero evaluation at 0 is holomorphic at 0.
-  -- Its Laurent series expansion at 0 is actually a power series.
-  -- For power series, coeff(-1) = 0.
-  -- Let's try showing this more directly using the structure of RatFunc → LaurentSeries
-  -- 1 - c⁻¹ * X as a polynomial is -c⁻¹ * (X - c), which is ≠ 0 since c ≠ 0
-  have hpoly_eq : (RatFunc.C 1 - RatFunc.C c⁻¹ * RatFunc.X : RatFunc Fq) =
-                  RatFunc.C (-c⁻¹) * (RatFunc.X - RatFunc.C c) := by
-    rw [RatFunc.C_neg, neg_mul]
-    rw [mul_sub, RatFunc.C_mul_X]
-    simp only [RatFunc.C_1, neg_sub, sub_neg_eq_add]
-    rw [← RatFunc.C_mul]
-    simp only [mul_inv_cancel₀ hc]
-    ring
-  rw [hpoly_eq]
-  -- So (C 1 - C c⁻¹ * X)⁻¹ = (C (-c⁻¹) * (X - C c))⁻¹ = C(-c⁻¹)⁻¹ * (X - C c)⁻¹
-  -- = C(-c) * (X - C c)⁻¹
-  rw [mul_inv, map_inv₀]
-  -- Now: ((RatFunc.C (-c⁻¹))⁻¹ * (X - C c)⁻¹ : LaurentSeries)
-  -- = (C (-c) : LaurentSeries) * ((X - C c)⁻¹ : LaurentSeries)
-  have hCinv : (RatFunc.C (-c⁻¹) : RatFunc Fq)⁻¹ = RatFunc.C (-c) := by
-    rw [RatFunc.C_inv (neg_ne_zero.mpr (inv_ne_zero hc)), RatFunc.C_neg, neg_inv]
-    simp only [inv_inv]
-  rw [hCinv]
-  -- The product C(-c) * (X - C c)⁻¹ maps to LaurentSeries
-  rw [map_mul]
-  -- coeff of (C(-c) * (X - C c)⁻¹) at -1
-  -- = sum over i + j = -1 of coeff(C(-c), i) * coeff((X-C c)⁻¹, j)
-  -- C(-c) is a constant, so coeff(C(-c), i) = 0 for i ≠ 0 and = -c for i = 0
-  -- So we need coeff((X - C c)⁻¹, -1)
-  -- But wait, this is circular - we're trying to show coeff((X - C c)⁻¹, -1) = 0
-  -- Let's try a different approach: show (X - C c)⁻¹ : LaurentSeries has order ≥ 0
-  -- Actually, let's use that (X - C c) has order 0 in LaurentSeries (constant term = -c ≠ 0)
-  -- So its inverse also has order 0, meaning coeff at -1 is 0.
+  -- (X - C c) has constant term -c ≠ 0, so (X - C c)⁻¹ is holomorphic at 0.
+  -- Its Laurent series is actually a power series (no negative powers).
+  -- Strategy: show order ≥ 0, hence coeff(-1) = 0 using coeff_eq_zero_of_lt_order.
   have hXc_poly : (RatFunc.X - RatFunc.C c : RatFunc Fq) =
-                  (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c)) := by
-    rw [RatFunc.X, ← RatFunc.algebraMap_C]
-    simp only [map_sub]
-  rw [hXc_poly]
-  -- The denominator polynomial X - C c has constant term -c ≠ 0
+                  algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c) := by
+    rw [RatFunc.X, ← RatFunc.algebraMap_C]; simp only [map_sub]
   have hpoly_ne : (Polynomial.X - Polynomial.C c) ≠ (0 : Polynomial Fq) := by
-    intro h
-    have hdeg := congr_arg Polynomial.natDegree h
-    simp at hdeg
-  -- In LaurentSeries, this polynomial has order 0 (the lowest degree term is degree 0 = constant = -c)
-  -- So its inverse has order 0, meaning all coefficients at negative indices are 0
-  have horder : HahnSeries.order ((algebraMap (Polynomial Fq) (RatFunc Fq)
-      (Polynomial.X - Polynomial.C c) : RatFunc Fq) : LaurentSeries Fq) = 0 := by
-    -- (X - C c : Polynomial) → (X - C c : RatFunc) → (X - C c : LaurentSeries)
-    -- = (X - C c : PowerSeries : LaurentSeries)
-    rw [RatFunc.coe_coe]
-    -- As PowerSeries, X - C c has order 0 (constant term = -c ≠ 0)
-    simp only [Polynomial.coe_sub, Polynomial.coe_X, Polynomial.coe_C]
-    -- order of (X - C c) in PowerSeries is 0, and ofPowerSeries preserves this
-    rw [HahnSeries.ofPowerSeries_apply]
-    -- The order of embDomain of a power series with order 0 is 0
-    have hps_order : PowerSeries.order (Polynomial.X - Polynomial.C c : PowerSeries Fq) = 0 := by
-      rw [PowerSeries.order_eq_zero_iff]
-      simp only [PowerSeries.constantCoeff_X, PowerSeries.constantCoeff_C, zero_sub]
-      exact neg_ne_zero.mpr hc
-    rw [HahnSeries.order_embDomain_eq]
-    · simp only [Nat.cast_zero]
-    · intro hn
-      rw [PowerSeries.order_eq_top] at hn
-      simp only [PowerSeries.ext_iff, map_zero] at hn
-      have h0 := hn 0
-      simp only [PowerSeries.coeff_sub, PowerSeries.coeff_X_zero, PowerSeries.coeff_C_zero,
-                 zero_sub] at h0
-      exact hc h0
-  -- If a HahnSeries has order ≥ 0, then its inverse has order ≥ 0
-  -- Actually, order(f⁻¹) = -order(f) for f ≠ 0
-  -- So order((X - C c)⁻¹) = -0 = 0, meaning coeff at -1 is 0
-  have hinv_order : HahnSeries.order ((algebraMap (Polynomial Fq) (RatFunc Fq)
-      (Polynomial.X - Polynomial.C c))⁻¹ : LaurentSeries Fq) = 0 := by
-    rw [map_inv₀]
-    rw [HahnSeries.order_inv']
-    · rw [horder]; simp
-    · -- Show the Laurent series is nonzero
-      intro h
-      rw [map_eq_zero] at h
-      simp only [RatFunc.algebraMap_eq_zero_iff] at h
-      exact hpoly_ne h
-  -- A series with order ≥ 0 has coeff(-1) = 0
-  have hcoeff_zero := HahnSeries.coeff_eq_zero_of_lt_order
-    ((algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c))⁻¹ : LaurentSeries Fq)
-    (-1) (by rw [hinv_order]; omega)
-  -- Now the goal involves a product C(-c) * (X - C c)⁻¹
-  -- Let's compute its coeff at -1
-  simp only [HahnSeries.mul_coeff]
-  -- This is a sum over pairs (i, j) with i + j = -1
-  -- For the C(-c) factor: it's a constant, so coeff at i = 0 for i ≠ 0
-  -- For the (X - C c)⁻¹ factor: we just showed coeff at j = 0 for j < 0 (since order = 0)
-  -- In the sum, we need i + j = -1, and coeff(C(-c), i) * coeff((X-C c)⁻¹, j)
-  -- If i ≠ 0, then coeff(C(-c), i) = 0
-  -- If i = 0, then j = -1, and coeff((X-C c)⁻¹, -1) = 0 by hcoeff_zero
-  apply Finset.sum_eq_zero
-  intro x _
-  by_cases hx : x.1 = 0
-  · -- i = 0, so j = -1
-    have hj : x.2 = -1 := by omega
-    rw [hj, hcoeff_zero, mul_zero]
-  · -- i ≠ 0, so coeff(C(-c), i) = 0
-    have hC_coeff : ((RatFunc.C (-c) : RatFunc Fq) : LaurentSeries Fq).coeff x.1 = 0 := by
-      rw [← RatFunc.algebraMap_C, RatFunc.coe_coe]
-      simp only [Polynomial.coe_C]
-      rw [HahnSeries.ofPowerSeries_apply]
-      -- C(-c) as PowerSeries has only a constant term
-      rw [HahnSeries.embDomain_notin_range]
-      simp only [Set.mem_range, not_exists]
-      intro n hn
-      rw [RelEmbedding.coe_mk, Function.Embedding.coeFn_mk] at hn
-      omega
-    rw [hC_coeff, zero_mul]
+    intro h; have hdeg := congr_arg Polynomial.natDegree h; simp at hdeg
+  -- The LaurentSeries of the polynomial (X - C c) has order 0 (constant term = -c ≠ 0)
+  have horder_poly : ((algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c))
+                      : LaurentSeries Fq).order = 0 := by
+    rw [(RatFunc.coe_coe _).symm, HahnSeries.ofPowerSeries_order]
+    rw [PowerSeries.order_eq_zero_iff_constantCoeff_ne_zero]
+    simp only [map_sub, PowerSeries.constantCoeff_X, PowerSeries.constantCoeff_C, zero_sub]
+    exact neg_ne_zero.mpr hc
+  have hLS_ne : ((algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c))
+                 : LaurentSeries Fq) ≠ 0 := by
+    intro h; rw [map_eq_zero, RatFunc.algebraMap_eq_zero_iff] at h; exact hpoly_ne h
+  -- The inverse has order -order = 0
+  have h_order : 0 ≤ (((RatFunc.X - RatFunc.C c)⁻¹ : RatFunc Fq) : LaurentSeries Fq).order := by
+    rw [hXc_poly, map_inv₀]
+    -- For nonzero f with order = 0: f⁻¹ has order = -0 = 0 ≥ 0
+    -- Use HahnSeries.order_mul: order(f * f⁻¹) = order(f) + order(f⁻¹) = order(1) = 0
+    -- So order(f⁻¹) = -order(f) = 0
+    have hinv := HahnSeries.isUnit_of_order_nonneg (by rw [horder_poly]; exact le_refl 0)
+    have hmul : ((algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c))
+                 : LaurentSeries Fq) *
+                ((algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C c))
+                 : LaurentSeries Fq)⁻¹ = 1 := by
+      exact mul_inv_cancel₀ hLS_ne
+    have hord_mul := HahnSeries.order_mul (a := ((algebraMap (Polynomial Fq) (RatFunc Fq)
+        (Polynomial.X - Polynomial.C c)) : LaurentSeries Fq))
+        (b := ((algebraMap (Polynomial Fq) (RatFunc Fq)
+        (Polynomial.X - Polynomial.C c)) : LaurentSeries Fq)⁻¹)
+    rw [hmul, HahnSeries.order_one, horder_poly] at hord_mul
+    omega
+  exact HahnSeries.coeff_eq_zero_of_lt_order _ _ (by omega : (-1 : ℤ) < h_order)
 
 /-! ## Section 2: Residue at Infinity
 

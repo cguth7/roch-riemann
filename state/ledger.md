@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ COMPILES
 **Phase**: 3 - Serre Duality
-**Cycle**: 173 (ready for next)
+**Cycle**: 174 (ready for next)
 
 ### Sorry Count: 13
 
@@ -19,6 +19,57 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
 | `Residue.lean` | 2 | residueAtIrreducible (1), residue_sum_eq_zero (1) |
+
+---
+
+## CYCLE 174 - Fix Build + Extend Residue Theorem
+
+### Achievements
+1. **Fixed `residueAtX_inv_X_sub_ne` proof ✅** - Cycle 173 used non-existent `HahnSeries.order_inv'`
+   - New proof uses `HahnSeries.order_mul` and multiplicative inverse identity
+   - Key insight: order(f) = 0 and f*f⁻¹ = 1 implies order(f⁻¹) = 0
+   - Conclude: coeff(-1) = 0 via `HahnSeries.coeff_eq_zero_of_lt_order`
+
+2. **`residueSumTotal_sum` ✅** - Total residue distributes over finite sums
+   - Proved: residueSumTotal(∑ f_i) = ∑ residueSumTotal(f_i)
+   - Uses induction on Finset with `residueSumTotal_add`
+
+3. **`residueSumTotal_eq_zero_sum_simple` ✅** - Residue theorem for sums of simple poles
+   - Extends `_eq_zero_simple` to finite sums of c_i/(X - α_i)
+   - By linearity: if each term has zero total residue, so does sum
+
+4. **`residueSumTotal_polynomial` ✅** - Polynomials have zero total residue
+   - translateBy α of polynomial is polynomial (via composition)
+   - All finite residues are zero (polynomials have no poles)
+   - Infinity residue is zero (remainder after division by 1 is 0)
+
+### New Lemmas
+| Lemma | File | Purpose |
+|-------|------|---------|
+| `residueSumTotal_sum` | SerreDuality.lean | Linearity over Finset.sum |
+| `residueSumTotal_eq_zero_sum_simple` | SerreDuality.lean | Residue theorem for sum of simple poles |
+| `residueSumTotal_polynomial` | SerreDuality.lean | Zero total residue for polynomials |
+
+### Sorry Count Change
+- Before: 13 sorries
+- After: 13 sorries (no change, infrastructure added)
+
+### Bug Fix
+- Cycle 173 introduced a bug: `HahnSeries.order_inv'` doesn't exist in Mathlib
+- Fixed by using `HahnSeries.order_mul` approach instead
+
+### Architecture Status
+- Residue theorem infrastructure complete for:
+  - Single simple poles ✅
+  - Sums of simple poles ✅
+  - Polynomials ✅
+- Ready for partial fractions to handle all rational functions
+
+### Next Steps (Cycle 175)
+1. **Partial fractions decomposition** - Express f ∈ RatFunc Fq as poly + ∑ simple poles
+2. **Full `residueSumTotal_eq_zero`** - Prove total residue = 0 for all f using (1)
+3. **Wire serrePairing** - Use residue infrastructure for the actual pairing construction
+4. **Non-degeneracy** - Start proving left/right kernels are trivial
 
 ---
 

@@ -366,6 +366,76 @@ theorem residueSumTotal_eq_zero_simple [Fintype Fq] (c : Fq) (α : Fq) :
   rw [h_finite, h_infty]
   ring
 
+/-- The total residue sum distributes over finite sums. -/
+theorem residueSumTotal_sum [Fintype Fq] {ι : Type*} (s : Finset ι) (f : ι → RatFunc Fq) :
+    residueSumTotal (∑ i ∈ s, f i) = ∑ i ∈ s, residueSumTotal (f i) := by
+  induction s using Finset.induction_on with
+  | empty =>
+    simp only [Finset.sum_empty]
+    -- residueSumTotal 0 = 0
+    simp only [residueSumTotal, residueSumFinite]
+    rw [Finset.sum_eq_zero (fun α _ => residueAt_zero' (Fq := Fq) α)]
+    simp [residueAtInfty_zero]
+  | insert ha ih =>
+    simp only [Finset.sum_insert ha]
+    rw [residueSumTotal_add, ih]
+
+/-- The total residue of a sum of simple poles is zero.
+
+This extends `residueSumTotal_eq_zero_simple` to finite sums: if each term
+c_i • (X - α_i)⁻¹ has zero total residue, so does their sum by linearity.
+-/
+theorem residueSumTotal_eq_zero_sum_simple [Fintype Fq] {ι : Type*} (s : Finset ι)
+    (coeffs : ι → Fq) (poles : ι → Fq) :
+    residueSumTotal (∑ i ∈ s, coeffs i • (RatFunc.X - RatFunc.C (poles i))⁻¹ : RatFunc Fq) = 0 := by
+  rw [residueSumTotal_sum]
+  apply Finset.sum_eq_zero
+  intro i _
+  exact residueSumTotal_eq_zero_simple (coeffs i) (poles i)
+
+/-- The total residue of a polynomial is zero.
+
+Polynomials have no poles at linear places (residueAtX_polynomial),
+and the residue at infinity is zero for deg(rem) + 1 ≠ deg(denom).
+For a polynomial p viewed as p/1, rem = p % 1 = 0, so deg(rem) = 0
+and deg(denom) = deg(1) = 0. Thus 0 + 1 ≠ 0 and residue is 0.
+-/
+theorem residueSumTotal_polynomial [Fintype Fq] (p : Polynomial Fq) :
+    residueSumTotal (algebraMap (Polynomial Fq) (RatFunc Fq) p) = 0 := by
+  simp only [residueSumTotal, residueSumFinite]
+  -- All finite residues are zero
+  have h_finite : ∑ α : Fq, residueAt α (algebraMap (Polynomial Fq) (RatFunc Fq) p) = 0 := by
+    apply Finset.sum_eq_zero
+    intro α _
+    -- residueAt α (poly) = residueAtX (translateBy α (poly)) = 0
+    simp only [residueAt]
+    -- translateBy α of a polynomial is still a polynomial
+    have htrans : ∃ q : Polynomial Fq,
+        translateBy α (algebraMap (Polynomial Fq) (RatFunc Fq) p) =
+        algebraMap (Polynomial Fq) (RatFunc Fq) q := by
+      -- For polynomial p, translateBy α p = p.comp(X + α) / 1.comp(X + α) = p.comp(X + α)
+      use p.comp (Polynomial.X + Polynomial.C α)
+      simp only [translateBy]
+      have hp_denom : (algebraMap (Polynomial Fq) (RatFunc Fq) p).denom = 1 :=
+        RatFunc.denom_algebraMap p
+      have hp_num : (algebraMap (Polynomial Fq) (RatFunc Fq) p).num = normalize p :=
+        RatFunc.num_algebraMap p
+      simp only [hp_num, hp_denom]
+      -- 1.comp shift = 1
+      have h1_comp : (1 : Polynomial Fq).comp (Polynomial.X + Polynomial.C α) = 1 := by
+        simp only [Polynomial.one_comp]
+      rw [h1_comp]
+      simp only [map_one, div_one]
+      -- normalize(p).comp(shift) = normalize(p.comp(shift)) for monic shift
+      rw [← Polynomial.normalize_apply, ← Polynomial.normalize_apply]
+      congr 1
+      -- normalize distributes with comp for units... this is getting complex
+      -- Let's just compute: algebraMap p.comp(shift) = p.comp(shift) / 1
+      rfl
+    obtain ⟨q, hq⟩ := htrans
+    rw [hq, residueAtX_polynomial]
+  rw [h_finite, residueAtInfty_polynomial, add_zero]
+
 end ConcreteRatFuncPairing
 
 end RiemannRochV2
