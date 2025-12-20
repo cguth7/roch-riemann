@@ -6,69 +6,100 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ⚠️ PARTIAL - Main chain compiles, but Residue.lean/SerreDuality.lean are BROKEN
+**Build**: ✅ Full build compiles (2803 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 174 (INCOMPLETE - needs Cycle 175 to fix)
+**Cycle**: 176
 
-### Critical Issue (Discovered End of Cycle 174)
+### Residue.lean Status
 
-**Residue.lean and SerreDuality.lean are NOT in the import chain!**
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `residueAtX_inv_X_sub_ne` | ✅ proved | Cycle 176 |
+| `residueAtIrreducible` | ❌ sorry | Placeholder for higher-degree places |
+| `residue_sum_eq_zero` | ❌ sorry | General residue theorem |
 
-They are disconnected from `RrLean/RiemannRochV2.lean`, so `lake build` doesn't compile them.
-The "fix" in Cycle 174 was never actually tested - it uses non-existent Mathlib lemmas.
+**Test command**: `lake build` ✅
 
-**To test**: Run `lake build RrLean.RiemannRochV2.Residue` (will fail)
+### SerreDuality.lean Status
 
-### Errors in Residue.lean (line numbers approximate)
+| Lemma | Status | Notes |
+|-------|--------|-------|
+| `serrePairing_wellDefined` | ❌ sorry | Placeholder |
+| `serrePairing_left_nondegen` | ❌ sorry | Placeholder |
+| `serrePairing_right_nondegen` | ❌ sorry | Placeholder |
+| `residueSumTotal_polynomial` | ❌ sorry | Needs translateBy preserves polynomials |
+| Other infrastructure | ✅ proved | residueSumFinite, residueSumTotal, etc. |
 
-1. **Line 178**: `(RatFunc.coe_coe _).symm` - pattern mismatch with order
-2. **Line 184**: `RatFunc.algebraMap_eq_zero_iff` - DOES NOT EXIST in Mathlib
-3. **Line 191**: `HahnSeries.isUnit_of_order_nonneg` - DOES NOT EXIST in Mathlib
-4. **Line 203**: `HahnSeries.coeff_eq_zero_of_lt_order` - wrong argument order/types
-5. **Line 1153**: `Polynomial.C α - Polynomial.C β` rewrite pattern not found
+### Next Steps (Cycle 177)
 
-### What Actually Compiles (Main Chain)
+1. **Fill `residueSumTotal_polynomial` sorry** in SerreDuality.lean
+   - Need to show `translateBy α (polynomial) = polynomial`
+   - Key: translateBy uses composition with (X + C α), and polynomials have denom = 1
 
-| File | Status | Notes |
-|------|--------|-------|
-| `FullAdelesCompact.lean` | ✅ | 1 sorry (bound<1 edge case) |
-| `FqPolynomialInstance.lean` | ✅ | 4 sorries |
-| `TraceDualityProof.lean` | ✅ | 1 sorry |
+2. **Consider residueAt_polynomial** in Residue.lean
+   - Would simplify SerreDuality proofs
 
-### What Does NOT Compile (Disconnected)
-
-| File | Status | Notes |
-|------|--------|-------|
-| `Residue.lean` | ❌ BROKEN | 5+ errors, uses non-existent lemmas |
-| `SerreDuality.lean` | ❌ BROKEN | Depends on Residue.lean |
+3. **Work toward serrePairing construction**
 
 ---
 
-## CYCLE 175 - PRIORITY: Fix Residue.lean Build
+## CYCLE 176 - `residueAtX_inv_X_sub_ne` Proved + SerreDuality Wired
 
-### Must Do First
-1. **Fix `residueAtX_inv_X_sub_ne`** (lines 164-203)
-   - Find actual Mathlib lemmas for:
-     - Showing order of inverse: use `HahnSeries.order_mul` with `f * f⁻¹ = 1`
-     - Zero coefficient: `HahnSeries.coeff_eq_zero_of_lt_order` (check correct signature)
-   - Key math: If order(f) = 0 and f ≠ 0, then order(f⁻¹) = -order(f) = 0
+### Achievements
+1. **`residueAtX_inv_X_sub_ne` ✅** - Key lemma for residue at origin of 1/(X-c) = 0 when c ≠ 0
+   - Proof strategy:
+     1. Show p := X - C c is a unit in PowerSeries (constantCoeff = -c ≠ 0)
+     2. Use `map_inv₀` to pull inverse outside RatFunc→LS coercion
+     3. Use `RatFunc.coe_coe` to switch to PowerSeries→LS coercion
+     4. Use `map_units_inv` to pull inverse inside PowerSeries→LS coercion
+     5. Finish with `embDomain_notin_range` (ℕ → ℤ doesn't hit -1)
 
-2. **Fix `residueAt_inv_X_sub_ne`** (around line 1153)
-   - The rewrite `Polynomial.C α - Polynomial.C β` fails
-   - Need: `X + C β - C α = X - C(α - β)`
-   - Fix: Use `ring` or `simp [Polynomial.C_sub]` instead of rewrite
+2. **SerreDuality.lean wired to import chain ✅**
+   - Added import to `RrLean/RiemannRochV2.lean`
+   - Fixed several build issues:
+     - Added `open Classical` for DecidableEq instances
+     - Fixed `Finset.induction_on` pattern syntax
+     - Simplified `residueSumTotal_polynomial` proof (added sorry for translateBy issue)
 
-3. **Test with**: `lake build RrLean.RiemannRochV2.Residue`
+3. **Full build passes ✅** - 2803 jobs
 
-4. **Then add to import chain** in `RrLean/RiemannRochV2.lean`:
-   ```lean
-   import RrLean.RiemannRochV2.SerreDuality
-   ```
+### Sorry Count Change
+- Residue.lean: 3 → 2 sorries
+- SerreDuality.lean: 5 + 1 = 6 sorries (existing + new)
 
-### Cycle 174 Partial Work (in SerreDuality.lean, untested)
-- `residueSumTotal_sum` - may work once Residue.lean fixed
-- `residueSumTotal_eq_zero_sum_simple` - may work
-- `residueSumTotal_polynomial` - may work
+---
+
+## CYCLE 175 - Partial Progress on Residue.lean
+
+### Achievements
+1. **Fixed `residueAt_inv_X_sub_ne`** (line ~1150)
+   - Changed `rw [← Polynomial.C_sub]; ring_nf` to `simp [..., Polynomial.C_sub]; ring`
+
+2. **Residue.lean now compiles** with `lake build RrLean.RiemannRochV2.Residue`
+
+### Unfinished: `residueAtX_inv_X_sub_ne`
+The proof has type coercion issues. Attempted approach:
+```lean
+-- 1. Show p is a unit in PowerSeries (constant coeff is -c ≠ 0)
+have h_unit : IsUnit (p : PowerSeries Fq) := by
+  rw [PowerSeries.isUnit_iff_constantCoeff]
+  simp [...]
+  exact (neg_ne_zero.mpr hc).isUnit
+
+-- 2. Align RatFunc.X - RatFunc.C c with p
+-- 3. Use RatFunc.coe_coe to go Poly → RatFunc → LS = Poly → PS → LS
+-- 4. Use map_inv₀ to pull inverse through
+-- 5. Key: ((p : PS) : LS)⁻¹ = ((h_unit.unit⁻¹ : PS) : LS)
+-- 6. Use embDomain_notin_range: ℕ → ℤ doesn't hit -1
+```
+
+**Issue**: Step 2 fails with type unification. The coercion `(p : RatFunc Fq)` uses
+`algebraMap` while `RatFunc.X` uses a different representation.
+
+**Possible fix for next Claude**:
+- Try explicit `show` annotations
+- Or use `convert` instead of `rw`
+- Or work directly with `algebraMap` forms
 
 ---
 
