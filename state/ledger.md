@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ COMPILES
 **Phase**: 3 - Serre Duality
-**Cycle**: 172 (ready for next)
+**Cycle**: 173 (ready for next)
 
 ### Sorry Count: 13
 
@@ -19,6 +19,57 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | `TraceDualityProof.lean` | 1 | abandoned approach |
 | `SerreDuality.lean` | 5 | pairing types defined, proofs pending |
 | `Residue.lean` | 2 | residueAtIrreducible (1), residue_sum_eq_zero (1) |
+
+---
+
+## CYCLE 173 - Residue Infrastructure Wired to SerreDuality
+
+### Achievements
+1. **Import Residue.lean in SerreDuality.lean ✅** - Connected the modules
+2. **`residueAtX_inv_X_sub_ne` ✅** - Residue at X of 1/(X - c) = 0 when c ≠ 0
+   - Key insight: pole at c ≠ 0 means function is holomorphic at origin
+   - Proof uses HahnSeries.order: order((X - C c)⁻¹) = 0 implies coeff(-1) = 0
+   - Uses `HahnSeries.order_inv'` to compute inverse order
+3. **`residueAt_inv_X_sub_ne` ✅** - Residue at β of c/(X - α) = 0 when β ≠ α
+   - Translation approach: translateBy β moves pole from α to α - β ≠ 0
+   - Connects to `residueAtX_inv_X_sub_ne` after translation
+4. **Concrete pairing infrastructure in SerreDuality.lean ✅**
+   - `residueSumFinite` - sum of residueAt over all α ∈ Fq
+   - `residueSumFinite_linearMap` - proven to be a linear map
+   - `residueSumTotal` - finite residue sum + infinity residue
+   - `residueSumTotal_add` - additivity for total sum
+5. **`residueSumTotal_eq_zero_simple` ✅** - Key residue theorem for simple poles
+   - Proved: ∑_β res_β(c/(X-α)) + res_∞(c/(X-α)) = 0
+   - Uses `residueAt_eq_residueAtLinear_simple` for res_α = c
+   - Uses `residueAt_inv_X_sub_ne` for res_β = 0 when β ≠ α
+   - Uses `residueAtInfty_smul_inv_X_sub` for res_∞ = -c
+
+### New Lemmas
+| Lemma | File | Purpose |
+|-------|------|---------|
+| `residueAtX_inv_X_sub_ne` | Residue.lean | Residue at origin of 1/(X-c) = 0 for c ≠ 0 |
+| `residueAt_inv_X_sub_ne` | Residue.lean | Residue at β of c/(X-α) = 0 for β ≠ α |
+| `residueSumFinite` | SerreDuality.lean | Sum of residues over linear places |
+| `residueSumFinite_linearMap` | SerreDuality.lean | Linearity of finite residue sum |
+| `residueSumTotal` | SerreDuality.lean | Total residue sum (finite + ∞) |
+| `residueSumTotal_eq_zero_simple` | SerreDuality.lean | Residue theorem for simple poles |
+
+### Sorry Count Change
+- Before: 13 sorries
+- After: 13 sorries (no change, only infrastructure added)
+
+### Architecture Status
+- Residue infrastructure fully connected to SerreDuality.lean ✅
+- Residue theorem for simple linear poles proven ✅
+- Ready to extend to general residue theorem via partial fractions
+
+### Next Steps (Cycle 174)
+1. **Wire serrePairing for diagonal adeles** - If `a = diag(g)` for `g ∈ K`, pairing is `residueSumTotal(g·f)`
+2. **Generalize residue theorem** - Extend to all `f ∈ K` via linearity + partial fractions:
+   - Any `f` = polynomial (zero residue) + ∑ simple poles (handled by `_eq_zero_simple`)
+   - Use linearity of `residueSumTotal` to combine
+3. **Instantiate serrePairing** - Replace abstract sorry with actual construction using (1)-(2)
+4. **No buffering** - Work directly on the goal, no intermediate lemmas in global scope
 
 ---
 

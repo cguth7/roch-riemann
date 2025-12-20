@@ -1,5 +1,6 @@
 import RrLean.RiemannRochV2.AdelicH1v2
 import RrLean.RiemannRochV2.DifferentIdealBridge
+import RrLean.RiemannRochV2.Residue
 
 /-!
 # Serre Duality Pairing
@@ -255,5 +256,116 @@ Key tools:
 - More than 100 lines without a compiling definition
 - Needing to construct uniformizers explicitly
 -/
+
+/-! ## Concrete Pairing for RatFunc Fq
+
+For the specific case K = RatFunc Fq, we can define the Serre pairing explicitly
+using the residue infrastructure from Residue.lean.
+
+The pairing is:
+  ⟨[a], f⟩ = ∑_v res_v(a_v · f)
+
+where the sum is over all places v (linear places + infinity).
+
+This section provides the concrete implementation that will be used to
+instantiate the abstract serrePairing.
+-/
+
+section ConcreteRatFuncPairing
+
+variable {Fq : Type*} [Field Fq]
+
+open RiemannRochV2.Residue
+
+/-- Residue sum over all linear places for a rational function.
+
+This sums res_α(f) over all α ∈ Fq (the linear places (X - α)).
+For a finite field Fq, this is a finite sum.
+
+Note: This captures residues at all degree-1 places. For a complete
+residue theorem, we also need residues at higher-degree irreducible
+places (handled by residueAtIrreducible) and infinity (residueAtInfty).
+-/
+def residueSumFinite [Fintype Fq] (f : RatFunc Fq) : Fq :=
+  ∑ α : Fq, residueAt α f
+
+/-- The finite residue sum is linear: respects addition. -/
+theorem residueSumFinite_add [Fintype Fq] (f g : RatFunc Fq) :
+    residueSumFinite (f + g) = residueSumFinite f + residueSumFinite g := by
+  simp only [residueSumFinite, residueAt_add]
+  rw [Finset.sum_add_distrib]
+
+/-- The finite residue sum is linear: respects scalar multiplication. -/
+theorem residueSumFinite_smul [Fintype Fq] (c : Fq) (f : RatFunc Fq) :
+    residueSumFinite (c • f) = c * residueSumFinite f := by
+  simp only [residueSumFinite, residueAt_smul]
+  rw [← Finset.mul_sum]
+
+/-- The finite residue sum as a linear map. -/
+def residueSumFinite_linearMap [Fintype Fq] : RatFunc Fq →ₗ[Fq] Fq where
+  toFun := residueSumFinite
+  map_add' := residueSumFinite_add
+  map_smul' := residueSumFinite_smul
+
+/-- Total residue sum: linear places + infinity.
+
+For the residue theorem, this should equal zero for any f ∈ RatFunc Fq.
+Note: This currently only captures linear places. A complete treatment
+would include residues at higher-degree irreducible places.
+-/
+def residueSumTotal [Fintype Fq] (f : RatFunc Fq) : Fq :=
+  residueSumFinite f + residueAtInfty f
+
+/-- The total residue sum is linear (mod the residue theorem).
+
+Once we prove residue_sum_eq_zero, this function should always return 0.
+-/
+theorem residueSumTotal_add [Fintype Fq] (f g : RatFunc Fq) :
+    residueSumTotal (f + g) = residueSumTotal f + residueSumTotal g := by
+  simp only [residueSumTotal, residueSumFinite_add, residueAtInfty_add]
+  ring
+
+/-- Key lemma: for a global element f ∈ RatFunc Fq viewed as a diagonal adele,
+    the total residue sum is zero (residue theorem for linear places + ∞).
+
+This is a partial residue theorem covering only linear places.
+For the full theorem, we'd need to include higher-degree irreducibles.
+
+Proof uses: each f has at most finitely many poles, and the pole
+contributions from finite places cancel with infinity.
+-/
+theorem residueSumTotal_eq_zero_simple [Fintype Fq] (c : Fq) (α : Fq) :
+    residueSumTotal (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = 0 := by
+  simp only [residueSumTotal]
+  -- Use residue_sum_simple_pole: res_α + res_∞ = 0
+  -- Plus: res_β = 0 for β ≠ α (from residueAtLinear_inv_X_sub_ne)
+  -- residueSumFinite = ∑_β res_β = res_α + ∑_{β ≠ α} res_β = c + 0 = c
+  have h_finite : residueSumFinite (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = c := by
+    simp only [residueSumFinite]
+    -- Split sum into α and the rest
+    rw [← Finset.insert_erase (Finset.mem_univ α)]
+    rw [Finset.sum_insert (Finset.not_mem_erase α Finset.univ)]
+    -- res_α = c
+    have h1 : residueAt α (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = c :=
+      residueAt_eq_residueAtLinear_simple α c
+    rw [h1]
+    -- Sum over β ≠ α is zero
+    have h2 : ∑ β ∈ Finset.univ.erase α,
+              residueAt β (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = 0 := by
+      apply Finset.sum_eq_zero
+      intro β hβ
+      have hne : α ≠ β := by
+        rw [Finset.mem_erase] at hβ
+        exact hβ.1.symm
+      -- Use the new lemma residueAt_inv_X_sub_ne
+      exact residueAt_inv_X_sub_ne α β c hne
+    rw [h2, add_zero]
+  -- res_∞ = -c
+  have h_infty : residueAtInfty (c • (RatFunc.X - RatFunc.C α)⁻¹ : RatFunc Fq) = -c :=
+    residueAtInfty_smul_inv_X_sub α c
+  rw [h_finite, h_infty]
+  ring
+
+end ConcreteRatFuncPairing
 
 end RiemannRochV2
