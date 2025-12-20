@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles (2559 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 184
+**Cycle**: 185
 
-### Active Sorries (7 total)
+### Active Sorries (9 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
@@ -20,6 +20,8 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | SerreDuality.lean | `serrePairing_wellDefined` | MED | Uses residue theorem |
 | SerreDuality.lean | `serrePairing_left_nondegen` | MED | Left non-degeneracy |
 | SerreDuality.lean | `serrePairing_right_nondegen` | MED | Right non-degeneracy |
+| SerreDuality.lean | `residueAt_of_valuation_le_one` | MED | Bridge: valuation → residue |
+| SerreDuality.lean | `bounded_diagonal_finite_residue_zero` | MED | Bounded part vanishes |
 | FullAdelesCompact.lean | (1 sorry) | LOW | Edge case |
 
 ### Key Infrastructure ✅
@@ -35,22 +37,42 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | Perfect pairing dimension | ✅ | SerreDuality.lean |
 | Diagonal embedding (RatFunc) | ✅ | SerreDuality.lean |
 | K-part well-definedness | ✅ | SerreDuality.lean |
+| Pole cancellation (valuation) | ✅ | SerreDuality.lean |
+| linearPlace definition | ✅ | SerreDuality.lean |
 
 ---
 
-## Next Steps (Cycle 185)
+## Next Steps (Cycle 186)
 
-1. **Complete serrePairing construction** - Wire abstract definition using liftQ
-   - Define map on FiniteAdeleRing × RRSpace_proj → k
-   - Prove it vanishes on globalPlusBoundedSubmodule
+1. **Complete residueAt_of_valuation_le_one** - Bridge HeightOneSpectrum.valuation to residueAt
+   - Key: valuation ≤ 1 means no pole, so residue = 0
+   - Requires: connection between valuations and Laurent series coefficients
 
-2. **Fill non-degeneracy lemmas** - For serrePairing
-   - Left: if ⟨[a], f⟩ = 0 for all f, then [a] = 0
-   - Right: if ⟨[a], f⟩ = 0 for all [a], then f = 0
+2. **Complete bounded_diagonal_finite_residue_zero** - Use the valuation bridge
+   - Follows from residueAt_of_valuation_le_one
+
+3. **Define rawPairing for RatFunc Fq** - Concrete version using local residues
+   - Then wire to abstract serrePairing via liftQ
 
 ---
 
 ## Recent Progress
+
+### Cycle 185 - Pole cancellation infrastructure for bounded adeles
+- Added PoleCancellation section:
+  - `canonicalZeroAtFinite` ✅ - Predicate: K(v) = 0 for all finite v
+  - `linearPlace` ✅ - HeightOneSpectrum for place (X - α)
+  - `bounded_times_LKD_valuation_bound` ✅ - Product valuation: v(g·f) ≤ exp(K(v))
+  - `bounded_times_LKD_no_pole` ✅ - When K(v)=0: v(g·f) ≤ 1 (no pole)
+  - `residueAt_of_valuation_le_one` (sorry) - Valuation ≤ 1 implies residue = 0
+  - `bounded_diagonal_finite_residue_zero` (sorry) - Bounded diagonal has zero finite residue
+- Added detailed strategy documentation:
+  - liftQ construction approach
+  - rawPairing definition via local residues
+  - Key properties needed for well-definedness
+  - Current infrastructure vs missing pieces
+- Sorries: 7 → 9 (2 new intermediate lemmas added)
+- Key insight: pole cancellation argument for A_K(D) × L(K-D) formalized
 
 ### Cycle 184 - Diagonal pairing infrastructure for RatFunc Fq
 - Added DiagonalPairing section:

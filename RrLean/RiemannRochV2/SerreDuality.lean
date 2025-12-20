@@ -962,4 +962,226 @@ theorem diagonal_globalSubmodule_pairing_zero (g : RatFunc Fq)
 
 end RatFuncSpecialization
 
+/-! ## Pole Cancellation for Bounded Adeles
+
+For the bounded adele part of serrePairing well-definedness, we need to show that
+if `a ∈ A_K(D)` and `f ∈ L(K-D)`, then the "pairing" of `a` with `f` is zero.
+
+The key mathematical insight is **pole cancellation**:
+- If `a ∈ A_K(D)`, then `ord_v(a_v) ≥ -D(v)` for all finite places v
+- If `f ∈ L(K-D)`, then `ord_v(f) ≥ D(v) - K(v)` for all finite places v
+- Product: `ord_v(a_v · f) ≥ -D(v) + D(v) - K(v) = -K(v)`
+
+For the residue at v to be zero, we need `ord_v(a_v · f) ≥ 0`.
+This holds when `K(v) ≤ 0`, i.e., the canonical divisor has no poles at v.
+
+For RatFunc Fq (projective line P¹ over Fq):
+- The canonical divisor K = -2·[∞] has degree -2
+- At all **finite** places v, K(v) = 0 (no contribution)
+- Therefore `ord_v(a_v · f) ≥ 0` for all finite v
+- Thus `res_v(a_v · f) = 0` for all finite v
+- The sum over finite places (residueSumFinite) is zero!
+
+This section formalizes the pole cancellation argument for the bounded part.
+-/
+
+section PoleCancellation
+
+variable {Fq : Type*} [Field Fq] [Fintype Fq]
+variable (canonical : DivisorV2 (Polynomial Fq))
+
+open RiemannRochV2.Residue AdelicH1v2
+
+/-- For P¹ over Fq, the canonical divisor has K(v) = 0 at all finite places.
+
+This is a key property: the canonical divisor -2·[∞] has no contribution
+at any finite place (X - α) or higher-degree irreducible.
+
+Note: This is specific to genus 0 curves (P¹). For higher genus curves,
+the canonical divisor can have non-trivial finite part.
+-/
+def canonicalZeroAtFinite (K : DivisorV2 (Polynomial Fq)) : Prop :=
+  ∀ v : HeightOneSpectrum (Polynomial Fq), K v = 0
+
+/-- If canonical(v) = 0 for all finite v, then elements of bounded × L(K-D)
+have controlled valuation at all finite places.
+
+For a ∈ A_K(D) (meaning ord_v(a) ≥ -D(v)) and f ∈ L(K-D) (meaning ord_v(f) ≥ D(v) - K(v)),
+the product satisfies:
+  ord_v(a · f) ≥ -D(v) + D(v) - K(v) = -K(v) = 0
+
+when K(v) = 0. This means a · f has no poles at finite places.
+-/
+theorem bounded_times_LKD_valuation_bound
+    (D : DivisorV2 (Polynomial Fq))
+    (g f : RatFunc Fq)
+    (hg : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) g ≤ WithZero.exp (D v))
+    (hf : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) f ≤ WithZero.exp ((canonical - D) v))
+    (v : HeightOneSpectrum (Polynomial Fq)) :
+    v.valuation (RatFunc Fq) (g * f) ≤ WithZero.exp (canonical v) := by
+  -- v(g * f) = v(g) * v(f) ≤ exp(D v) * exp((K-D) v)
+  --          = exp(D v + (K-D) v) = exp(K v)
+  rw [Valuation.map_mul]
+  have h1 := hg v
+  have h2 := hf v
+  have heq : D v + (canonical - D) v = canonical v := by
+    simp only [Finsupp.sub_apply]
+    ring
+  calc v.valuation (RatFunc Fq) g * v.valuation (RatFunc Fq) f
+      ≤ WithZero.exp (D v) * WithZero.exp ((canonical - D) v) := by
+        apply mul_le_mul' h1 h2
+    _ = WithZero.exp (D v + (canonical - D) v) := by rw [← WithZero.exp_add]
+    _ = WithZero.exp (canonical v) := by rw [heq]
+
+/-- Corollary: when canonical(v) = 0 for all finite v, the product has no poles.
+
+This is the key lemma for residue vanishing: if v(g*f) ≤ 1, then g*f has no pole
+at v, so its residue at v is zero.
+-/
+theorem bounded_times_LKD_no_pole
+    (D : DivisorV2 (Polynomial Fq))
+    (hK : canonicalZeroAtFinite canonical)
+    (g f : RatFunc Fq)
+    (hg : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) g ≤ WithZero.exp (D v))
+    (hf : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) f ≤ WithZero.exp ((canonical - D) v))
+    (v : HeightOneSpectrum (Polynomial Fq)) :
+    v.valuation (RatFunc Fq) (g * f) ≤ 1 := by
+  have h := bounded_times_LKD_valuation_bound canonical D g f hg hf v
+  -- K(v) = 0 by hK, so exp(K(v)) = exp(0) = 1
+  rw [hK v] at h
+  simp only [WithZero.exp_zero] at h
+  exact h
+
+/-- The HeightOneSpectrum corresponding to the place (X - α).
+
+For a polynomial ring Fq[X], the ideal (X - α) is prime and nonzero,
+so it defines a height-one prime.
+-/
+def linearPlace (α : Fq) : HeightOneSpectrum (Polynomial Fq) where
+  asIdeal := Ideal.span {Polynomial.X - Polynomial.C α}
+  isPrime := Ideal.span_singleton_prime (Polynomial.X_sub_C_ne_zero α) |>.mpr
+              (Polynomial.irreducible_X_sub_C α).prime
+  ne_bot := by
+    rw [ne_eq, Ideal.span_singleton_eq_bot]
+    exact Polynomial.X_sub_C_ne_zero α
+
+/-- If the product g * f has valuation ≤ 1 at a linear place (X - α),
+then its residue at α is zero.
+
+Proof: valuation ≤ 1 means g * f is in the valuation ring O_v at place v = (X - α).
+Elements of O_v have non-negative order, so the -1 coefficient (residue) is zero.
+
+Note: This requires the connection between HeightOneSpectrum valuation
+and our residueAt definition. That bridge is provided by the RatFunc → LaurentSeries
+coercion at each place.
+-/
+theorem residueAt_of_valuation_le_one (α : Fq) (g : RatFunc Fq)
+    (hv : (linearPlace α).valuation (RatFunc Fq) g ≤ 1) :
+    residueAt α g = 0 := by
+  -- The valuation at (X - α) being ≤ 1 means g has no pole at α
+  -- For rational functions, this means (X - α) doesn't divide the denominator
+  -- to higher multiplicity than the numerator
+  -- Therefore the Laurent series at α has non-negative order
+  -- So the coefficient of (X - α)^{-1} is zero
+  -- This is the residueAt value
+  sorry -- Requires bridge between HeightOneSpectrum.valuation and residueAt
+
+/-- When canonical = 0 at all finite places, bounded adeles paired with L(K-D)
+give zero finite residue sum.
+
+This is the key lemma for the bounded part of serrePairing well-definedness.
+Combined with the K-part (diagonal_globalSubmodule_pairing_zero), this shows
+the pairing vanishes on globalPlusBoundedSubmodule.
+
+Note: This is stated for diagonal elements (g ∈ RatFunc Fq embedded diagonally).
+For general finite adeles, the argument is similar but requires local residue infrastructure.
+-/
+theorem bounded_diagonal_finite_residue_zero
+    (D : DivisorV2 (Polynomial Fq))
+    (hK : canonicalZeroAtFinite canonical)
+    (g f : RatFunc Fq)
+    (hg : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) g ≤ WithZero.exp (D v))
+    (hf : ∀ v : HeightOneSpectrum (Polynomial Fq),
+          v.valuation (RatFunc Fq) f ≤ WithZero.exp ((canonical - D) v)) :
+    residueSumFinite (g * f) = 0 := by
+  -- By bounded_times_LKD_no_pole, v(g*f) ≤ 1 at all finite v
+  -- This means g*f has no poles at any linear place (X - α)
+  -- Therefore residueAt α (g*f) = 0 for all α
+  -- And residueSumFinite = ∑_α residueAt α = 0
+  simp only [residueSumFinite]
+  apply Finset.sum_eq_zero
+  intro α _
+  -- Need to show residueAt α (g * f) = 0
+  -- This follows from the valuation bound at place (X - α)
+  sorry -- Requires residueAt_of_valuation_le_one and place construction
+
+end PoleCancellation
+
+/-! ## Strategy for Completing serrePairing
+
+The serrePairing construction requires defining a bilinear map:
+  H¹(D) × L(K-D) → k
+
+where H¹(D) = FiniteAdeleRing / (K + A_K(D)).
+
+### Construction via liftQ
+
+To define a linear map on the quotient, we use `Submodule.liftQ`:
+1. Define a linear map `rawPairing : FiniteAdeleRing →ₗ[k] (L(K-D) →ₗ[k] k)`
+2. Show `globalPlusBoundedSubmodule ≤ ker rawPairing`
+3. Apply `Submodule.liftQ` to get `serrePairing : H¹(D) →ₗ[k] (L(K-D) →ₗ[k] k)`
+
+### The rawPairing Definition
+
+For `a ∈ FiniteAdeleRing` and `f ∈ L(K-D)`:
+  `rawPairing a f = ∑_v res_v(a_v · f)`
+
+where `res_v : K_v → k` is the local residue at place v.
+
+For the RatFunc Fq case:
+- At linear place v = (X - α): res_v = coefficient of (X - α)^{-1}
+- At infinity: res_∞ = coefficient as defined in Residue.lean
+- The sum is finite because a_v is integral at almost all v
+
+### Key Properties to Prove
+
+1. **K-part vanishes**: For diagonal `g ∈ K`:
+   - `rawPairing (diag g) f = residueSumTotal(g * f) = 0` by residue theorem
+   - ✅ Established via `diagonal_globalSubmodule_pairing_zero` (for split denominators)
+
+2. **A_K(D)-part vanishes**: For `a ∈ A_K(D)`:
+   - By pole cancellation: `a_v · f` has no poles at finite v when K(v) ≤ 0
+   - For P¹ (genus 0): K(v) = 0 for all finite v, so all finite residues are 0
+   - What remains is the residue at infinity, which needs separate treatment
+
+3. **Residue at infinity for bounded adeles**:
+   - For a ∈ A_K(D), what is res_∞(a · f)?
+   - This requires understanding the infinity completion
+   - For P¹: the infinity place is handled by residueAtInfty
+
+### Current Infrastructure
+
+For RatFunc Fq:
+- `residuePairing` works on K × K (diagonal case)
+- `residueSumTotal` = residueSumFinite + residueAtInfty
+- Residue theorem proved for split denominators
+
+Missing:
+- Local residue on completion elements (not just K)
+- Connection between HeightOneSpectrum.valuation and residueAt
+- Handling of higher-degree irreducible places
+
+### Next Steps
+
+1. Complete the bridge `residueAt_of_valuation_le_one`
+2. Define `rawPairing` using local residues (for RatFunc Fq case)
+3. Wire the construction via liftQ
+4. Handle non-degeneracy proofs
+-/
+
 end RiemannRochV2
