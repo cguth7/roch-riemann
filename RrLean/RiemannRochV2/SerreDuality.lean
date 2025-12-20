@@ -409,10 +409,7 @@ theorem residueSumTotal_polynomial [Fintype Fq] (p : Polynomial Fq) :
   have h_finite : ∑ α : Fq, residueAt α (algebraMap (Polynomial Fq) (RatFunc Fq) p) = 0 := by
     apply Finset.sum_eq_zero
     intro α _
-    simp only [residueAt]
-    -- TODO: Show translateBy α (polynomial) is a polynomial, then use residueAtX_polynomial
-    -- Requires: normalize/comp lemmas for Polynomial Fq need Classical instance
-    sorry
+    exact residueAt_polynomial α p
   rw [h_finite, residueAtInfty_polynomial, add_zero]
 
 end ConcreteRatFuncPairing

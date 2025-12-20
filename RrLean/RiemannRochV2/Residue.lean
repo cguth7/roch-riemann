@@ -1018,6 +1018,22 @@ theorem translateBy_zero (α : Fq) : translateBy α (0 : RatFunc Fq) = 0 := by
   simp only [translateBy, RatFunc.num_zero, RatFunc.denom_zero, Polynomial.zero_comp,
              Polynomial.one_comp, map_zero, zero_div]
 
+/-- Translation of a polynomial gives a polynomial: the composition with X + C α.
+
+For a polynomial p viewed as p/1 in RatFunc:
+- num = p, denom = 1
+- translateBy α p = (p.comp (X + C α)) / (1.comp (X + C α)) = (p.comp (X + C α)) / 1 = p.comp (X + C α)
+-/
+theorem translateBy_polynomial (α : Fq) (p : Polynomial Fq) :
+    translateBy α (algebraMap (Polynomial Fq) (RatFunc Fq) p) =
+    algebraMap (Polynomial Fq) (RatFunc Fq) (p.comp (Polynomial.X + Polynomial.C α)) := by
+  simp only [translateBy]
+  -- p as RatFunc has num = p, denom = 1
+  have hnum : (algebraMap (Polynomial Fq) (RatFunc Fq) p).num = p := RatFunc.num_algebraMap p
+  have hdenom : (algebraMap (Polynomial Fq) (RatFunc Fq) p).denom = 1 := RatFunc.denom_algebraMap p
+  rw [hnum, hdenom]
+  simp only [Polynomial.one_comp, map_one, div_one]
+
 /-- Residue at a finite place α ∈ Fq, defined via translation to the origin.
 
 This is the coefficient of (X - α)^{-1} in the Laurent expansion of f at α.
@@ -1046,6 +1062,18 @@ theorem residueAt_smul (α : Fq) (c : Fq) (f : RatFunc Fq) :
 @[simp]
 theorem residueAt_zero' (α : Fq) : residueAt α (0 : RatFunc Fq) = 0 := by
   simp only [residueAt, translateBy_zero, residueAtX_zero]
+
+/-- Polynomials have zero residue at all finite places.
+
+A polynomial has no poles anywhere in Fq, so all residues are zero.
+Proof: translateBy α (polynomial) = polynomial.comp (X + C α) is still a polynomial,
+and residueAtX of a polynomial is 0.
+-/
+theorem residueAt_polynomial (α : Fq) (p : Polynomial Fq) :
+    residueAt α (algebraMap (Polynomial Fq) (RatFunc Fq) p) = 0 := by
+  simp only [residueAt]
+  rw [translateBy_polynomial]
+  exact residueAtX_polynomial (p.comp (Polynomial.X + Polynomial.C α))
 
 /-- The residue at a finite place as a linear map.
 

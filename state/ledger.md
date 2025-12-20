@@ -8,13 +8,15 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles (2803 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 176
+**Cycle**: 177
 
 ### Residue.lean Status
 
 | Lemma | Status | Notes |
 |-------|--------|-------|
 | `residueAtX_inv_X_sub_ne` | ✅ proved | Cycle 176 |
+| `translateBy_polynomial` | ✅ proved | Cycle 177 |
+| `residueAt_polynomial` | ✅ proved | Cycle 177 |
 | `residueAtIrreducible` | ❌ sorry | Placeholder for higher-degree places |
 | `residue_sum_eq_zero` | ❌ sorry | General residue theorem |
 
@@ -24,22 +26,48 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 | Lemma | Status | Notes |
 |-------|--------|-------|
+| `serrePairing` | ❌ sorry | Main pairing construction |
 | `serrePairing_wellDefined` | ❌ sorry | Placeholder |
 | `serrePairing_left_nondegen` | ❌ sorry | Placeholder |
 | `serrePairing_right_nondegen` | ❌ sorry | Placeholder |
-| `residueSumTotal_polynomial` | ❌ sorry | Needs translateBy preserves polynomials |
+| `finrank_eq_of_perfect_pairing` | ❌ sorry | Linear algebra fact |
+| `residueSumTotal_polynomial` | ✅ proved | Cycle 177 |
 | Other infrastructure | ✅ proved | residueSumFinite, residueSumTotal, etc. |
 
-### Next Steps (Cycle 177)
+### Next Steps (Cycle 178)
 
-1. **Fill `residueSumTotal_polynomial` sorry** in SerreDuality.lean
-   - Need to show `translateBy α (polynomial) = polynomial`
-   - Key: translateBy uses composition with (X + C α), and polynomials have denom = 1
+1. **Work toward serrePairing construction** - Main goal
+   - Use residue sum infrastructure for the pairing
+   - Need to connect adelic elements to RatFunc
 
-2. **Consider residueAt_polynomial** in Residue.lean
-   - Would simplify SerreDuality proofs
+2. **Consider residueSumTotal_eq_zero for general f**
+   - Extend beyond simple poles to full residue theorem
+   - Would use partial fractions decomposition
 
-3. **Work toward serrePairing construction**
+3. **Fill finrank_eq_of_perfect_pairing**
+   - Standard linear algebra lemma about perfect pairings
+
+---
+
+## CYCLE 177 - Polynomial Residue Lemmas
+
+### Achievements
+1. **`translateBy_polynomial` ✅** - Translation of polynomial gives polynomial
+   - For polynomial p: `translateBy α p = algebraMap (p.comp (X + C α))`
+   - Key: `num_algebraMap p = p`, `denom_algebraMap p = 1`
+
+2. **`residueAt_polynomial` ✅** - Polynomials have zero residue at all finite places
+   - Combines `translateBy_polynomial` with `residueAtX_polynomial`
+   - Proof: `residueAt α p = residueAtX (translateBy α p) = residueAtX (p.comp ...) = 0`
+
+3. **`residueSumTotal_polynomial` ✅** - Filled sorry in SerreDuality.lean
+   - Now uses `residueAt_polynomial` to show all finite residues are 0
+   - Combined with `residueAtInfty_polynomial = 0` for full proof
+
+### Sorry Count Change
+- Before: 8 sorries (2 in Residue.lean + 6 in SerreDuality.lean)
+- After: 7 sorries (2 in Residue.lean + 5 in SerreDuality.lean)
+- Net: -1 (filled `residueSumTotal_polynomial`)
 
 ---
 
