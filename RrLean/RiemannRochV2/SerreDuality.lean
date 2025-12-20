@@ -1078,13 +1078,13 @@ def translatePolyEquiv (α : Fq) : Polynomial Fq ≃+* Polynomial Fq where
   toFun := fun p => p.comp (Polynomial.X + Polynomial.C α)
   invFun := fun p => p.comp (Polynomial.X - Polynomial.C α)
   left_inv := fun p => by
-    simp only [Polynomial.comp_assoc, Polynomial.add_comp, Polynomial.sub_comp,
-               Polynomial.X_comp, Polynomial.C_comp, add_sub_cancel, Polynomial.comp_X]
+    show (p.comp _).comp _ = p
+    rw [Polynomial.comp_assoc]; simp [sub_add_cancel]
   right_inv := fun p => by
-    simp only [Polynomial.comp_assoc, Polynomial.sub_comp, Polynomial.add_comp,
-               Polynomial.X_comp, Polynomial.C_comp, sub_add_cancel, Polynomial.comp_X]
+    show (p.comp _).comp _ = p
+    rw [Polynomial.comp_assoc]; simp [add_sub_cancel]
   map_mul' := fun p q => Polynomial.mul_comp p q _
-  map_add' := fun p q => Polynomial.add_comp p q _
+  map_add' := fun p q => by simp only [Polynomial.add_comp]
 
 /-- Translation sends X - C α to X. -/
 lemma translatePolyEquiv_X_sub_C (α : Fq) :
@@ -1131,6 +1131,79 @@ lemma translateRatFuncHom_eq_translateBy (α : Fq) (g : RatFunc Fq) :
   -- translateBy is defined as the same thing
   rw [translateBy, RatFunc.num_div_denom]
 
+/-- The ideal span{X - α} powers are mapped to span{X} powers by translatePolyEquiv. -/
+lemma translatePolyEquiv_ideal_pow_map (α : Fq) (n : ℕ) :
+    Ideal.map (translatePolyEquiv α) ((Ideal.span {Polynomial.X - Polynomial.C α})^n) =
+    (Ideal.span {Polynomial.X})^n := by
+  rw [Ideal.map_pow, translatePolyEquiv_ideal_map]
+
+/-- The intValuation is preserved under translation.
+
+The key insight: ring automorphisms that map one prime ideal to another
+preserve the divisibility structure, hence the factorization counts.
+-/
+lemma intValuation_translatePolyEquiv (α : Fq) (p : Polynomial Fq) :
+    (linearPlace α).intValuation p =
+    (Polynomial.idealX Fq).intValuation (translatePolyEquiv α p) := by
+  by_cases hp : p = 0
+  · simp only [hp, map_zero]
+  -- For p ≠ 0, show equality via intValuation_le_pow_iff_dvd characterization
+  have hp' : translatePolyEquiv α p ≠ 0 := by
+    simp [ne_eq, map_eq_zero_iff _ (translatePolyEquiv α).injective, hp]
+  have hlin : (linearPlace α).asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} := rfl
+  have hX : (Polynomial.idealX Fq).asIdeal = Ideal.span {Polynomial.X} := Polynomial.idealX_span Fq
+  -- Key: divisibility by (X-α)^n iff divisibility by X^n after translation
+  have hdvd_iff : ∀ n, (linearPlace α).asIdeal ^ n ∣ Ideal.span {p} ↔
+      (Polynomial.idealX Fq).asIdeal ^ n ∣ Ideal.span {translatePolyEquiv α p} := by
+    intro n
+    rw [hlin, hX, Ideal.dvd_span_singleton, Ideal.dvd_span_singleton]
+    rw [← translatePolyEquiv_ideal_pow_map α n, ← hlin]
+    constructor
+    · intro hmem
+      exact Ideal.mem_map_of_mem _ hmem
+    · intro hmem
+      rw [Ideal.mem_map_iff_of_surjective _ (translatePolyEquiv α).surjective] at hmem
+      obtain ⟨q, hq, hqp⟩ := hmem
+      have hpq : p = q := (translatePolyEquiv α).injective hqp.symm
+      rw [hpq]
+      exact hq
+  -- Both intValuations are exp(-count) for some count
+  -- Show the counts are equal by bidirectional divisibility
+  classical
+  rw [HeightOneSpectrum.intValuation_if_neg _ hp, HeightOneSpectrum.intValuation_if_neg _ hp']
+  -- Now show the exponents are equal by showing both directions
+  congr 1
+  -- Need: -(count in linearPlace) = -(count in idealX)
+  apply neg_inj.mpr
+  simp only [Nat.cast_inj]
+  -- Define the count values
+  let c₁ := (Associates.mk (linearPlace α).asIdeal).count (Associates.mk (Ideal.span {p})).factors
+  let c₂ := (Associates.mk (Polynomial.idealX Fq).asIdeal).count
+      (Associates.mk (Ideal.span {translatePolyEquiv α p})).factors
+  show c₁ = c₂
+  -- Use the fact that divisibility characterization matches
+  apply le_antisymm
+  · -- c₁ ≤ c₂
+    -- c₁ ≤ c₂ ↔ (idealX)^c₁ ∣ span{φ p} (by prime_pow_dvd_iff_le)
+    rw [← Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hp')
+          (Polynomial.idealX Fq).associates_irreducible,
+        ← Associates.mk_pow, Associates.mk_le_mk_iff_dvd]
+    -- Now goal: (idealX)^c₁ ∣ span{φ p}
+    -- Use: this ↔ (linearPlace)^c₁ ∣ span{p} by hdvd_iff
+    -- And: (linearPlace)^c₁ ∣ span{p} by definition of c₁
+    apply (hdvd_iff c₁).mp
+    rw [← Associates.mk_le_mk_iff_dvd, Associates.mk_pow,
+        Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hp)
+          (linearPlace α).associates_irreducible]
+  · -- c₂ ≤ c₁
+    rw [← Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hp)
+          (linearPlace α).associates_irreducible,
+        ← Associates.mk_pow, Associates.mk_le_mk_iff_dvd]
+    apply (hdvd_iff c₂).mpr
+    rw [← Associates.mk_le_mk_iff_dvd, Associates.mk_pow,
+        Associates.prime_pow_dvd_iff_le (Associates.mk_ne_zero'.mpr hp')
+          (Polynomial.idealX Fq).associates_irreducible]
+
 /-- The key valuation transport lemma:
     The valuation at (X - α) equals the comap of the valuation at X along translation.
 
@@ -1145,10 +1218,22 @@ lemma linearPlace_valuation_eq_comap (α : Fq) :
   -- span{X - α} maps to span{X} under translatePolyEquiv α
   ext g
   simp only [Valuation.comap_apply]
-  -- Need to show: (linearPlace α).valuation g = (idealX).valuation (translateRatFuncHom α g)
-  -- The valuation is defined via intValuation counting prime factors
-  -- translatePolyEquiv α sends (X - α) to X, so counts are preserved
-  sorry -- Key: valuation transport under automorphism that maps the prime ideal
+  -- Use RatFunc structure: g = num / denom
+  rw [← RatFunc.num_div_denom g]
+  have hdenom_ne : g.denom ≠ 0 := g.denom_ne_zero
+  -- Use Valuation.map_div to decompose v(num/denom) = v(num) / v(denom)
+  rw [Valuation.map_div]
+  -- Relate v(↑p) to intValuation via valuation_of_algebraMap
+  rw [HeightOneSpectrum.valuation_of_algebraMap, HeightOneSpectrum.valuation_of_algebraMap]
+  -- translateRatFuncHom (↑num / ↑denom) = ↑(φ num) / ↑(φ denom)
+  -- Use RatFunc.map_apply_div
+  rw [translateRatFuncHom, RatFunc.coe_mapRingHom_eq_coe_map, RatFunc.map_apply_div]
+  rw [Valuation.map_div]
+  rw [HeightOneSpectrum.valuation_of_algebraMap, HeightOneSpectrum.valuation_of_algebraMap]
+  -- Simplify the RingEquiv to RingHom coercion
+  simp only [RingEquiv.toRingHom_eq_coe, RingEquiv.coe_toRingHom]
+  -- Now apply intValuation_translatePolyEquiv
+  rw [intValuation_translatePolyEquiv, intValuation_translatePolyEquiv]
 
 /-- The valuation at linearPlace α equals idealX valuation after translation.
 
