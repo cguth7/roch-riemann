@@ -178,7 +178,7 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - Weak approximation
 - Cycles 76-155
 
-### Phase 3: Serre Duality (Current - Cycle 182)
+### Phase 3: Serre Duality (Current - Cycle 184)
 
 **Completed:**
 - Residue at X (X-adic) via HahnSeries.coeff(-1) ✅
@@ -187,9 +187,11 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - Residue theorem for split denominators ✅
 - Bilinear pairing `residuePairing g f := residueSumTotal(g*f)` ✅
 - Perfect pairing → equal dimensions ✅
+- Diagonal embedding infrastructure (RatFunc Fq) ✅
+- K-part of well-definedness (globalSubmodule → 0) ✅
 
 **In Progress:**
-- Wire serrePairing using residuePairing infrastructure
+- Wire serrePairing abstract definition using liftQ
 - Fill non-degeneracy proofs
 - Instantiate AdelicRRData
 

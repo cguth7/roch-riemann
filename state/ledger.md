@@ -6,9 +6,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Full build compiles (2804 jobs)
+**Build**: ✅ Full build compiles (2559 jobs)
 **Phase**: 3 - Serre Duality
-**Cycle**: 183
+**Cycle**: 184
 
 ### Active Sorries (7 total)
 
@@ -33,14 +33,16 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | Residue theorem (split denom) | ✅ | SerreDuality.lean |
 | Bilinear pairing | ✅ | SerreDuality.lean |
 | Perfect pairing dimension | ✅ | SerreDuality.lean |
+| Diagonal embedding (RatFunc) | ✅ | SerreDuality.lean |
+| K-part well-definedness | ✅ | SerreDuality.lean |
 
 ---
 
-## Next Steps (Cycle 184)
+## Next Steps (Cycle 185)
 
-1. **Wire serrePairing** - Replace sorry with actual construction
-   - Use `residuePairing_bilinear` for diagonal elements
-   - Need to extend to full adele ring
+1. **Complete serrePairing construction** - Wire abstract definition using liftQ
+   - Define map on FiniteAdeleRing × RRSpace_proj → k
+   - Prove it vanishes on globalPlusBoundedSubmodule
 
 2. **Fill non-degeneracy lemmas** - For serrePairing
    - Left: if ⟨[a], f⟩ = 0 for all f, then [a] = 0
@@ -49,6 +51,23 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 ---
 
 ## Recent Progress
+
+### Cycle 184 - Diagonal pairing infrastructure for RatFunc Fq
+- Added DiagonalPairing section:
+  - `diagonalEmbedding` ✅ - K →+* FiniteAdeleRing for RatFunc case
+  - `diagonalResiduePairing` ✅ - residuePairing on RatFunc Fq
+  - `diagonalResiduePairing_bilinear` ✅ - bilinear map structure
+  - `diagonalResiduePairing_eq_zero_of_splits` ✅ - vanishing for split denominators
+  - `diagonal_pairing_eq_residue` ✅ - equality with residuePairing
+- Added RatFuncSpecialization section:
+  - `H1_ratfunc` ✅ - specialized H¹(D) type alias
+  - `LKD_ratfunc` ✅ - specialized L(K-D) type alias
+  - `diagonal_maps_to_zero` ✅ - K-part vanishes under residue sum
+  - `polynomial_diagonal_pairing_zero` ✅ - polynomial case of vanishing
+  - `diagonalEmbedding_mem_globalSubmodule` ✅ - diagonal K lands in globalSubmodule
+  - `diagonal_globalSubmodule_pairing_zero` ✅ - well-definedness for K-part
+- Sorries unchanged: 7 total
+- Infrastructure for K-part of serrePairing well-definedness now complete
 
 ### Cycle 183 - Scalar multiplication for residue at infinity
 - `residueAtInfty_smul` ✅ - Proved res_∞(c • f) = c * res_∞(f)

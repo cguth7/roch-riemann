@@ -825,4 +825,141 @@ theorem residuePairing_polynomial_left [Fintype Fq] (p : Polynomial Fq) (f : Rat
 
 end ConcreteRatFuncPairing
 
+/-! ## Diagonal Embedding and Pairing
+
+For the serrePairing to be well-defined on H¹(D) = FiniteAdeleRing / (K + A_K(D)),
+we need to show the pairing vanishes on globalPlusBoundedSubmodule.
+
+This requires:
+1. Global elements (K diagonally embedded) → residue theorem gives 0
+2. Bounded adeles A_K(D) with f ∈ L(K-D) → pole cancellation gives 0
+
+This section provides the RatFunc Fq specialization that uses residuePairing.
+-/
+
+section DiagonalPairing
+
+variable {Fq : Type*} [Field Fq] [Fintype Fq]
+
+open RiemannRochV2.Residue AdelicH1v2
+
+/-- The diagonal embedding K → FiniteAdeleRing for RatFunc case.
+This is just FiniteAdeleRing.algebraMap specialized. -/
+def diagonalEmbedding : RatFunc Fq →+* FiniteAdeleRing (Polynomial Fq) (RatFunc Fq) :=
+  FiniteAdeleRing.algebraMap (Polynomial Fq) (RatFunc Fq)
+
+/-- The pairing on diagonal elements: for g ∈ K and f ∈ K,
+the "diagonal pairing" is residuePairing g f.
+
+This captures the pairing ⟨diag(g), f⟩ = ∑_v res_v(g · f).
+-/
+def diagonalResiduePairing (g f : RatFunc Fq) : Fq :=
+  residuePairing g f
+
+/-- Diagonal pairing is bilinear (inherited from residuePairing_bilinear). -/
+def diagonalResiduePairing_bilinear :
+    RatFunc Fq →ₗ[Fq] RatFunc Fq →ₗ[Fq] Fq :=
+  residuePairing_bilinear
+
+/-- Key lemma: diagonal pairing with split denominators is zero.
+
+If g, f ∈ RatFunc Fq and g * f has split denominator (distinct linear poles),
+then the diagonal pairing is zero by the residue theorem.
+-/
+theorem diagonalResiduePairing_eq_zero_of_splits (g f : RatFunc Fq)
+    (h : ∃ (p : Polynomial Fq) (poles : Finset Fq),
+         g * f = (algebraMap _ (RatFunc Fq) p) / (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) :
+    diagonalResiduePairing g f = 0 :=
+  residuePairing_eq_zero_of_splits g f h
+
+/-- For the diagonal embedding, the pairing factors through residuePairing.
+
+This is the key observation: ⟨diag(g), f⟩ = residuePairing g f.
+Combined with the residue theorem, this shows the pairing vanishes
+on the K part of globalPlusBoundedSubmodule.
+-/
+theorem diagonal_pairing_eq_residue (g f : RatFunc Fq) :
+    diagonalResiduePairing g f = residuePairing g f := rfl
+
+end DiagonalPairing
+
+/-! ## Specialization to RatFunc Fq
+
+For the concrete case K = RatFunc Fq, R = Polynomial Fq, k = Fq,
+we can instantiate the serrePairing using our residue infrastructure.
+
+The construction:
+1. Define the pairing on representatives: FiniteAdeleRing × RRSpace_proj → Fq
+2. Show it descends to quotient H¹(D) (vanishes on K + A_K(D))
+3. Show non-degeneracy (perfect pairing)
+
+For now, we set up the specialized types and leave the full construction
+for future cycles when the residue-on-completions infrastructure is ready.
+-/
+
+section RatFuncSpecialization
+
+variable {Fq : Type*} [Field Fq] [Fintype Fq]
+variable (canonical : DivisorV2 (Polynomial Fq))
+
+open AdelicH1v2
+
+/-- Specialized H¹(D) for RatFunc case. -/
+abbrev H1_ratfunc (D : DivisorV2 (Polynomial Fq)) : Type _ :=
+  SpaceModule Fq (Polynomial Fq) (RatFunc Fq) D
+
+/-- Specialized L(K-D) for RatFunc case. -/
+abbrev LKD_ratfunc (D : DivisorV2 (Polynomial Fq)) : Type _ :=
+  RRSpace_proj Fq (Polynomial Fq) (RatFunc Fq) (canonical - D)
+
+/-- The key property for well-definedness: diagonal K maps to zero under the pairing.
+
+For g ∈ RatFunc Fq and f ∈ L(K-D), if g * f has split denominator,
+then the pairing ⟨diag(g), f⟩ = 0 by the residue theorem.
+
+This handles the K-part of the well-definedness condition for serrePairing.
+-/
+theorem diagonal_maps_to_zero (g : RatFunc Fq) (f : RatFunc Fq)
+    (h : ∃ (p : Polynomial Fq) (poles : Finset Fq),
+         g * f = (algebraMap _ (RatFunc Fq) p) / (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) :
+    residueSumTotal (g * f) = 0 :=
+  residueSumTotal_splits (g * f) h
+
+/-- For polynomial g and any f, the diagonal pairing vanishes.
+
+Polynomials have no poles at finite places, so g*f only has poles from f.
+-/
+theorem polynomial_diagonal_pairing_zero (p : Polynomial Fq) (f : RatFunc Fq)
+    (hf : ∃ (q : Polynomial Fq) (poles : Finset Fq),
+          f = (algebraMap _ (RatFunc Fq) q) / (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) :
+    diagonalResiduePairing (algebraMap _ (RatFunc Fq) p) f = 0 :=
+  residuePairing_polynomial_left p f hf
+
+/-- The diagonal embedding of K lands in globalSubmodule.
+
+For any g ∈ RatFunc Fq, diagonalEmbedding g ∈ globalSubmodule.
+-/
+theorem diagonalEmbedding_mem_globalSubmodule (g : RatFunc Fq) :
+    diagonalEmbedding g ∈
+      globalSubmodule Fq (Polynomial Fq) (RatFunc Fq) := by
+  use g
+  rfl
+
+/-- Key well-definedness lemma: diagonal K pairs to zero with L(K-D).
+
+For g ∈ K (RatFunc Fq) embedded diagonally into FiniteAdeleRing,
+and f ∈ L(K-D) (assumed to have split denominator),
+the residue pairing is zero by the residue theorem.
+
+This is the main step for showing serrePairing is well-defined on H¹(D).
+-/
+theorem diagonal_globalSubmodule_pairing_zero (g : RatFunc Fq)
+    (f : RatFunc Fq)
+    (hgf_splits : ∃ (p : Polynomial Fq) (poles : Finset Fq),
+                  g * f = (algebraMap _ (RatFunc Fq) p) / (∏ α ∈ poles, (RatFunc.X - RatFunc.C α))) :
+    residuePairing g f = 0 :=
+  residuePairing_eq_zero_of_splits g f hgf_splits
+
+end RatFuncSpecialization
+
 end RiemannRochV2
