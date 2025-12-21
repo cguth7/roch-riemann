@@ -53,10 +53,10 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Next Steps (Cycle 189)
 
-1. **Handle FiniteAdele vs FullAdele issue** - The current H¹(D) uses FiniteAdeleRing (no infinity),
-   but residue theorem needs all places. Either:
-   - Switch to FullAdeleRing-based H¹, or
-   - Handle infinity component separately in pairing
+1. **Use Option 2: Handle infinity separately** (avoids refactoring AdelicH1v2)
+   - For genus 0: L(K-D) has no finite poles, so finite residue sum = 0 for bounded elements
+   - Pairing: extract diagonal K part, use -residueAtInfty(k·f)
+   - Key: residueSumFinite = -residueAtInfty by residue theorem
 
 2. **Complete serrePairing_ratfunc construction** - Use liftQ with:
    - rawDiagonalPairing for diagonal K elements
