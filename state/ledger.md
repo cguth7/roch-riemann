@@ -8,13 +8,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries
 **Phase**: 3 - Serre Duality
-**Cycle**: 212
+**Cycle**: 213
 
-### Active Sorries (4 in RatFuncPairing.lean)
+### Active Sorries (2 in RatFuncPairing.lean)
 
 | File | Count | Priority | Notes |
 |------|-------|----------|-------|
-| **RatFuncPairing.lean** | 4 | HIGH | `add_mem'`, `constant_mem_projective_zero`, `projective_LRatFunc_eq_zero_of_neg_deg`, + 1 other |
+| **RatFuncPairing.lean** | 2 | HIGH | `LRatFunc_eq_zero_of_neg_deg`, `projective_LRatFunc_eq_zero_of_neg_deg` |
 | **ProductFormula.lean** | 1 | DONE* | *Intentionally incorrect lemma - documented |
 | **Residue.lean** | 2 | LOW | Higher-degree places, general residue theorem (deferred) |
 | **FullAdelesCompact.lean** | 1 | LOW | Edge case bound < 1 (not needed) |
@@ -22,50 +22,48 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 212 Progress
+## Cycle 213 Progress
 
 **Completed**:
-1. ✅ Added `import RrLean.RiemannRochV2.ProductFormula` to RatFuncPairing.lean
-2. ✅ Deleted duplicate `ProductFormulaLite` section (removed ~75 lines, 3 sorries)
-3. ✅ **Proved `smul_mem'`** for `RRSpace_ratfunc_projective`
+1. ✅ **Proved `add_mem'`** for `RRSpace_ratfunc_projective`
+2. ✅ **Proved `constant_mem_projective_zero`**
 
-**Key implementation details for `smul_mem'`**:
-- Used `open Classical` at section level for GCDMonoid instance
-- Finite valuation: `← RatFunc.algebraMap_C` + `valuation_of_algebraMap` + `IsUnit.val_inv_mul`
-- Infinity: Pattern from `Residue.lean:residueAtInfty_smul` with `natDegree_smul_of_smul_regular`
+**Key implementation details for `add_mem'`**:
+- Used `RatFunc.intDegree_add_le` which shows `intDegree (x + y) ≤ max (intDegree x) (intDegree y)`
+- `noPoleAtInfinity f` is equivalent to `intDegree f ≤ 0`
+- Careful case analysis for zero cases before applying the lemma
+- Pattern: `by_cases hab : a + b = 0` first, then `by_cases ha_ne : a = 0`, etc.
+
+**Key implementation details for `constant_mem_projective_zero`**:
+- Finite places: `v.valuation (RatFunc.C c) = 1` via `intValuation_eq_one_iff` (C c not in v.asIdeal)
+- Infinity: `RatFunc.num_C`, `RatFunc.denom_C` give degree 0 for both
 
 ---
 
-## Next Steps (Cycle 213)
+## Next Steps (Cycle 214)
 
-### 1. Implement `add_mem'` (line ~2070)
+### 1. Tackle `projective_LRatFunc_eq_zero_of_neg_deg` (line ~2240)
 
-Shows addition preserves `noPoleAtInfinity`. Key lemma: `RatFunc.num_denom_add`
+Main vanishing theorem showing L_proj(D) = {0} when deg(D) < 0.
 
-**Proof structure**:
-```lean
--- For a, b with noPoleAtInfinity:
--- Define raw_num := a.num * b.denom + b.num * a.denom
--- Define raw_denom := a.denom * b.denom
--- Show: raw_num.natDegree ≤ raw_denom.natDegree (from degree bounds)
--- Use num_denom_add: (a+b).num * raw_denom = raw_num * (a+b).denom
--- Derive: (a+b).num.natDegree ≤ (a+b).denom.natDegree
-```
+**Mathematical argument** (from comments in file):
+1. At finite places v: ord_v(f) ≥ -D(v) (from membership in L(D))
+2. At infinity: ord_∞(f) = deg(denom) - deg(num) ≥ 0 (from noPoleAtInfinity)
+3. Product formula: Σ_{all v} deg(v) * ord_v(f) + ord_∞(f) = 0
+4. Contradiction: deg(D) + (sum of orders) ≥ 0 from effectiveness, but < 0 from assumption
 
-Key Mathlib lemmas:
-- `Polynomial.natDegree_add_le`
-- `Polynomial.natDegree_mul` (for nonzero polynomials)
-- `RatFunc.num_denom_add`
+**Key insight from ProductFormula.lean**:
+- The naive Fq-rational product formula is FALSE (counterexample: 1/(X²+X+1) over F₂)
+- Must use degree-weighted sum over ALL irreducible polynomials
+- Formula: `Σ_P deg(P) * ord_P(f) + ord_∞(f) = 0` from unique factorization
 
-### 2. Prove `constant_mem_projective_zero` (line ~2149)
+**Approach options**:
+1. Direct unique factorization argument using `UniqueFactorizationMonoid` API
+2. Use that for f = p/q coprime: `deg(p) = Σ_P deg(P) * mult(P, p)`, similarly for q
 
-Show `algebraMap Fq (RatFunc Fq) c ∈ RRSpace_ratfunc_projective 0`
-- Finite: `v.valuation (RatFunc.C c) = 1` (same pattern as smul_mem')
-- Infinity: `(RatFunc.C c).num = Polynomial.C c`, `(RatFunc.C c).denom = 1`, both degree 0
+### 2. Alternative: Prove `LRatFunc_eq_zero_of_neg_deg` (line ~1896)
 
-### 3. Tackle `projective_LRatFunc_eq_zero_of_neg_deg` (line ~2171)
-
-Main vanishing theorem - needs product formula argument.
+This is the affine version (without infinity constraint). Same product formula needed.
 
 ---
 
@@ -73,10 +71,10 @@ Main vanishing theorem - needs product formula argument.
 
 ```
 RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg
-    ├─→ smul_mem' ✅ DONE
-    ├─→ add_mem' (next priority)
-    ├─→ constant_mem_projective_zero (straightforward)
-    └─→ L_proj(D) = {0} when deg(D) < 0
+    ├─→ smul_mem' ✅ DONE (Cycle 212)
+    ├─→ add_mem' ✅ DONE (Cycle 213)
+    ├─→ constant_mem_projective_zero ✅ DONE (Cycle 213)
+    └─→ L_proj(D) = {0} when deg(D) < 0 ← NEXT
         └─→ Serre duality RHS verified
 ```
 

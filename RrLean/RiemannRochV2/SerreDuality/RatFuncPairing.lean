@@ -2066,8 +2066,49 @@ def RRSpace_ratfunc_projective (D : DivisorV2 (Polynomial Fq)) : Submodule Fq (R
       have hb_mem : b ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := hb.1
       exact (RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D).add_mem ha_mem hb_mem
     · -- Infinity condition: no pole at infinity preserved under addition
-      -- This requires careful degree analysis of RatFunc addition
-      sorry -- Technical: degree bound under addition
+      -- First handle the case where a + b = 0
+      by_cases hab : a + b = 0
+      · exact Or.inl hab
+      -- Now a + b ≠ 0, so we need to show noPoleAtInfinity (a + b)
+      right
+      -- Handle zero cases explicitly
+      by_cases ha_ne : a = 0
+      · simp only [ha_ne, zero_add] at hab ⊢
+        rcases hb.2 with rfl | hb_nopole
+        · exact (hab rfl).elim
+        · exact hb_nopole
+      by_cases hb_ne : b = 0
+      · simp only [hb_ne, add_zero] at hab ⊢
+        rcases ha.2 with rfl | ha_nopole
+        · exact (ha_ne rfl).elim
+        · exact ha_nopole
+      -- Both a ≠ 0 and b ≠ 0
+      -- Get noPoleAtInfinity conditions (the Or.inl cases lead to contradiction)
+      have ha_nopole : noPoleAtInfinity a := by
+        rcases ha.2 with rfl | h
+        · exact (ha_ne rfl).elim
+        · exact h
+      have hb_nopole : noPoleAtInfinity b := by
+        rcases hb.2 with rfl | h
+        · exact (hb_ne rfl).elim
+        · exact h
+      unfold noPoleAtInfinity at ha_nopole hb_nopole ⊢
+      -- noPoleAtInfinity ↔ intDegree ≤ 0
+      have ha_deg : a.intDegree ≤ 0 := by
+        simp only [RatFunc.intDegree, sub_nonpos, Int.ofNat_le]
+        exact ha_nopole
+      have hb_deg : b.intDegree ≤ 0 := by
+        simp only [RatFunc.intDegree, sub_nonpos, Int.ofNat_le]
+        exact hb_nopole
+      -- Use the key lemma
+      have hab_deg := RatFunc.intDegree_add_le hb_ne hab
+      have hab_le : (a + b).intDegree ≤ 0 := by
+        calc (a + b).intDegree ≤ max a.intDegree b.intDegree := hab_deg
+          _ ≤ max 0 0 := max_le_max ha_deg hb_deg
+          _ = 0 := max_self 0
+      -- Convert back to natDegree inequality
+      simp only [RatFunc.intDegree, sub_nonpos, Int.ofNat_le] at hab_le
+      exact hab_le
   zero_mem' := ⟨Or.inl rfl, Or.inl rfl⟩
   smul_mem' := by
     intro c f hf
@@ -2148,10 +2189,38 @@ noncomputable def ell_ratfunc_projective (D : DivisorV2 (Polynomial Fq)) : ℕ :
 Constants have valuation 1 at all finite places and deg(num) = deg(denom) = 0. -/
 lemma constant_mem_projective_zero (c : Fq) :
     algebraMap Fq (RatFunc Fq) c ∈ RRSpace_ratfunc_projective (0 : DivisorV2 (Polynomial Fq)) := by
-  -- Proof sketch:
-  -- 1. Finite places: v.valuation(algebraMap c) = v.intValuation(C c) = 1 (c is unit in Fq)
-  -- 2. Infinity: (C c).num = C c with deg 0, (C c).denom = 1 with deg 0
-  sorry
+  -- algebraMap Fq (RatFunc Fq) c = RatFunc.C c
+  have halg_eq : algebraMap Fq (RatFunc Fq) c = RatFunc.C c := by
+    rw [RatFunc.algebraMap_eq_C]
+  constructor
+  · -- Finite places condition: satisfiesValuationCondition 0 (RatFunc.C c)
+    by_cases hc : c = 0
+    · -- c = 0: algebraMap 0 = 0
+      left
+      simp only [hc, map_zero]
+    -- c ≠ 0: valuation at any finite place is 1
+    right
+    intro v
+    rw [halg_eq, ← RatFunc.algebraMap_C]
+    rw [HeightOneSpectrum.valuation_of_algebraMap]
+    -- v.intValuation (C c) = 1 since C c is a unit (doesn't belong to v.asIdeal)
+    have hc_unit : IsUnit c := Ne.isUnit hc
+    have hCc_unit : IsUnit (Polynomial.C c) := Polynomial.isUnit_C.mpr hc_unit
+    have hCc_not_mem : Polynomial.C c ∉ v.asIdeal := by
+      intro hmem
+      have := v.asIdeal.mul_mem_left (↑hCc_unit.unit⁻¹ : Polynomial Fq) hmem
+      rw [IsUnit.val_inv_mul hCc_unit] at this
+      exact v.isPrime.ne_top ((Ideal.eq_top_iff_one _).mpr this)
+    have hval_eq_one : v.intValuation (Polynomial.C c) = 1 :=
+      intValuation_eq_one_iff.mpr hCc_not_mem
+    simp only [Finsupp.coe_zero, Pi.zero_apply, WithZero.exp_zero]
+    exact_mod_cast hval_eq_one.le
+  · -- Infinity condition: algebraMap c = 0 ∨ noPoleAtInfinity (algebraMap c)
+    by_cases hc : c = 0
+    · left; simp only [hc, map_zero]
+    right
+    unfold noPoleAtInfinity
+    rw [halg_eq, RatFunc.num_C, RatFunc.denom_C, Polynomial.natDegree_C, Polynomial.natDegree_one]
 
 /-- Non-constants are NOT in projective L(0). -/
 lemma polynomial_X_not_mem_projective_zero :
