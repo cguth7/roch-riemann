@@ -638,11 +638,131 @@ lemma exists_principal_part (α : Fq) (y : RatFunc Fq) :
     · simp
   -- Non-trivial case: use partial fractions structure
   -- y = num/denom, write denom = (X - α)^m * R with gcd(X - α, R) = 1
-  -- By partial fractions: y = polynomial + p/(X - α)^m + r'/R
-  -- where p/(X - α)^m is the principal part at α
-  -- The details require tracking the factorization and applying div_eq_quo_add_rem_div_add_rem_div
-  -- For now, we prove existence non-constructively
-  sorry
+  let num := y.num
+  let denom := y.denom
+  have hdenom_ne : denom ≠ 0 := y.denom_ne_zero
+  have hdenom_monic : denom.Monic := RatFunc.monic_denom y
+  -- Factor denom = (X - α)^m * R where (X - α) ∤ R
+  let m := denom.rootMultiplicity α
+  obtain ⟨R, hdenom_factor, hR_not_dvd⟩ :=
+    Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd denom hdenom_ne α
+  -- Case on whether m = 0 (no pole at α) or m > 0 (has pole)
+  by_cases hm : m = 0
+  · -- m = 0: y has no pole at α, so p = 0 and r = y
+    use 0, y
+    constructor
+    · ring
+    constructor
+    · intro β _; simp
+    · -- Need to show y has no pole at α, i.e., valuation ≤ 1
+      -- Since m = 0, denom has no factor of (X - α), so valuation of denom at α is 0
+      -- Hence valuation of y = num/denom at α is ≥ 0 (num is polynomial)
+      simp only [m, hm, pow_zero, one_mul] at hdenom_factor
+      -- denom = R and (X - α) ∤ R, so denom is coprime to (X - α)
+      have hcoprime : IsCoprime (Polynomial.X - Polynomial.C α) denom := by
+        rw [hdenom_factor]
+        exact (Polynomial.irreducible_X_sub_C α).coprime_iff_not_dvd.mpr hR_not_dvd
+      -- The valuation of y at α is: val(num) - val(denom)
+      -- val(denom) = 0 since (X - α) ∤ denom
+      -- val(num) ≥ 0 since num is a polynomial
+      have hval_denom : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) denom) = 1 :=
+        coprime_polynomial_valuation_one α denom hcoprime
+      have hval_num : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) num) ≤ 1 :=
+        polynomial_valuation_le_one (linearPlace α) num
+      rw [← RatFunc.num_div_denom y]
+      rw [Valuation.map_div, hval_denom, div_one]
+      exact hval_num
+  · -- m > 0: Apply partial fractions
+    have hm_pos : 0 < m := Nat.pos_of_ne_zero hm
+    -- R is monic (since denom = (X-α)^m * R is monic and (X-α)^m is monic)
+    have hXα_monic : (Polynomial.X - Polynomial.C α).Monic := Polynomial.monic_X_sub_C α
+    have hXαm_monic : ((Polynomial.X - Polynomial.C α) ^ m).Monic := hXα_monic.pow m
+    have hR_monic : R.Monic := by
+      have h := hdenom_factor ▸ hdenom_monic
+      exact hXαm_monic.of_mul_monic_left h
+    have hR_ne : R ≠ 0 := by
+      intro hR
+      simp [hR] at hdenom_factor
+      exact hdenom_ne hdenom_factor
+    -- (X - α) and R are coprime (since (X - α) is irreducible and doesn't divide R)
+    have hcoprime_base : IsCoprime (Polynomial.X - Polynomial.C α) R :=
+      (Polynomial.irreducible_X_sub_C α).coprime_iff_not_dvd.mpr hR_not_dvd
+    -- (X - α)^m and R are coprime
+    have hcoprime : IsCoprime ((Polynomial.X - Polynomial.C α) ^ m) R :=
+      hcoprime_base.pow_left
+    -- Apply partial fractions theorem
+    -- div_eq_quo_add_rem_div_add_rem_div gives us the decomposition
+    obtain ⟨q, r₁, r₂, hdeg₁, hdeg₂, hdecomp⟩ :=
+      div_eq_quo_add_rem_div_add_rem_div Fq (RatFunc Fq) num hXαm_monic hR_monic hcoprime
+    -- Set principal part p = r₁ / (X - α)^m and remainder r = q + r₂/R
+    let p_part : RatFunc Fq := algebraMap (Polynomial Fq) (RatFunc Fq) r₁ /
+        algebraMap (Polynomial Fq) (RatFunc Fq) ((Polynomial.X - Polynomial.C α) ^ m)
+    let r_part : RatFunc Fq := algebraMap (Polynomial Fq) (RatFunc Fq) q +
+        algebraMap (Polynomial Fq) (RatFunc Fq) r₂ / algebraMap (Polynomial Fq) (RatFunc Fq) R
+    use p_part, r_part
+    constructor
+    · -- Show y = p_part + r_part
+      -- The key is: y = num/denom where denom = (X-α)^m * R
+      -- And the partial fractions give: num/((X-α)^m * R) = q + r₁/(X-α)^m + r₂/R
+      calc y = algebraMap (Polynomial Fq) (RatFunc Fq) num /
+              algebraMap (Polynomial Fq) (RatFunc Fq) denom := by rw [← RatFunc.num_div_denom y]
+        _ = algebraMap (Polynomial Fq) (RatFunc Fq) num /
+            (algebraMap (Polynomial Fq) (RatFunc Fq) ((Polynomial.X - Polynomial.C α) ^ m) *
+             algebraMap (Polynomial Fq) (RatFunc Fq) R) := by rw [hdenom_factor, map_mul]
+        _ = algebraMap (Polynomial Fq) (RatFunc Fq) q +
+            algebraMap (Polynomial Fq) (RatFunc Fq) r₁ /
+              algebraMap (Polynomial Fq) (RatFunc Fq) ((Polynomial.X - Polynomial.C α) ^ m) +
+            algebraMap (Polynomial Fq) (RatFunc Fq) r₂ /
+              algebraMap (Polynomial Fq) (RatFunc Fq) R := hdecomp
+        _ = p_part + r_part := by simp only [p_part, r_part]; ring
+    constructor
+    · -- p_part has poles only at (X - α), i.e., valuation ≤ 1 at all β ≠ α
+      intro β hβ
+      -- p_part = r₁ / (X - α)^m
+      -- At β ≠ α, (X - α)^m has valuation 1 (unit), so p_part has valuation ≤ 1
+      have hr₁_val : (linearPlace β).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) r₁) ≤ 1 :=
+        polynomial_valuation_le_one (linearPlace β) r₁
+      have hXαm_val : (linearPlace β).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) ((Polynomial.X - Polynomial.C α) ^ m)) = 1 := by
+        rw [map_pow, Valuation.map_pow]
+        have hXα_val : (linearPlace β).valuation (RatFunc Fq)
+            (algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α)) = 1 := by
+          have heq : algebraMap (Polynomial Fq) (RatFunc Fq) (Polynomial.X - Polynomial.C α) =
+              RatFunc.X - RatFunc.C α := by
+            rw [map_sub, RatFunc.algebraMap_X, RatFunc.algebraMap_C]
+          rw [heq]
+          exact valuation_X_sub_at_ne α β hβ
+        rw [hXα_val, one_pow]
+      show (linearPlace β).valuation (RatFunc Fq) p_part ≤ 1
+      simp only [p_part]
+      rw [Valuation.map_div, hXαm_val, div_one]
+      exact hr₁_val
+    · -- r_part has no pole at α, i.e., valuation ≤ 1 at α
+      -- r_part = q + r₂/R, where q is polynomial and R is coprime to (X - α)
+      show (linearPlace α).valuation (RatFunc Fq) r_part ≤ 1
+      simp only [r_part]
+      -- q has valuation ≤ 1 at all finite places
+      have hq_val : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) q) ≤ 1 :=
+        polynomial_valuation_le_one (linearPlace α) q
+      -- r₂/R has valuation ≤ 1 at α since R is coprime to (X - α)
+      have hR_val : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) R) = 1 :=
+        coprime_polynomial_valuation_one α R hcoprime_base
+      have hr₂_val : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) r₂) ≤ 1 :=
+        polynomial_valuation_le_one (linearPlace α) r₂
+      have hr₂R_val : (linearPlace α).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) r₂ / algebraMap (Polynomial Fq) (RatFunc Fq) R) ≤ 1 := by
+        rw [Valuation.map_div, hR_val, div_one]
+        exact hr₂_val
+      -- Sum of two elements with valuation ≤ 1 has valuation ≤ 1 (ultrametric)
+      apply Valuation.map_add_le_max' _ _ _ |>.trans
+      simp only [sup_le_iff]
+      exact ⟨hq_val, hr₂R_val⟩
 
 /-- The sum of principal parts at distinct places has valuation ≤ 1 at any other place. -/
 lemma sum_principal_parts_valuation_le_one

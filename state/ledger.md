@@ -8,14 +8,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 195
+**Cycle**: 196
 
-### Active Sorries (10 total)
+### Active Sorries (9 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `exists_principal_part` | **CRITICAL** | Principal part extraction via partial fractions |
-| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma (uses exists_principal_part) |
+| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma (now unblocked!) |
 | RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
 | RatFuncPairing.lean | `h1_vanishing_ratfunc` | HIGH | Follows from strong_approximation |
 | RatFuncPairing.lean | `h1_finrank_zero_of_large_deg` | HIGH | Finrank version of h1_vanishing |
@@ -78,55 +77,50 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 | IsPrincipalPartAt predicate | ✅ | SerreDuality/RatFuncPairing.lean |
 | sum_principal_parts_valuation_le_one | ✅ | SerreDuality/RatFuncPairing.lean |
 | sub_principal_part_no_pole | ✅ | SerreDuality/RatFuncPairing.lean |
-| exists_principal_part | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
-| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean |
+| exists_principal_part | ✅ | SerreDuality/RatFuncPairing.lean |
+| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
 | strong_approximation_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 | h1_vanishing_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 
 ---
 
-## Next Steps (Cycle 196)
+## Next Steps (Cycle 197)
 
-### 🎯 PRIMARY GOAL: Complete `exists_principal_part`
+### 🎯 PRIMARY GOAL: Complete `exists_global_approximant_from_local`
 
-The blocking lemma is now `exists_principal_part`, which extracts the principal part of a rational function at a linear place. Once this is proved, `exists_global_approximant_from_local` follows directly.
+With `exists_principal_part` now proved, the gluing lemma is unblocked!
 
 **Statement:**
 ```lean
-lemma exists_principal_part (α : Fq) (y : RatFunc Fq) :
-    ∃ p r : RatFunc Fq, IsPrincipalPartAt α p y r
--- where IsPrincipalPartAt means:
---   y = p + r
---   p has poles only at (X - α)
---   r has no pole at (X - α)
+lemma exists_global_approximant_from_local
+    (S : Finset (HeightOneSpectrum (Polynomial Fq)))
+    (y : S → RatFunc Fq)
+    (n : S → ℤ) :
+    ∃ k : RatFunc Fq, ∀ v : S,
+      v.valuation (RatFunc Fq) (y v - k) ≤ WithZero.exp (n v)
 ```
 
-**Proof Strategy via Partial Fractions:**
+**Proof Strategy:**
 
-1. Write y = num/denom
-2. Factor denom = (X - α)^m * R where gcd(X - α, R) = 1
-3. Apply Mathlib's `div_eq_quo_add_rem_div_add_rem_div`:
-   - y = polynomial + principal_part/(X - α)^m + remainder/R
-4. The principal_part/(X - α)^m is p, remainder/R + polynomial is r
+1. For each v ∈ S, extract the principal part of y_v at v using `exists_principal_part`
+2. Sum all principal parts: k = Σ_{v ∈ S} principal_part_v(y_v)
+3. Show k approximates each y_v:
+   - y_v - k = y_v - principal_part_v(y_v) - Σ_{w ≠ v} principal_part_w(y_w)
+   - The first term has no pole at v (by `sub_principal_part_no_pole`)
+   - Each term in the sum has no pole at v (by `sum_principal_parts_valuation_le_one`)
+   - So the difference is integral at v, giving the bound
 
-**Already Proved Infrastructure:**
+**Key lemmas already proved:**
 
 | Lemma | What it gives |
 |-------|---------------|
-| `valuation_X_sub_at_ne` | (X - α) is a unit at place β ≠ α |
-| `valuation_inv_X_sub_pow_at_ne` | 1/(X - α)^n is a unit at β ≠ α |
-| `valuation_le_one_at_other_place` | p/(X - α)^n is integral at β ≠ α |
-| `coprime_polynomial_valuation_one` | R coprime to (X - α) has valuation 1 at α |
-| `sum_principal_parts_valuation_le_one` | Sum of principal parts integral at outside places |
-| `sub_principal_part_no_pole` | y - principal_part has no pole at α |
+| `exists_principal_part` ✅ | Extract principal part at any place |
+| `sub_principal_part_no_pole` ✅ | y - principal_part has valuation ≤ 1 |
+| `sum_principal_parts_valuation_le_one` ✅ | Sum of principal parts at other places is integral |
 
-**Once exists_principal_part is proved:**
+**Once exists_global_approximant_from_local is proved:**
 
-The gluing lemma follows: sum up principal parts at each place ∈ S.
-
-**Mathlib Resources:**
-- `Mathlib.Algebra.Polynomial.PartialFractions` - `div_eq_quo_add_rem_div_add_rem_div`
-- `RatFunc.num`, `RatFunc.denom` for decomposition
+`strong_approximation_ratfunc` follows: just apply the gluing to local approximants.
 
 ### Once strong_approximation is proved:
 
@@ -143,6 +137,28 @@ The gluing lemma follows: sum up principal parts at each place ∈ S.
 ---
 
 ## Recent Progress
+
+### Cycle 196 - **exists_principal_part PROVED** 🎉
+- **KEY MILESTONE**: `exists_principal_part` ✅ - Principal part extraction via partial fractions
+- **Proof strategy**:
+  1. Handle y = 0 case trivially with p = 0, r = 0
+  2. For y ≠ 0: use `RatFunc.num` and `RatFunc.denom` (monic by Mathlib)
+  3. Factor denom = (X - α)^m * R using `exists_eq_pow_rootMultiplicity_mul_and_not_dvd`
+  4. Case m = 0: y has no pole at α, so p = 0 and r = y
+  5. Case m > 0: Apply `div_eq_quo_add_rem_div_add_rem_div` from Mathlib
+     - Coprimality from `Irreducible.coprime_iff_not_dvd` for X - α
+     - Monicity of R from `Monic.of_mul_monic_left`
+     - Decomposition: num/((X-α)^m * R) = q + r₁/(X-α)^m + r₂/R
+  6. Set p = r₁/(X-α)^m (principal part) and r = q + r₂/R (remainder)
+  7. Verify valuation properties using existing infrastructure
+- **Key Mathlib lemmas used**:
+  - `Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd` - Root factorization
+  - `div_eq_quo_add_rem_div_add_rem_div` - Partial fractions decomposition
+  - `Polynomial.irreducible_X_sub_C` - Irreducibility of (X - α)
+  - `Irreducible.coprime_iff_not_dvd` - Coprimality from non-divisibility
+  - `RatFunc.algebraMap_ne_zero` - Injectivity of algebraMap for RatFunc
+- **Sorries**: 10 → 9 (resolved exists_principal_part)
+- **Next step**: Complete `exists_global_approximant_from_local` (now unblocked!)
 
 ### Cycle 195 - **Principal Part Infrastructure** 🚧
 - **Key progress**: Built the valuation lemmas for principal part construction:
@@ -393,7 +409,7 @@ lake build RrLean.RiemannRochV2.SerreDuality
 
 ## File Status
 
-### In Build (2562 jobs)
+### In Build (2798 jobs)
 - `RiemannRochV2.lean` (root)
 - `Basic`, `Divisor`, `RRSpace`, `Typeclasses`
 - `RiemannInequality` ✅
@@ -403,7 +419,7 @@ lake build RrLean.RiemannRochV2.SerreDuality
 - `SerreDuality/` (directory with 3 files):
   - `Abstract.lean` ✅ (2 sorries: left_nondegen, right_nondegen)
   - `RatFuncResidues.lean` ✅ (0 sorries)
-  - `RatFuncPairing.lean` ✅ (0 sorries)
+  - `RatFuncPairing.lean` ✅ (2 sorries: exists_global_approximant_from_local, strong_approximation_ratfunc)
 - `Residue.lean` ✅ (2 sorries: residueAtIrreducible, residue_sum_eq_zero)
 - `SerreDuality.lean` ✅ (thin re-export module)
 
