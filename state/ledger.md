@@ -8,15 +8,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 200
+**Cycle**: 201
 
-### Active Sorries (10 total)
+### Active Sorries (8 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `exists_eq_pow_mul_not_dvd` | MED | Prime power factorization (induction on degree) |
-| RatFuncPairing.lean | `exists_principal_part_at_spec` | HIGH | General principal parts (uses exists_eq_pow_mul_not_dvd) |
-| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma - has proof structure, uses principal parts + CRT |
+| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma - needs Finset sum splitting + ultrametric |
 | RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
 | Abstract.lean | `serrePairing_left_nondegen` | MED | Vacuously true once h1=0 is proved |
 | Abstract.lean | `serrePairing_right_nondegen` | MED | Vacuously true once h1=0 is proved |
@@ -78,6 +76,8 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 | sum_principal_parts_valuation_le_one | ✅ | SerreDuality/RatFuncPairing.lean |
 | sub_principal_part_no_pole | ✅ | SerreDuality/RatFuncPairing.lean |
 | exists_principal_part | ✅ | SerreDuality/RatFuncPairing.lean |
+| exists_eq_pow_mul_not_dvd | ✅ | SerreDuality/RatFuncPairing.lean |
+| exists_principal_part_at_spec | ✅ | SerreDuality/RatFuncPairing.lean |
 | denom_not_in_asIdeal_of_integral | ✅ | SerreDuality/RatFuncPairing.lean |
 | exists_polyRep_of_integral_mod_pow | ✅ | SerreDuality/RatFuncPairing.lean |
 | exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
@@ -86,18 +86,25 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 
 ---
 
-## Next Steps (Cycle 199)
+## Next Steps (Cycle 202)
 
 ### 🎯 PRIMARY GOAL: Complete `exists_global_approximant_from_local`
 
-**Infrastructure now COMPLETE (Cycle 198):**
+**Infrastructure now COMPLETE (Cycle 201):**
 
 | Lemma | Status | Purpose |
 |-------|--------|---------|
+| `exists_eq_pow_mul_not_dvd` | ✅ | Factor polynomial as p^n * g with p ∤ g |
+| `exists_principal_part_at_spec` | ✅ | Extract principal part at any HeightOneSpectrum |
 | `denom_not_in_asIdeal_of_integral` | ✅ | If val(r) ≤ 1, then r.denom ∉ v.asIdeal |
 | `exists_polyRep_of_integral_mod_pow` | ✅ | Find polynomial a with val(r - a) ≤ exp(-m) |
-| `exists_principal_part` | ✅ | Extract principal part at a place |
-| `crt_linear_places` | ✅ | CRT for distinct linear places |
+| `crt_linear_places` | ✅ | CRT for distinct places |
+
+**Remaining work for `exists_global_approximant_from_local`:**
+
+1. **Finset sum splitting**: Show `k_pole = pp_v + Σ_{w ≠ v} pp_w`
+2. **Ultrametric bound**: Apply ultrametric to show val_v(y_v - k_pole) ≤ 1
+3. **CRT step** (for n_v < 0): Use `exists_polyRep_of_integral_mod_pow` + `crt_linear_places`
 
 **Two-Step Proof Strategy:**
 
@@ -130,6 +137,27 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 ---
 
 ## Recent Progress
+
+### Cycle 201 - **Two Key Lemmas PROVED** 🎉
+- **PROVED `exists_eq_pow_mul_not_dvd`** ✅
+  - Uses Mathlib's `finiteMultiplicity_of_degree_pos_of_monic` and `FiniteMultiplicity.exists_eq_pow_mul_and_not_dvd`
+  - Key insight: `degree_pos_of_irreducible` gives positive degree for irreducible polynomials
+  - Proof is now just 5 lines using Mathlib's multiplicity machinery
+- **PROVED `exists_principal_part_at_spec`** ✅ (general HeightOneSpectrum version)
+  - Uses `IsPrincipalIdealRing.principal` to get generator, then `normalize` to make monic
+  - Key insight: `normalize_associated` gives `Associated π gen`, then `Associated.prime` transfers primality
+  - Factors denominator using `exists_eq_pow_mul_not_dvd`
+  - Applies `div_eq_quo_add_rem_div_add_rem_div` for partial fractions
+  - Uses `Irreducible.not_isUnit` for coprimality arguments
+- **Improved `exists_global_approximant_from_local` structure**:
+  - Now uses `choose` to extract principal parts via `exists_principal_part_at_spec`
+  - Constructs `k_pole = Σ_{v ∈ S} pp_v` (sum of principal parts)
+  - Detailed documentation of remaining work:
+    1. Finset sum splitting: `k_pole = pp_v + Σ_{w ≠ v} pp_w`
+    2. Ultrametric bound application
+    3. CRT step for n_v < 0 case
+- **Sorries**: 10 → 8 (−2)
+- **Next step**: Complete `exists_global_approximant_from_local` (Finset manipulation + ultrametric)
 
 ### Cycle 200 - **Proof Structure for Gluing Lemma** 🏗️
 - **Added proof structure for `exists_global_approximant_from_local`**:

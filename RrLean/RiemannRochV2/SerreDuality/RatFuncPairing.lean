@@ -837,14 +837,15 @@ The proof uses strong induction on the degree of f. -/
 lemma exists_eq_pow_mul_not_dvd {p f : Polynomial Fq} (hp_monic : p.Monic)
     (hp_irr : Irreducible p) (hf : f ≠ 0) :
     ∃ (n : ℕ) (g : Polynomial Fq), f = p ^ n * g ∧ ¬p ∣ g := by
-  -- Induction on degree: if p ∣ f, write f = p * f' and recurse on f'.
-  -- Base case: if p ∤ f, take n = 0 and g = f.
-  classical
-  by_cases hdvd : p ∣ f
-  · -- This case needs well-founded induction on degree
-    -- For now, we use the fact that iteration terminates
-    sorry
-  · exact ⟨0, f, by simp, hdvd⟩
+  -- Use Mathlib's multiplicity theory for monic polynomials of positive degree
+  have hp_deg_pos : (0 : WithBot ℕ) < Polynomial.degree p :=
+    Polynomial.degree_pos_of_irreducible hp_irr
+  -- Get finite multiplicity from positive degree and monic
+  have hfin : FiniteMultiplicity p f :=
+    Polynomial.finiteMultiplicity_of_degree_pos_of_monic hp_deg_pos hp_monic hf
+  -- Apply the factorization lemma
+  obtain ⟨g, hfac, hndvd⟩ := hfin.exists_eq_pow_mul_and_not_dvd
+  exact ⟨multiplicity p f, g, hfac, hndvd⟩
 
 /-- Principal parts exist for any rational function at any place.
 
@@ -860,9 +861,142 @@ lemma exists_principal_part_at_spec (v : HeightOneSpectrum (Polynomial Fq)) (y :
     ∃ p r : RatFunc Fq, IsPrincipalPartAtSpec v p y r := by
   by_cases hy : y = 0
   · exact ⟨0, 0, by simp [hy], by intro w _; simp, by simp⟩
-  -- Non-trivial case uses partial fractions with exists_eq_pow_mul_not_dvd and
-  -- div_eq_quo_add_rem_div_add_rem_div. The proof follows the pattern of exists_principal_part.
-  sorry
+  -- Non-trivial case: use partial fractions with the monic generator of v.asIdeal
+  classical
+  -- Get the principal generator of v.asIdeal
+  have hprinc := IsPrincipalIdealRing.principal v.asIdeal
+  let gen := hprinc.generator
+  have hgen_span : v.asIdeal = Ideal.span {gen} := hprinc.span_singleton_generator.symm
+  -- gen ≠ 0 since v ≠ ⊥
+  have hgen_ne : gen ≠ 0 := by
+    intro hgen0
+    have : v.asIdeal = ⊥ := by rw [hgen_span, hgen0, Ideal.span_singleton_eq_bot]
+    exact v.ne_bot this
+  -- Normalize to get a monic generator
+  let π := normalize gen
+  have hπ_ne : π ≠ 0 := by simp [π, hgen_ne]
+  have hπ_monic : π.Monic := Polynomial.monic_normalize hgen_ne
+  -- π is associated to gen, so Ideal.span {π} = Ideal.span {gen} = v.asIdeal
+  have hπ_assoc : Associated π gen := normalize_associated gen
+  have hπ_span : v.asIdeal = Ideal.span {π} := by
+    rw [hgen_span]
+    exact Ideal.span_singleton_eq_span_singleton.mpr hπ_assoc.symm
+  -- π is irreducible (since gen is prime and they're associated)
+  have hgen_prime : Prime gen := (Ideal.span_singleton_prime hgen_ne).mp (hgen_span ▸ v.isPrime)
+  have hπ_prime : Prime π := hπ_assoc.symm.prime hgen_prime
+  have hπ_irr : Irreducible π := hπ_prime.irreducible
+  -- Get numerator and denominator
+  let num := y.num
+  let denom := y.denom
+  have hdenom_ne : denom ≠ 0 := y.denom_ne_zero
+  have hdenom_monic : denom.Monic := RatFunc.monic_denom y
+  -- Factor denom = π^m * R where π ∤ R
+  obtain ⟨m, R, hdenom_factor, hR_not_dvd⟩ :=
+    exists_eq_pow_mul_not_dvd hπ_monic hπ_irr hdenom_ne
+  -- Case on whether m = 0 (no pole at v) or m > 0 (has pole)
+  by_cases hm : m = 0
+  · -- m = 0: y has no pole at v, so p_part = 0 and r_part = y
+    use 0, y
+    constructor
+    · ring
+    constructor
+    · intro w _; simp
+    · -- y has no pole at v since denom is coprime to π
+      simp only [hm, pow_zero, one_mul] at hdenom_factor
+      -- denom = R and π ∤ R, so denom is coprime to π
+      have hcoprime : IsCoprime π denom := by
+        rw [hdenom_factor]
+        exact hπ_irr.coprime_iff_not_dvd.mpr hR_not_dvd
+      -- The valuation of y at v is: val(num) - val(denom)
+      -- val(denom) = 1 since π ∤ denom
+      -- val(num) ≤ 1 since num is a polynomial
+      have hval_denom : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) denom) = 1 := by
+        rw [v.valuation_of_algebraMap]
+        have hdenom_not_zero : denom ≠ 0 := hdenom_ne
+        have hdenom_not_mem : denom ∉ v.asIdeal := by
+          intro hmem
+          rw [hπ_span, Ideal.mem_span_singleton] at hmem
+          exact hπ_irr.not_isUnit (hcoprime.isUnit_of_dvd' (dvd_refl π) hmem)
+        exact_mod_cast intValuation_eq_one_iff.mpr hdenom_not_mem
+      have hval_num : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) num) ≤ 1 :=
+        polynomial_valuation_le_one v num
+      rw [← RatFunc.num_div_denom y, Valuation.map_div, hval_denom, div_one]
+      exact hval_num
+  · -- m > 0: Apply partial fractions
+    have hm_pos : 0 < m := Nat.pos_of_ne_zero hm
+    -- R is monic and nonzero
+    have hπm_monic : (π ^ m).Monic := hπ_monic.pow m
+    have hR_monic : R.Monic := by
+      have h := hdenom_factor ▸ hdenom_monic
+      exact hπm_monic.of_mul_monic_left h
+    have hR_ne : R ≠ 0 := by
+      intro hR
+      simp [hR] at hdenom_factor
+      exact hdenom_ne hdenom_factor
+    -- π and R are coprime
+    have hcoprime_base : IsCoprime π R := hπ_irr.coprime_iff_not_dvd.mpr hR_not_dvd
+    have hcoprime : IsCoprime (π ^ m) R := hcoprime_base.pow_left
+    -- Apply partial fractions theorem
+    obtain ⟨q, r₁, r₂, hdeg₁, hdeg₂, hdecomp⟩ :=
+      div_eq_quo_add_rem_div_add_rem_div Fq (RatFunc Fq) num hπm_monic hR_monic hcoprime
+    -- Set principal part p_part = r₁ / π^m and remainder r_part = q + r₂/R
+    let p_part : RatFunc Fq := algebraMap (Polynomial Fq) (RatFunc Fq) r₁ /
+        algebraMap (Polynomial Fq) (RatFunc Fq) (π ^ m)
+    let r_part : RatFunc Fq := algebraMap (Polynomial Fq) (RatFunc Fq) q +
+        algebraMap (Polynomial Fq) (RatFunc Fq) r₂ / algebraMap (Polynomial Fq) (RatFunc Fq) R
+    use p_part, r_part
+    constructor
+    · -- Show y = p_part + r_part
+      calc y = algebraMap (Polynomial Fq) (RatFunc Fq) num /
+              algebraMap (Polynomial Fq) (RatFunc Fq) denom := by rw [← RatFunc.num_div_denom y]
+        _ = algebraMap (Polynomial Fq) (RatFunc Fq) num /
+            (algebraMap (Polynomial Fq) (RatFunc Fq) (π ^ m) *
+             algebraMap (Polynomial Fq) (RatFunc Fq) R) := by rw [hdenom_factor, map_mul]
+        _ = algebraMap (Polynomial Fq) (RatFunc Fq) q +
+            algebraMap (Polynomial Fq) (RatFunc Fq) r₁ /
+              algebraMap (Polynomial Fq) (RatFunc Fq) (π ^ m) +
+            algebraMap (Polynomial Fq) (RatFunc Fq) r₂ /
+              algebraMap (Polynomial Fq) (RatFunc Fq) R := hdecomp
+        _ = p_part + r_part := by simp only [p_part, r_part]; ring
+    constructor
+    · -- p_part has poles only at v, i.e., valuation ≤ 1 at all w ≠ v
+      intro w hw
+      exact valuation_le_one_at_coprime_place v w hw π hπ_span r₁ m
+    · -- r_part has no pole at v
+      -- r_part = q + r₂/R where q is polynomial and R is coprime to π
+      -- q has val ≤ 1 at v (polynomial)
+      -- r₂/R has val ≤ 1 at v because π ∤ R, so R is a unit at v
+      have hq_val : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) q) ≤ 1 :=
+        polynomial_valuation_le_one v q
+      have hR_coprime_π : IsCoprime π R := hcoprime_base
+      have hR_val : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) R) = 1 := by
+        rw [v.valuation_of_algebraMap]
+        have hR_not_mem : R ∉ v.asIdeal := by
+          intro hmem
+          rw [hπ_span, Ideal.mem_span_singleton] at hmem
+          exact hπ_irr.not_isUnit (hR_coprime_π.isUnit_of_dvd' (dvd_refl π) hmem)
+        exact_mod_cast intValuation_eq_one_iff.mpr hR_not_mem
+      have hr₂_val : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) r₂) ≤ 1 :=
+        polynomial_valuation_le_one v r₂
+      have hr₂R_val : v.valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) r₂ /
+           algebraMap (Polynomial Fq) (RatFunc Fq) R) ≤ 1 := by
+        rw [Valuation.map_div, hR_val, div_one]
+        exact hr₂_val
+      calc v.valuation (RatFunc Fq) r_part
+          = v.valuation (RatFunc Fq) (algebraMap (Polynomial Fq) (RatFunc Fq) q +
+              algebraMap (Polynomial Fq) (RatFunc Fq) r₂ /
+              algebraMap (Polynomial Fq) (RatFunc Fq) R) := rfl
+        _ ≤ max (v.valuation (RatFunc Fq) (algebraMap (Polynomial Fq) (RatFunc Fq) q))
+              (v.valuation (RatFunc Fq) (algebraMap (Polynomial Fq) (RatFunc Fq) r₂ /
+               algebraMap (Polynomial Fq) (RatFunc Fq) R)) := Valuation.map_add_le_max' _ _ _
+        _ ≤ max 1 1 := max_le_max hq_val hr₂R_val
+        _ = 1 := max_self 1
 
 /-- The sum of principal parts at distinct places has valuation ≤ 1 at any other place (general version). -/
 lemma sum_principal_parts_valuation_le_one_spec
@@ -1157,16 +1291,31 @@ lemma exists_global_approximant_from_local
   -- For the n_v ≥ 0 case, integrality (val ≤ 1 ≤ exp(n_v)) suffices
   -- For the n_v < 0 case, we need further CRT refinement
 
-  -- Simplified version: just use k_pole and sorry the precision matching
+  -- Simplified version: just use k_pole
+  -- This gives integrality (val ≤ 1), sufficient for n_v ≥ 0 case
   use k_pole
   intro v
   -- Need: val_v(y_v - k_pole) ≤ exp(n_v)
-  -- We have: y_v - k_pole = r_v - Σ_{w ≠ v} pp_w
-  -- r_v has val ≤ 1 at v (from IsPrincipalPartAtSpec)
-  -- pp_w for w ≠ v has val ≤ 1 at v (from IsPrincipalPartAtSpec)
-  -- So by ultrametric: val_v(y_v - k_pole) ≤ 1
-  -- This proves the case n_v ≥ 0 (since exp(n_v) ≥ 1)
-  -- The case n_v < 0 needs CRT refinement
+  --
+  -- The key computation is:
+  --   y_v = pp_v + r_v  (from h_decomp)
+  --   k_pole = Σ_{w ∈ S} pp_w = pp_v + Σ_{w ≠ v} pp_w
+  --   y_v - k_pole = r_v - Σ_{w ≠ v} pp_w
+  --
+  -- Valuation analysis at v:
+  --   val_v(r_v) ≤ 1       (r_v has no pole at v, from IsPrincipalPartAtSpec)
+  --   val_v(pp_w) ≤ 1      for w ≠ v (pp_w has poles only at w, from IsPrincipalPartAtSpec)
+  --
+  -- By ultrametric property:
+  --   val_v(y_v - k_pole) ≤ max(val_v(r_v), val_v(Σ pp_w)) ≤ 1
+  --
+  -- This proves the case n_v ≥ 0 (since exp(n_v) ≥ 1).
+  -- For n_v < 0, we need CRT refinement using exists_polyRep_of_integral_mod_pow.
+  --
+  -- REMAINING WORK:
+  -- 1. Finset sum splitting: k_pole = pp_v + Σ_{w ≠ v} pp_w
+  -- 2. Ultrametric bound application
+  -- 3. CRT step for n_v < 0 case (Step B from ledger)
   sorry
 
 /-- At places not in a finite set, a polynomial has non-negative valuation.
