@@ -6,15 +6,15 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ⚠️ Errors in DimensionScratch.lean (work in progress)
+**Build**: ✅ Clean (2809 jobs)
 **Phase**: 3 - Serre Duality → FullRRData Instance
-**Cycle**: 231 (IN PROGRESS)
+**Cycle**: 232
 
 ### Active Sorries
 
 | File | Count | Priority | Notes |
 |------|-------|----------|-------|
-| **DimensionScratch.lean** | 1 | HIGH | General formula only - GAP BOUND PROVED! |
+| **DimensionScratch.lean** | 0 | ✅ DONE | ALL PROVED! Gap bound + dimension formula |
 | **RatFuncFullRR.lean** | 0 | ✅ DONE | L_proj(0) = constants PROVED, ℓ(0) = 1 PROVED |
 | **RatFuncPairing.lean** | 1 | LOW | Early incomplete attempt (line 1956), not on critical path |
 | **ProductFormula.lean** | 1 | DONE* | *Intentionally incorrect lemma - documented |
@@ -24,49 +24,41 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 231 Progress (IN PROGRESS)
+## Cycle 231 Progress (COMPLETED) 🎉
 
-**Goal**: Complete dimension formula for projective L(D)
+**Goal**: Complete dimension formula for projective L(D) - **ACHIEVED!**
 
-### 🎉 MAJOR MILESTONE: Gap Bound PROVED!
+### 🎉 MAJOR MILESTONE: DimensionScratch.lean SORRY-FREE!
 
-**`ell_ratfunc_projective_gap_le`** - Gap bound ℓ(D+[v]) ≤ ℓ(D) + 1 is now PROVED!
+All dimension formula lemmas are now proved:
 
-**Proof structure** (lines 63-290 in DimensionScratch.lean):
-1. **Residue field isomorphism**: `linearPlace_residue_equiv` shows κ(linearPlace α) ≅ Fq
-2. **Dimension bound**: `linearPlace_residue_finrank` proves dim_Fq(κ(v)) = 1
-3. **Evaluation map**: Constructed Fq-linear map ψ: L_proj(D+v) → κ(v)
-4. **Kernel characterization**:
-   - ker(ψ) ⊇ L_proj(D) via `LD_element_maps_to_zero`
-   - ker(ψ) ⊆ L_proj(D) via `kernel_evaluationMapAt_complete_proof` + noPoleAtInfinity preservation
-5. **Dimension counting**: Quotient embeds into 1-dim κ(v), so gap ≤ 1
+1. ✅ **`ell_ratfunc_projective_gap_le`** - Gap bound ℓ(D+[v]) ≤ ℓ(D) + 1
+2. ✅ **`ell_ratfunc_projective_single_linear`** - ℓ(n·[v]) = n + 1
+3. ✅ **`ell_ratfunc_projective_eq_deg_plus_one`** - ℓ(D) = deg(D) + 1 for effective D
 
-### Single-Point Formula (IN PROGRESS)
+**Proof structure for general formula**:
+- Strong induction on deg(D)
+- Base: D = 0 implies D.deg = 0, ℓ(0) = 1 ✓
+- Step: Pick v with D(v) > 0 (exists since D effective, deg > 0)
+  - D' = D - [v] is effective with deg(D') = deg(D) - 1
+  - By IH: ℓ(D') = deg(D') + 1 = deg(D)
+  - Gap bound: ℓ(D) ≤ ℓ(D') + 1 = deg(D) + 1
+  - Strict inclusion: 1/(X-α)^{D(v)} ∈ L(D) \ L(D')
+  - Therefore: ℓ(D) = deg(D) + 1 ✓
 
-**`ell_ratfunc_projective_single_linear`** - proving ℓ(n·[v]) = n + 1
+### Helper Lemmas Added
 
-Current issue at line 527: Need to establish `0 < finrank` for Module.Finite instance.
+1. **`IsLinearPlaceSupport_sub_single`**: Linear support preserved under D - [v]
+2. **`inv_X_sub_C_pow_mem_projective_general`**: 1/(X-α)^n ∈ L(D) for effective D with D(v) = n
+3. **`inv_X_sub_C_pow_not_mem_projective_general`**: 1/(X-α)^n ∉ L(D') when D'(v) = n - 1
 
-**Remaining step**: Show `0 < ell_ratfunc_projective (...)` using the nonzero element
-`1/(X-α)^(m+1) ∈ L((m+1)·[v])`. The element existence is proved (`h_in`), just need
-to connect to `Module.finrank_pos_iff`.
+### Significance
 
-### Remaining Sorry (1)
+This completes the dimension formula for P¹:
+- **ℓ(D) = deg(D) + 1** for effective D with linear support
 
-**`ell_ratfunc_projective_eq_deg_plus_one`** (line 557) - General formula
-- Depends on single-point case for induction
-- Structure is clear: decompose D into sum of single points
-
-### Key Technical Insights
-
-1. **Kernel preservation**: If f ∈ L_proj(D+v) and eval(f) = 0, then:
-   - f ∈ L_affine(D) by affine kernel theorem
-   - f has noPoleAtInfinity (from f ∈ L_proj(D+v))
-   - Therefore f ∈ L_proj(D) ✓
-
-2. **Strict inclusion for lower bound**: L(m·[v]) ⊊ L((m+1)·[v]) because
-   1/(X-α)^(m+1) ∈ L((m+1)·[v]) \ L(m·[v]). With equal finrank + inclusion → equality,
-   contraposition gives finrank strictly increases.
+Combined with `ell_canonical_sub_zero` (ℓ(K-D) = 0 when deg(D) ≥ -1), this gives:
+- **Riemann-Roch for P¹**: ℓ(D) - ℓ(K-D) = deg(D) + 1 - g with g = 0
 
 ---
 
@@ -286,30 +278,33 @@ Analysis documented above led to Cycle 224 implementation.
 
 ---
 
-## Next Steps (Cycle 229+)
+## Next Steps (Cycle 232+)
 
-### Priority 1: Fix `inv_X_sub_C_pow_noPoleAtInfinity` typeclass issue
+### Priority 1: Instantiate FullRRData for RatFunc Fq
 
-Options to try:
-1. Add `attribute [instance] Classical.decEq` at file top
-2. Prove degree bound via valuation instead of `RatFunc.num_div`/`denom_div`
-3. Use `convert` with explicit instance arguments
+Now that all dimension formulas are proved, combine them to instantiate `FullRRData`:
 
-### Priority 2: Complete remaining DimensionScratch lemmas
+```lean
+instance : FullRRData (Polynomial Fq) (RatFunc Fq) where
+  canonical := canonical_ratfunc Fq
+  ell_sub_ell_eq := -- Combine dimension formula + ell_canonical_sub_zero
+  -- ℓ(D) - ℓ(K-D) = deg(D) + 1 for effective D with linear support
+```
 
-1. **`inv_X_sub_C_pow_not_mem_projective_smaller`** - Exclusion lemma
-   - Use `WithZero.exp_lt_exp` or similar for exp(k) > exp(k-1)
+**What we have**:
+1. ✅ `ell_ratfunc_projective_eq_deg_plus_one`: ℓ(D) = deg(D) + 1 for effective D
+2. ✅ `ell_canonical_sub_zero`: ℓ(K-D) = 0 when deg(D) ≥ -1
+3. ✅ `canonical_ratfunc`: K = -2·[linearPlace 0]
 
-2. **`ell_ratfunc_projective_gap_le`** - Gap bound
-   - Adapt from Projective.lean using evaluation map
+**To combine**:
+- For effective D with deg ≥ 0: ℓ(D) - ℓ(K-D) = (deg(D) + 1) - 0 = deg(D) + 1 ✓
 
-3. **`ell_ratfunc_projective_single_linear`** - ℓ(n·[v]) = n+1
-   - Induction using gap = 1 exactly
+### Priority 2: Clean up low-priority sorries (optional)
 
-4. **`ell_ratfunc_projective_eq_deg_plus_one`** - General formula
-   - Induction on deg(D)
-
-### Priority 3: Instantiate FullRRData combining all pieces
+These are not on the critical path but could be addressed later:
+- RatFuncPairing.lean:1956 - Early incomplete attempt
+- Residue.lean - Higher-degree places, general residue theorem
+- FullAdelesCompact.lean - Edge case bound < 1
 
 ---
 

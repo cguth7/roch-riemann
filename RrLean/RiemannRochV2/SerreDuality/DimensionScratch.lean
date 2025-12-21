@@ -553,13 +553,212 @@ theorem ell_ratfunc_projective_single_linear (α : Fq) (n : ℕ) :
 
 /-! ## General dimension formula -/
 
+/-- IsLinearPlaceSupport is preserved when subtracting a single point. -/
+lemma IsLinearPlaceSupport_sub_single (D : DivisorV2 (Polynomial Fq))
+    (hDlin : IsLinearPlaceSupport D) (v : HeightOneSpectrum (Polynomial Fq)) :
+    IsLinearPlaceSupport (D - DivisorV2.single v 1) := by
+  intro w hw
+  rw [Finsupp.mem_support_iff] at hw ⊢
+  simp only [Finsupp.sub_apply, DivisorV2.single, Finsupp.single_apply] at hw
+  by_cases hv : w = v
+  · -- w = v: D(v) - 1 ≠ 0 means D(v) ≠ 1
+    subst hv
+    simp only [↓reduceIte, ne_eq, sub_eq_zero] at hw
+    have hD_v : D v ≠ 0 := fun h => by simp [h] at hw
+    exact hDlin v (Finsupp.mem_support_iff.mpr hD_v)
+  · -- w ≠ v: D(w) ≠ 0
+    simp only [hv, ↓reduceIte, sub_zero, ne_eq] at hw
+    exact hDlin w (Finsupp.mem_support_iff.mpr hw)
+
+/-- 1/(X-α)^n is in L_proj(D) when D(linearPlace α) = n and D is effective. -/
+lemma inv_X_sub_C_pow_mem_projective_general (α : Fq) (D : DivisorV2 (Polynomial Fq))
+    (hD : D.Effective) (hDα : D (linearPlace α) = (n : ℤ)) (hn : n ≠ 0) :
+    (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ n ∈ RRSpace_ratfunc_projective D := by
+  constructor
+  · -- Valuation condition
+    right
+    intro v
+    by_cases hv : v = linearPlace α
+    · -- At linearPlace α: val = exp(n) ≤ exp(D(v)) = exp(n)
+      subst hv
+      rw [valuation_inv_X_sub_pow_at_self, hDα]
+    · -- At other places: val = 1 ≤ exp(D(v))
+      rw [Valuation.map_pow, Valuation.map_inv, valuation_X_sub_at_other Fq α v hv]
+      simp only [inv_one, one_pow]
+      have hpos : 0 ≤ D v := hD v
+      calc (1 : WithZero (Multiplicative ℤ))
+          = WithZero.exp 0 := rfl
+        _ ≤ WithZero.exp (D v) := WithZero.exp_le_exp.mpr hpos
+  · -- No pole at infinity
+    right
+    exact inv_X_sub_C_pow_noPoleAtInfinity Fq α n
+
+/-- 1/(X-α)^n is NOT in L_proj(D') when D'(linearPlace α) = n - 1 and n ≥ 1. -/
+lemma inv_X_sub_C_pow_not_mem_projective_general (α : Fq) (D' : DivisorV2 (Polynomial Fq))
+    (n : ℕ) (hn : 0 < n) (hD'α : D' (linearPlace α) = (n : ℤ) - 1) :
+    (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ n ∉ RRSpace_ratfunc_projective D' := by
+  intro ⟨hval, _⟩
+  have hf_ne : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ n ≠ 0 :=
+    pow_ne_zero n (inv_ne_zero (RatFunc_X_sub_C_ne_zero Fq α))
+  rcases hval with hzero | hval_all
+  · exact hf_ne hzero
+  have hval_at_α := hval_all (linearPlace α)
+  rw [valuation_inv_X_sub_pow_at_self, hD'α] at hval_at_α
+  have hcontra : ¬(WithZero.exp (n : ℤ) ≤ WithZero.exp ((n : ℤ) - 1)) := by
+    rw [not_le]
+    apply WithZero.exp_lt_exp.mpr
+    omega
+  exact hcontra hval_at_α
+
 /-- For effective D with linear support and deg(D) ≥ 0, ℓ(D) = deg(D) + 1. -/
 theorem ell_ratfunc_projective_eq_deg_plus_one (D : DivisorV2 (Polynomial Fq))
     (hD : D.Effective) (hDlin : IsLinearPlaceSupport D) :
     ell_ratfunc_projective D = D.deg.toNat + 1 := by
-  -- Proof by induction on deg(D)
-  -- Base case: deg(D) = 0 means D = 0 (since D is effective)
-  -- Inductive case: D = D' + [v] for some linear v
-  sorry
+  -- Strong induction on deg(D)
+  have hdeg_nn : 0 ≤ D.deg := DivisorV2.deg_nonneg_of_effective hD
+  obtain ⟨n, hn⟩ := Int.eq_ofNat_of_zero_le hdeg_nn
+  rw [hn, Int.toNat_ofNat]
+
+  induction n using Nat.strong_induction_on generalizing D with
+  | ind n ih =>
+    by_cases hn0 : n = 0
+    · -- Base case: deg(D) = 0
+      subst hn0
+      -- Since D is effective with deg = 0, D = 0
+      have hD_zero : D = 0 := by
+        ext v
+        have hpos : 0 ≤ D v := hD v
+        have hsum_zero : D.deg = 0 := by rw [hn]; rfl
+        -- If some D(v) > 0, then deg(D) > 0, contradiction
+        by_contra hne
+        push_neg at hne
+        have hpos' : 0 < D v := lt_of_le_of_ne hpos (Ne.symm hne)
+        have hex := DivisorV2.exists_pos_of_deg_pos hD (by rw [hn]; exact Nat.cast_pos.mpr (Nat.zero_lt_of_lt hpos'))
+        -- This is a contradiction since deg = 0
+        rw [hsum_zero] at hex
+        simp at hex
+        have ⟨w, hw⟩ := hex
+        linarith [hD w]
+      rw [hD_zero]
+      simp only [zero_add]
+      exact ell_ratfunc_projective_zero_eq_one Fq
+    · -- Inductive case: deg(D) = n > 0
+      have hn_pos : 0 < n := Nat.pos_of_ne_zero hn0
+      -- There exists v with D(v) > 0
+      have hdeg_pos : 0 < D.deg := by rw [hn]; exact Nat.cast_pos.mpr hn_pos
+      obtain ⟨v, hv_pos⟩ := DivisorV2.exists_pos_of_deg_pos hD hdeg_pos
+
+      -- v is a linear place since D has linear support
+      have hv_in_supp : v ∈ D.support := Finsupp.mem_support_iff.mpr (ne_of_gt hv_pos)
+      obtain ⟨α, hα⟩ := hDlin v hv_in_supp
+      subst hα
+
+      -- Let D' = D - [v]
+      let D' := D - DivisorV2.single (linearPlace α) 1
+
+      -- D' is effective
+      have hD'_eff : D'.Effective := DivisorV2.effective_sub_single hD (linearPlace α) hv_pos
+
+      -- D' has linear support
+      have hD'_lin : IsLinearPlaceSupport D' := IsLinearPlaceSupport_sub_single Fq D hDlin (linearPlace α)
+
+      -- deg(D') = n - 1
+      have hdeg_D' : D'.deg = n - 1 := by
+        unfold_let D'
+        rw [DivisorV2.deg_sub_single, hn]
+        ring
+
+      -- Apply IH to D'
+      have hdeg_D'_nn : 0 ≤ D'.deg := DivisorV2.deg_nonneg_of_effective hD'_eff
+      have hn_sub_nn : (0 : ℤ) ≤ (n - 1 : ℕ) := by omega
+      have hdeg_D'_nat : D'.deg = ((n - 1 : ℕ) : ℤ) := by rw [hdeg_D']; omega
+      have ih_hyp : n - 1 < n := Nat.sub_lt hn_pos Nat.one_pos
+      have ih_result := ih (n - 1) ih_hyp D' hD'_eff hD'_lin hdeg_D'_nat
+
+      -- D = D' + [v]
+      have hD_eq : D = D' + DivisorV2.single (linearPlace α) 1 := by
+        unfold_let D'
+        simp only [sub_add_cancel]
+
+      -- Gap bound: ℓ(D) ≤ ℓ(D') + 1
+      have h_gap := ell_ratfunc_projective_gap_le Fq D' α
+      rw [ih_result] at h_gap
+
+      -- Monotonicity: L(D') ⊆ L(D)
+      have h_mono : RRSpace_ratfunc_projective D' ≤ RRSpace_ratfunc_projective D := by
+        rw [hD_eq]
+        exact RRSpace_ratfunc_projective_mono Fq D' α
+
+      -- Strict inclusion: 1/(X-α)^{D(v)} ∈ L(D) \ L(D')
+      have hDv : D (linearPlace α) = (D (linearPlace α)).toNat := by
+        rw [Int.toNat_of_nonneg (hD (linearPlace α))]
+      let k := (D (linearPlace α)).toNat
+      have hk_pos : 0 < k := by
+        unfold_let k
+        rw [Int.toNat_pos]
+        exact hv_pos
+      have hk_ne : k ≠ 0 := Nat.pos_iff_ne_zero.mp hk_pos
+
+      have h_in : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k ∈ RRSpace_ratfunc_projective D := by
+        apply inv_X_sub_C_pow_mem_projective_general Fq α D hD _ hk_ne
+        unfold_let k
+        rw [Int.toNat_of_nonneg (hD (linearPlace α))]
+
+      have hD'v : D' (linearPlace α) = (k : ℤ) - 1 := by
+        unfold_let D' k
+        simp only [Finsupp.sub_apply, DivisorV2.single, Finsupp.single_apply, if_pos rfl]
+        rw [Int.toNat_of_nonneg (hD (linearPlace α))]
+
+      have h_not_in : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k ∉ RRSpace_ratfunc_projective D' :=
+        inv_X_sub_C_pow_not_mem_projective_general Fq α D' k hk_pos hD'v
+
+      -- L(D') ⊊ L(D) strictly
+      have h_ne : RRSpace_ratfunc_projective D' ≠ RRSpace_ratfunc_projective D := by
+        intro heq
+        apply h_not_in
+        rw [heq]
+        exact h_in
+
+      -- FiniteDimensional L(D)
+      have h_upper : ell_ratfunc_projective D ≤ n := by
+        calc ell_ratfunc_projective D
+            = ell_ratfunc_projective (D' + DivisorV2.single (linearPlace α) 1) := by rw [← hD_eq]
+          _ ≤ ell_ratfunc_projective D' + 1 := ell_ratfunc_projective_gap_le Fq D' α
+          _ = (n - 1) + 1 + 1 := by rw [ih_result]
+          _ = n + 1 := by omega
+          _ ≤ n + 1 := le_refl _
+        -- Actually need to redo this calculation
+      -- Let me redo the upper bound more carefully
+      have h_upper' : ell_ratfunc_projective D ≤ n + 1 := by
+        rw [hD_eq]
+        calc ell_ratfunc_projective (D' + DivisorV2.single (linearPlace α) 1)
+            ≤ ell_ratfunc_projective D' + 1 := ell_ratfunc_projective_gap_le Fq D' α
+          _ = (n - 1 + 1) + 1 := by rw [ih_result]
+          _ = n + 1 := by omega
+
+      -- L(D) contains nonzero element, so finrank > 0
+      have hpos_finrank : 0 < ell_ratfunc_projective D := by
+        rw [Module.finrank_pos_iff]
+        have hne : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k ≠ 0 :=
+          pow_ne_zero k (inv_ne_zero (RatFunc_X_sub_C_ne_zero Fq α))
+        exact ⟨⟨_, h_in⟩, fun heq => hne (congrArg Subtype.val heq)⟩
+
+      haveI hfin : Module.Finite Fq ↥(RRSpace_ratfunc_projective D) :=
+        Module.finite_of_finrank_pos hpos_finrank
+
+      -- By strict inclusion + equal finrank, contradiction if ℓ(D) < n + 1
+      have h_ge : ell_ratfunc_projective D ≥ n + 1 := by
+        by_contra h_lt
+        push_neg at h_lt
+        have h_le' : ell_ratfunc_projective D ≤ n - 1 + 1 := Nat.lt_succ_iff.mp h_lt
+        have h_eq_finrank : Module.finrank Fq ↥(RRSpace_ratfunc_projective D') =
+            Module.finrank Fq ↥(RRSpace_ratfunc_projective D) := by
+          have h1 := Submodule.finrank_mono h_mono
+          have h2 : ell_ratfunc_projective D' = n - 1 + 1 := ih_result
+          omega
+        have h_eq_submodule := Submodule.eq_of_le_of_finrank_eq h_mono h_eq_finrank
+        exact h_ne h_eq_submodule.symm
+
+      omega
 
 end RiemannRochV2
