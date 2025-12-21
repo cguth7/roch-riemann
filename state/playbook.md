@@ -195,7 +195,7 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - Weak approximation
 - Cycles 76-155
 
-### Phase 3: Serre Duality (Current - Cycle 210)
+### Phase 3: Serre Duality (Current - Cycle 219)
 
 **Major Milestones Achieved:**
 - ✅ Residue infrastructure (X-adic, infinity, linear places)
@@ -205,12 +205,18 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - ✅ Non-degeneracy lemmas (vacuously true via Subsingleton) (Cycle 206)
 - ✅ Abstract Serre duality theorem structure
 - ✅ Projective L(D) with infinity constraint (Cycle 208)
+- ✅ `IsLinearPlaceSupport` assumption added (Cycle 216)
+- ✅ Step 1: denom has positive degree (Cycle 216)
+- ✅ Step 2: all irreducible factors of denom are linear (Cycle 217)
+- ✅ Bridge lemma: valuation ↔ rootMultiplicity (Cycle 218)
+- ✅ Helper lemmas: pole/zero multiplicity bounds (Cycle 219)
 
-**Current Focus: Product Formula (Cycle 210+)**
+**Current Focus: Final Contradiction (Cycle 219+)**
 
-The remaining work is connecting projective L(D) to Serre duality:
-1. **ProductFormula.lean** (3 sorries) - Mathlib one-liners
-2. **RatFuncPairing.lean** (7 sorries) - Submodule proofs for L_proj(D)
+Only 1 sorry remains in `RatFuncPairing.lean:projective_LRatFunc_eq_zero_of_neg_deg`:
+- Need to derive contradiction from sum inequalities
+- Helper lemmas `pole_multiplicity_le_D` and `zero_multiplicity_ge_neg_D` are proved
+- Strategy: show num.natDegree > denom.natDegree, contradicting noPoleAtInfinity
 
 **Key Insight (Cycle 207-208)**: "Affine" L(D) has no infinity constraint, making
 L(0) infinite-dimensional. "Projective" L(D) adds degree constraint:

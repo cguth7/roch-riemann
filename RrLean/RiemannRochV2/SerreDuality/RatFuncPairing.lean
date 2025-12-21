@@ -2333,6 +2333,153 @@ lemma constant_not_in_LRatFunc_of_neg_coeff (c : Fq) (hc : c ≠ 0)
   -- But hval says 1 ≤ exp(D v), contradiction
   exact not_le.mpr hexp_lt hval
 
+/-! ### Counting Argument Helper Lemmas (Cycle 219)
+
+These lemmas build up to the contradiction in `projective_LRatFunc_eq_zero_of_neg_deg` Step 3.
+-/
+
+omit [Fintype Fq] in
+/-- Coprime polynomials cannot share a common root over a field. -/
+lemma not_isRoot_of_coprime_isRoot {p q : Polynomial Fq} (hcop : IsCoprime p q)
+    (α : Fq) (hq_root : q.IsRoot α) : ¬p.IsRoot α := by
+  intro hp_root
+  -- If (X - α) | p and (X - α) | q, then (X - α) | gcd(p, q)
+  have hX_sub_dvd_p : (Polynomial.X - Polynomial.C α) ∣ p := Polynomial.dvd_iff_isRoot.mpr hp_root
+  have hX_sub_dvd_q : (Polynomial.X - Polynomial.C α) ∣ q := Polynomial.dvd_iff_isRoot.mpr hq_root
+  -- IsCoprime means ∃ a, b: a*p + b*q = 1
+  obtain ⟨a, b, hab⟩ := hcop
+  -- (X - α) | a*p + b*q = 1
+  have hX_sub_dvd_one : (Polynomial.X - Polynomial.C α) ∣ 1 := by
+    calc (Polynomial.X - Polynomial.C α) ∣ a * p + b * q := dvd_add
+           (dvd_mul_of_dvd_right hX_sub_dvd_p a) (dvd_mul_of_dvd_right hX_sub_dvd_q b)
+       _ = 1 := hab
+  -- But (X - α) is not a unit
+  have hX_sub_not_unit : ¬IsUnit (Polynomial.X - Polynomial.C α) :=
+    Polynomial.not_isUnit_X_sub_C α
+  exact hX_sub_not_unit (isUnit_of_dvd_one hX_sub_dvd_one)
+
+/-- For f in L(D) with α a root of denom (i.e., a pole of f), the pole multiplicity is bounded by D.
+
+This uses the bridge lemma: v(p) at linearPlace α = exp(-rootMultiplicity α p).
+For f = num/denom: v(f) = exp(rootMult(denom,α) - rootMult(num,α)).
+By coprimality, rootMult(num,α) = 0 when α is a root of denom.
+From L(D) bound: exp(rootMult(denom,α)) ≤ exp(D(linearPlace α)).
+Therefore rootMult(denom,α) ≤ D(linearPlace α). -/
+lemma pole_multiplicity_le_D (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq))
+    (hf_val : ∀ v : HeightOneSpectrum (Polynomial Fq), v.valuation (RatFunc Fq) f ≤ WithZero.exp (D v))
+    (hf_ne : f ≠ 0) (α : Fq) (hα : f.denom.IsRoot α) :
+    (f.denom.rootMultiplicity α : ℤ) ≤ D (linearPlace α) := by
+  -- Get coprimality
+  have hcop : IsCoprime f.num f.denom := f.isCoprime_num_denom
+  have hdenom_ne : f.denom ≠ 0 := f.denom_ne_zero
+  have hnum_ne : f.num ≠ 0 := by
+    intro heq
+    have hf_zero : f = 0 := by rw [← RatFunc.num_div_denom f, heq, map_zero, zero_div]
+    exact hf_ne hf_zero
+  -- α is not a root of num (by coprimality)
+  have hα_not_num : ¬f.num.IsRoot α := not_isRoot_of_coprime_isRoot hcop α hα
+  -- rootMultiplicity of α in num is 0
+  have hnum_mult_zero : f.num.rootMultiplicity α = 0 :=
+    Polynomial.rootMultiplicity_eq_zero hα_not_num
+  -- num ∉ (linearPlace α).asIdeal since α is not a root
+  let v := linearPlace α
+  have hnum_not_in : f.num ∉ v.asIdeal := by
+    intro h
+    have : (Polynomial.X - Polynomial.C α) ∣ f.num := by
+      simp only [v, linearPlace, Ideal.mem_span_singleton] at h
+      exact h
+    have hroot : f.num.IsRoot α := Polynomial.dvd_iff_isRoot.mp this
+    exact hα_not_num hroot
+  -- num has valuation 1 at v
+  have hnum_val_one : v.intValuation f.num = 1 := intValuation_eq_one_iff.mpr hnum_not_in
+  -- denom ∈ v.asIdeal since α is a root
+  have hdenom_in : f.denom ∈ v.asIdeal := by
+    simp only [v, linearPlace, Ideal.mem_span_singleton]
+    exact Polynomial.dvd_iff_isRoot.mpr hα
+  -- Compute valuation of f
+  have hv_val : v.valuation (RatFunc Fq) f =
+      (v.intValuation f.num : WithZero (Multiplicative ℤ)) / v.intValuation f.denom := by
+    conv_lhs => rw [← RatFunc.num_div_denom f]
+    have hdenom_alg_ne : algebraMap (Polynomial Fq) (RatFunc Fq) f.denom ≠ 0 :=
+      RatFunc.algebraMap_ne_zero hdenom_ne
+    rw [Valuation.map_div, v.valuation_of_algebraMap, v.valuation_of_algebraMap]
+  rw [hnum_val_one] at hv_val
+  simp only [one_div] at hv_val
+  -- Apply bridge lemma to denom
+  have hdenom_bridge := intValuation_linearPlace_eq_exp_neg_rootMultiplicity α f.denom hdenom_ne
+  rw [hdenom_bridge] at hv_val
+  -- v(f) = (exp(-rootMult))⁻¹ = exp(rootMult)
+  have hval_ne : WithZero.exp (-(f.denom.rootMultiplicity α : ℤ)) ≠ 0 := WithZero.exp_ne_zero
+  have hv_eq : v.valuation (RatFunc Fq) f = WithZero.exp (f.denom.rootMultiplicity α : ℤ) := by
+    rw [hv_val]
+    simp only [WithZero.exp_neg, inv_inv]
+  -- From L(D) bound
+  have hbound := hf_val v
+  rw [hv_eq] at hbound
+  -- exp(rootMult) ≤ exp(D v) implies rootMult ≤ D v
+  exact WithZero.exp_le_exp.mp hbound
+
+/-- At a place β with D(linearPlace β) < 0, f ∈ L(D) must have zeros in the numerator.
+
+If D(v) < 0, then v(f) ≤ exp(D(v)) < 1. This forces the numerator to have zeros
+at β, since otherwise v(f) ≥ 1 (no pole there from coprimality argument). -/
+lemma zero_multiplicity_ge_neg_D (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq))
+    (hf_val : ∀ v : HeightOneSpectrum (Polynomial Fq), v.valuation (RatFunc Fq) f ≤ WithZero.exp (D v))
+    (hf_ne : f ≠ 0) (β : Fq) (hD_neg : D (linearPlace β) < 0) :
+    (f.num.rootMultiplicity β : ℤ) ≥ -D (linearPlace β) := by
+  have hcop : IsCoprime f.num f.denom := f.isCoprime_num_denom
+  have hdenom_ne : f.denom ≠ 0 := f.denom_ne_zero
+  have hnum_ne : f.num ≠ 0 := by
+    intro heq
+    have hf_zero : f = 0 := by rw [← RatFunc.num_div_denom f, heq, map_zero, zero_div]
+    exact hf_ne hf_zero
+  let v := linearPlace β
+  -- First show β is NOT a root of denom
+  -- If it were, f would have a pole at v, requiring D(v) > 0, contradiction
+  have hβ_not_denom : ¬f.denom.IsRoot β := by
+    intro hβ_denom
+    -- f has a pole at v, so v(f) > 1
+    -- But then D(v) ≥ rootMult(β, denom) ≥ 1 > 0, contradiction with hD_neg
+    have hpole_bound := pole_multiplicity_le_D f D hf_val hf_ne β hβ_denom
+    have hpos : (0 : ℤ) < f.denom.rootMultiplicity β := by
+      have := (Polynomial.rootMultiplicity_pos hdenom_ne).mpr hβ_denom
+      omega
+    linarith
+  -- Since β is not a root of denom, rootMult(β, denom) = 0
+  have hdenom_mult_zero : f.denom.rootMultiplicity β = 0 :=
+    Polynomial.rootMultiplicity_eq_zero hβ_not_denom
+  -- denom ∉ v.asIdeal
+  have hdenom_not_in : f.denom ∉ v.asIdeal := by
+    intro h
+    have : (Polynomial.X - Polynomial.C β) ∣ f.denom := by
+      simp only [v, linearPlace, Ideal.mem_span_singleton] at h
+      exact h
+    have hroot : f.denom.IsRoot β := Polynomial.dvd_iff_isRoot.mp this
+    exact hβ_not_denom hroot
+  -- denom has valuation 1 at v
+  have hdenom_val_one : v.intValuation f.denom = 1 := intValuation_eq_one_iff.mpr hdenom_not_in
+  -- Compute valuation of f
+  have hv_val : v.valuation (RatFunc Fq) f =
+      (v.intValuation f.num : WithZero (Multiplicative ℤ)) / v.intValuation f.denom := by
+    conv_lhs => rw [← RatFunc.num_div_denom f]
+    have hdenom_alg_ne : algebraMap (Polynomial Fq) (RatFunc Fq) f.denom ≠ 0 :=
+      RatFunc.algebraMap_ne_zero hdenom_ne
+    rw [Valuation.map_div, v.valuation_of_algebraMap, v.valuation_of_algebraMap]
+  rw [hdenom_val_one] at hv_val
+  simp only [div_one] at hv_val
+  -- Apply bridge lemma to num
+  have hnum_bridge := intValuation_linearPlace_eq_exp_neg_rootMultiplicity β f.num hnum_ne
+  rw [hnum_bridge] at hv_val
+  -- v(f) = exp(-rootMult(num,β))
+  -- From L(D) bound: exp(-rootMult) ≤ exp(D(v))
+  have hbound := hf_val v
+  rw [hv_val] at hbound
+  -- exp(-rootMult) ≤ exp(D v) implies -rootMult ≤ D v
+  have hmult_bound : -(f.num.rootMultiplicity β : ℤ) ≤ D v := WithZero.exp_le_exp.mp hbound
+  -- v = linearPlace β, so D v = D (linearPlace β)
+  simp only [v] at hmult_bound
+  linarith
+
 /-- For a nonzero f in projective L(D) with deg(D) < 0, we get a contradiction.
 
 **Mathematical argument**:

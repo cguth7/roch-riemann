@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries
 **Phase**: 3 - Serre Duality
-**Cycle**: 219
+**Cycle**: 219 (IN PROGRESS)
 
 ### Active Sorries (1 in RatFuncPairing.lean)
 
@@ -22,84 +22,73 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 218 Progress (COMPLETED)
+## Cycle 219 Progress (IN PROGRESS)
 
-**Goal**: Prove the bridge lemma connecting valuation to rootMultiplicity
+**Goal**: Complete Step 3 of `projective_LRatFunc_eq_zero_of_neg_deg`
 
 **Completed**:
-1. ✅ **PROVED `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`**
-   - Location: RatFuncPairing.lean:2283
-   - Key insight: Use `Ideal.count_associates_eq` with `exists_eq_pow_rootMultiplicity_mul_and_not_dvd`
-   - This bridges valuation theory to polynomial algebra
+1. ✅ **PROVED `not_isRoot_of_coprime_isRoot`** (helper lemma)
+   - Location: RatFuncPairing.lean:2341-2358
+   - Shows coprime polynomials cannot share a common root
 
-**Lesson learned**: After proving the bridge lemma, attempted a 159-line "counting argument" inline that got stuck on type errors. Reverted to clean sorry with documented plan. Don't overreach after a win.
+2. ✅ **PROVED `pole_multiplicity_le_D`** (Lemma 1 from plan)
+   - Location: RatFuncPairing.lean:2360-2420
+   - At pole α: `rootMult(α, denom) ≤ D(linearPlace α)`
+   - Uses bridge lemma + coprimality argument
+
+3. ✅ **PROVED `zero_multiplicity_ge_neg_D`** (Lemma 3 from plan)
+   - Location: RatFuncPairing.lean:2422-2481
+   - At D < 0 place β: `rootMult(β, num) ≥ |D(linearPlace β)|`
+   - Key insight: if β were a root of denom, D would be positive (contradicts D < 0)
+
+**Remaining** (sorry at line ~2700):
+- Need to derive final contradiction using the helper lemmas
+- Strategy: Sum inequalities show num.natDegree > denom.natDegree, contradicting noPoleAtInfinity
 
 ---
 
-## Next Steps (Cycle 219)
+## Next Steps (Cycle 220)
 
-### GOAL: Complete Step 3 of `projective_LRatFunc_eq_zero_of_neg_deg`
+### GOAL: Complete the contradiction in Step 3
 
-**Location**: `RatFuncPairing.lean:2553` (single sorry)
+**Location**: `RatFuncPairing.lean:2700` (single sorry)
 
-**Strategy**: Build 4 clean helper lemmas, then combine for contradiction.
+**Available facts at sorry location**:
+- `hdenom_pos : 0 < f.denom.natDegree`
+- `hf_nopole : f.num.natDegree ≤ f.denom.natDegree`
+- `hD : D.deg < 0`
+- `hDlin : IsLinearPlaceSupport D`
+- `hf_val : ∀ v, v.valuation f ≤ exp(D v)` (from L(D) membership)
+- All irreducible factors of denom are linear (from Step 2)
 
-### Lemma 1: `pole_multiplicity_le_D`
-```lean
-lemma pole_multiplicity_le_D (α : Fq) (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq))
-    (hf : f ∈ RRSpace_ratfunc_projective D) (hpole : f.denom.IsRoot α) :
-    (f.denom.rootMultiplicity α : ℤ) ≤ D (linearPlace α)
+**Contradiction strategy**:
 ```
-**Proof sketch**:
-- At pole: v(f) = exp(rootMult(denom,α)) (by bridge lemma + coprimality)
-- From L(D): v(f) ≤ exp(D(linearPlace α))
-- Therefore rootMult ≤ D
+(A) Σ_{roots α of denom} rootMult(α) = denom.natDegree  [denom splits]
+(B) For each root α: D(linearPlace α) ≥ rootMult(α)     [pole_multiplicity_le_D]
+(C) So: Σ_{D>0} D(v) ≥ denom.natDegree
 
-### Lemma 2: `denom_splits_linear` (may already follow from Step 2)
-```lean
-lemma denom_splits_linear (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq))
-    (hDlin : IsLinearPlaceSupport D) (hf : f ∈ RRSpace_ratfunc_projective D) :
-    f.denom.roots.card = f.denom.natDegree
-```
-**Proof sketch**: All irreducible factors are linear (X - α) by Step 2. Over Fq, linear factors have Fq-roots.
+(D) For each β with D(linearPlace β) < 0:
+    rootMult(β, num) ≥ |D(linearPlace β)|              [zero_multiplicity_ge_neg_D]
+(E) So: Σ_{D<0} |D(v)| ≤ Σ rootMult(num) ≤ num.natDegree
 
-### Lemma 3: `zero_multiplicity_ge_neg_D`
-```lean
-lemma zero_multiplicity_ge_neg_D (β : Fq) (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq))
-    (hf : f ∈ RRSpace_ratfunc_projective D) (hD_neg : D (linearPlace β) < 0)
-    (hDlin : IsLinearPlaceSupport D) :
-    (f.num.rootMultiplicity β : ℤ) ≥ -D (linearPlace β)
-```
-**Proof sketch**:
-- At D < 0 place: v(f) ≤ exp(D) < 1
-- By bridge lemma: v(f) = exp(rootMult(denom,β) - rootMult(num,β))
-- Poles have D > 0, so β is not a pole, so rootMult(denom,β) = 0
-- Therefore -rootMult(num,β) ≤ D, i.e., rootMult(num,β) ≥ |D|
+(F) From deg(D) < 0: Σ_{D>0} D < Σ_{D<0} |D|
 
-### Lemma 4: `sum_inequality`
-```lean
-lemma sum_pos_ge_denom_deg (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq)) ... :
-    (D.support.filter (D · > 0)).sum D ≥ f.denom.natDegree
-
-lemma sum_neg_le_num_deg (f : RatFunc Fq) (D : DivisorV2 (Polynomial Fq)) ... :
-    (D.support.filter (D · < 0)).sum (fun v => -D v) ≤ f.num.natDegree
+Combining: denom.natDegree ≤ Σ_{D>0} < Σ_{D<0} ≤ num.natDegree
+⟹ denom.natDegree < num.natDegree
+⟹ Contradiction with hf_nopole!
 ```
 
-### Final contradiction
-```
-deg(D) < 0
-⟹ Σ_{D<0} |D| > Σ_{D>0} D           (algebra)
-⟹ Σ_{D<0} |D| > denom.natDegree     (Lemma 4a)
-⟹ num.natDegree > denom.natDegree   (Lemma 4b)
-⟹ contradiction with noPoleAtInfinity
-```
+**Two approaches**:
+1. **Sum lemmas approach**: Define explicit Finsupp sums and prove inequalities
+2. **Direct approach**: Avoid sums, work with specific roots/places
 
-**DO NOT**:
-- Build all 4 lemmas inline in the main theorem
-- Use roots.count when factorization support is cleaner
-- Add more than one sorry at a time
+**Recommended approach**: Try direct proof first using `exists_neg_of_deg_neg` to get a specific β with D(β) < 0, then use `zero_multiplicity_ge_neg_D` to show num has zeros. The tricky part is connecting the sum of multiplicities to natDegree.
 
-**Success criterion**: The single sorry in `projective_LRatFunc_eq_zero_of_neg_deg` becomes Qed.
+**Key Mathlib lemmas needed**:
+- `Polynomial.natDegree_eq_card_roots` (when polynomial splits)
+- `Polynomial.splits_iff_card_roots`
+- `Polynomial.count_roots` relates multiset count to rootMultiplicity
+- Sum over multiset: `Multiset.card_eq_sum_ones`, `Finset.sum_le_sum`
 
 ---
 
@@ -115,14 +104,27 @@ RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg
     ├─→ non-constant Step 1 (denom positive degree) ✅ DONE (Cycle 216)
     ├─→ non-constant Step 2 (poles at linear places) ✅ DONE (Cycle 217)
     ├─→ intValuation_linearPlace_eq_exp_neg_rootMultiplicity ✅ DONE (Cycle 218)
-    └─→ non-constant Step 3 (counting argument) ← NEXT (Cycle 219)
-        ├─→ pole_multiplicity_le_D
-        ├─→ denom_splits_linear
-        ├─→ zero_multiplicity_ge_neg_D
-        └─→ sum_inequality → contradiction
-            └─→ L_proj(D) = {0} when deg(D) < 0
-                └─→ Serre duality RHS verified
+    ├─→ not_isRoot_of_coprime_isRoot ✅ DONE (Cycle 219)
+    ├─→ pole_multiplicity_le_D ✅ DONE (Cycle 219)
+    ├─→ zero_multiplicity_ge_neg_D ✅ DONE (Cycle 219)
+    └─→ non-constant Step 3 (final contradiction) ← NEXT (Cycle 220)
+        └─→ L_proj(D) = {0} when deg(D) < 0
+            └─→ Serre duality RHS verified
 ```
+
+---
+
+## Cycle 218 Progress (COMPLETED)
+
+**Goal**: Prove the bridge lemma connecting valuation to rootMultiplicity
+
+**Completed**:
+1. ✅ **PROVED `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`**
+   - Location: RatFuncPairing.lean:2283
+   - Key insight: Use `Ideal.count_associates_eq` with `exists_eq_pow_rootMultiplicity_mul_and_not_dvd`
+   - This bridges valuation theory to polynomial algebra
+
+**Lesson learned**: After proving the bridge lemma, attempted a 159-line "counting argument" inline that got stuck on type errors. Reverted to clean sorry with documented plan. Don't overreach after a win.
 
 ---
 
