@@ -72,6 +72,48 @@ theorem ell_ratfunc_projective_gap_le (D : DivisorV2 (Polynomial Fq)) (α : Fq) 
 
 /-! ## Lower bound: Explicit elements -/
 
+/-- The valuation of (X-α) at linearPlace α is exp(-1).
+Uses intValuation_linearPlace_eq_exp_neg_rootMultiplicity and Polynomial.rootMultiplicity_X_sub_C. -/
+lemma valuation_X_sub_at_self (α : Fq) :
+    (linearPlace α).valuation (RatFunc Fq) (RatFunc.X - RatFunc.C α) = WithZero.exp (-1 : ℤ) := by
+  have heq : RatFunc.X - RatFunc.C α = algebraMap (Polynomial Fq) (RatFunc Fq)
+      (Polynomial.X - Polynomial.C α) := by
+    rw [map_sub, RatFunc.algebraMap_X, RatFunc.algebraMap_C]
+  rw [heq, HeightOneSpectrum.valuation_of_algebraMap]
+  rw [intValuation_linearPlace_eq_exp_neg_rootMultiplicity α _ (Polynomial.X_sub_C_ne_zero α)]
+  -- rootMultiplicity_X_sub_C : (X - C a).rootMultiplicity a = 1
+  simp only [Polynomial.rootMultiplicity_X_sub_C]
+  rfl
+
+/-- The valuation of (X-α)⁻¹^k at linearPlace α is exp(k).
+Uses valuation_X_sub_at_self, WithZero.exp_inv_eq_neg_int, and WithZero.exp_nsmul. -/
+lemma valuation_inv_X_sub_pow_at_self (α : Fq) (k : ℕ) :
+    (linearPlace α).valuation (RatFunc Fq) ((RatFunc.X - RatFunc.C α)⁻¹ ^ k) =
+    WithZero.exp (k : ℤ) := by
+  rw [Valuation.map_pow, Valuation.map_inv, valuation_X_sub_at_self]
+  rw [WithZero.exp_inv_eq_neg_int, neg_neg]
+  rw [← WithZero.exp_nsmul]
+  simp only [nsmul_eq_mul, mul_one]
+
+/-- At a place v ≠ linearPlace α, (X-α) has valuation 1.
+Key: if (X-α) ∈ v.asIdeal then v = linearPlace α by maximality.
+Proof: v.asIdeal maximal containing irreducible (X-α) must equal span{X-α}. -/
+lemma valuation_X_sub_at_other (α : Fq) (v : HeightOneSpectrum (Polynomial Fq))
+    (hv : v ≠ linearPlace α) :
+    v.valuation (RatFunc Fq) (RatFunc.X - RatFunc.C α) = 1 := by
+  have heq : RatFunc.X - RatFunc.C α = algebraMap (Polynomial Fq) (RatFunc Fq)
+      (Polynomial.X - Polynomial.C α) := by
+    rw [map_sub, RatFunc.algebraMap_X, RatFunc.algebraMap_C]
+  rw [heq, HeightOneSpectrum.valuation_of_algebraMap, HeightOneSpectrum.intValuation_eq_one_iff]
+  intro hmem; apply hv
+  -- v.asIdeal is maximal and contains (X-α), so equals span{X-α} = linearPlace α
+  have hmax : v.asIdeal.IsMaximal := HeightOneSpectrum.isMaximal v
+  have hle : Ideal.span {Polynomial.X - Polynomial.C α} ≤ v.asIdeal := by
+    rw [Ideal.span_le]; intro x hx; simp only [Set.mem_singleton_iff] at hx; rw [hx]; exact hmem
+  have heq' : v.asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} :=
+    (hmax.eq_of_le (Ideal.span_singleton_ne_top (Polynomial.not_isUnit_X_sub_C α)) hle).symm
+  exact HeightOneSpectrum.ext _ _ (by simp only [linearPlace, heq'])
+
 /-- 1/(X-α)^k satisfies the valuation condition for k·[linearPlace α]. -/
 lemma inv_X_sub_C_pow_satisfies_valuation (α : Fq) (k : ℕ) (hk : k ≠ 0) :
     satisfiesValuationCondition (Polynomial Fq) (RatFunc Fq)
@@ -80,18 +122,17 @@ lemma inv_X_sub_C_pow_satisfies_valuation (α : Fq) (k : ℕ) (hk : k ≠ 0) :
   right
   intro v
   by_cases hv : v = linearPlace α
-  · -- At linearPlace α
+  · -- At linearPlace α: val = exp(k) ≤ exp(k)
     subst hv
     simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply, if_pos rfl,
                mul_one]
-    -- val = exp(k) ≤ exp(k)
-    sorry
-  · -- At other places
+    rw [valuation_inv_X_sub_pow_at_self]
+  · -- At other places: val = 1 ≤ 1 = exp(0)
     simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply]
     have hne : linearPlace (Fq := Fq) α ≠ v := fun h => hv h.symm
     simp only [hne, ↓reduceIte, mul_zero, WithZero.exp_zero]
-    -- val ≤ 1
-    sorry
+    rw [Valuation.map_pow, Valuation.map_inv, valuation_X_sub_at_other Fq α v hv]
+    simp only [inv_one, one_pow, le_refl]
 
 /-- 1/(X-α)^k has no pole at infinity. -/
 lemma inv_X_sub_C_pow_noPoleAtInfinity (α : Fq) (k : ℕ) (hk : k ≠ 0) :

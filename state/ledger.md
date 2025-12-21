@@ -24,22 +24,64 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 226 Progress (IN PROGRESS)
+## Cycle 227 Progress (IN PROGRESS)
 
-**Goal**: Dimension formula ℓ(D) = deg(D) + 1 for effective D with linear support
+**Goal**: Continue dimension formula - prove valuation lemmas for 1/(X-α)^k
+
+### Progress This Cycle
+
+Added helper lemmas in `DimensionScratch.lean`:
+
+1. ✅ **`valuation_X_sub_at_self`**: v(X-α) = exp(-1) at linearPlace α
+   - Uses `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`
+   - Uses `Polynomial.rootMultiplicity_X_sub_C` (rootMult = 1)
+
+2. ✅ **`valuation_inv_X_sub_pow_at_self`**: v((X-α)⁻¹^k) = exp(k) at linearPlace α
+   - Uses `WithZero.exp_inv_eq_neg_int` and `WithZero.exp_nsmul`
+
+3. 🔲 **`valuation_X_sub_at_other`**: v(X-α) = 1 at places v ≠ linearPlace α (BLOCKING)
+   - Strategy: If (X-α) ∈ v.asIdeal, then v = linearPlace α by maximality
+   - Issue: `HeightOneSpectrum.ext` argument not quite right
+   - **FIX**: Use `hmax.eq_of_le` correctly with swapped argument order
+
+4. 🔲 **`inv_X_sub_C_pow_satisfies_valuation`**: Depends on (3)
+
+### Key Technical Issues Found
+
+1. **`Polynomial.rootMultiplicity_X_sub_C`** exists and gives rootMult = 1
+2. **`WithZero.exp_nsmul`**: exp(n • a) = (exp a)^n - KEY for power lemmas
+3. **`WithZero.exp_inv_eq_neg_int`**: (exp b)⁻¹ = exp(-b) - already in Infrastructure.lean
+4. **`HeightOneSpectrum.ext`**: Need to show v.asIdeal = (linearPlace α).asIdeal
+
+### Blocking Issue in `valuation_X_sub_at_other`
+
+The proof structure is:
+```lean
+have hmax : v.asIdeal.IsMaximal := HeightOneSpectrum.isMaximal v
+have hle : Ideal.span {X - C α} ≤ v.asIdeal := ...  -- from hmem
+have heq' : v.asIdeal = Ideal.span {X - C α} :=
+  (hmax.eq_of_le ... hle).symm  -- need .symm!
+exact HeightOneSpectrum.ext _ _ (by simp [linearPlace, heq'])
+```
+
+The `.symm` is needed because `eq_of_le` returns `Ideal.span ≤ v.asIdeal → v.asIdeal = Ideal.span`.
+
+---
+
+## Cycle 226 Progress (COMPLETED)
+
+**Goal**: Create DimensionScratch.lean structure - ACHIEVED
 
 ### Created: DimensionScratch.lean
 
-New file `RrLean/RiemannRochV2/SerreDuality/DimensionScratch.lean` with structure:
-
 1. ✅ **`RRSpace_ratfunc_projective_mono`**: L_proj(D) ⊆ L_proj(D + [v])
-2. 🔲 **`ell_ratfunc_projective_gap_le`**: Gap bound ℓ(D+[v]) ≤ ℓ(D) + 1 (sorry)
-3. 🔲 **`inv_X_sub_C_pow_satisfies_valuation`**: 1/(X-α)^k satisfies valuations (sorry)
-4. 🔲 **`inv_X_sub_C_pow_noPoleAtInfinity`**: No pole at infinity (sorry)
+2. 🔲 **`ell_ratfunc_projective_gap_le`**: Gap bound (adapt from Projective.lean)
+3. 🔲 **`inv_X_sub_C_pow_satisfies_valuation`**: Valuation condition
+4. 🔲 **`inv_X_sub_C_pow_noPoleAtInfinity`**: No pole at infinity
 5. ✅ **`inv_X_sub_C_pow_mem_projective`**: 1/(X-α)^k ∈ L_proj(k·[linearPlace α])
-6. 🔲 **`inv_X_sub_C_pow_not_mem_projective_smaller`**: Not in L_proj((k-1)·[v]) (sorry)
-7. 🔲 **`ell_ratfunc_projective_single_linear`**: ℓ(n·[v]) = n+1 (sorry)
-8. 🔲 **`ell_ratfunc_projective_eq_deg_plus_one`**: General dimension formula (sorry)
+6. 🔲 **`inv_X_sub_C_pow_not_mem_projective_smaller`**: Exclusion lemma
+7. 🔲 **`ell_ratfunc_projective_single_linear`**: ℓ(n·[v]) = n+1
+8. 🔲 **`ell_ratfunc_projective_eq_deg_plus_one`**: General formula
 
 ### Strategy
 
@@ -49,16 +91,9 @@ For P¹ with g = 0:
 - So ℓ(K-D) = 0 (already proved: `ell_canonical_sub_zero`)
 - Riemann-Roch becomes: ℓ(D) = deg(D) + 1
 
-Proof approach:
-1. Base case: ℓ(0) = 1 ✅ (proved in Cycle 225)
-2. Inductive step: ℓ(D + [v]) = ℓ(D) + 1
-   - Upper bound: Gap ≤ 1 via evaluation map (need to prove)
-   - Lower bound: Explicit element 1/(X-α)^k in L(D+[v]) \ L(D)
-
-### Key Insight (from Gemini)
+### Key Insight
 
 The dimension formula ℓ(D) = deg(D) + 1 IS the Riemann-Roch formula for P¹!
-Since ℓ(K-D) = 0 for deg(D) ≥ 0, we just need to prove the dimension directly.
 
 ---
 
@@ -167,14 +202,33 @@ Analysis documented above led to Cycle 224 implementation.
 
 ---
 
-## Next Steps (Cycle 227+)
+## Next Steps (Cycle 228+)
 
-Fill sorries in `DimensionScratch.lean` (in order of dependency):
+### IMMEDIATE: Fix `valuation_X_sub_at_other` in DimensionScratch.lean
+
+The blocking error is in the `HeightOneSpectrum.ext` call. Fix:
+```lean
+-- Current (broken):
+exact HeightOneSpectrum.ext _ _ (by simp [linearPlace, heq'])
+
+-- Should be:
+ext1
+simp only [linearPlace, heq']
+```
+
+Or use the structure-based approach:
+```lean
+have : v = linearPlace α := by
+  apply HeightOneSpectrum.ext
+  simp only [linearPlace, heq']
+exact this
+```
+
+### Then continue with:
 
 1. **`inv_X_sub_C_pow_satisfies_valuation`** - Valuation of 1/(X-α)^k
-   - At linearPlace α: val = exp(k) (pole of order k)
-   - At other places: val ≤ 1 (no pole)
-   - Use `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`
+   - At linearPlace α: val = exp(k) ✅ (valuation_inv_X_sub_pow_at_self works)
+   - At other places: val = 1 ≤ 1 (needs valuation_X_sub_at_other)
 
 2. **`inv_X_sub_C_pow_noPoleAtInfinity`** - deg(num) ≤ deg(denom)
    - For 1/(X-α)^k: num = 1 (deg 0), denom = (X-α)^k (deg k)
