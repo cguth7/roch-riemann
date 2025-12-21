@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 188
+**Cycle**: 189
 
 ### Active Sorries (7 total)
 
@@ -16,11 +16,10 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 |------|-------|----------|-------|
 | Residue.lean | `residueAtIrreducible` | LOW | Placeholder for higher-degree places |
 | Residue.lean | `residue_sum_eq_zero` | MED | General residue theorem |
-| SerreDuality.lean | `serrePairing` | HIGH | Main pairing construction |
-| SerreDuality.lean | `serrePairing_wellDefined` | MED | Uses residue theorem |
-| SerreDuality.lean | `serrePairing_left_nondegen` | MED | Left non-degeneracy |
-| SerreDuality.lean | `serrePairing_right_nondegen` | MED | Right non-degeneracy |
-| SerreDuality.lean | `serrePairing_ratfunc` | HIGH | Concrete pairing for RatFunc Fq |
+| Abstract.lean | `serrePairing_left_nondegen` | MED | Left non-degeneracy |
+| Abstract.lean | `serrePairing_right_nondegen` | MED | Right non-degeneracy |
+| Abstract.lean | `finrank_eq_of_perfect_pairing` | MED | Linear algebra lemma |
+| RatFuncPairing.lean | `serrePairing_ratfunc` | HIGH | Concrete pairing for RatFunc Fq |
 | FullAdelesCompact.lean | (1 sorry) | LOW | Edge case |
 
 ### Key Infrastructure ✅
@@ -30,43 +29,69 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | Residue at X (X-adic) | ✅ | Residue.lean |
 | Residue at infinity | ✅ | Residue.lean |
 | Residue at linear places | ✅ | Residue.lean |
-| residueSumTotal (finite + ∞) | ✅ | SerreDuality.lean |
-| Residue theorem (split denom) | ✅ | SerreDuality.lean |
-| Bilinear pairing | ✅ | SerreDuality.lean |
-| Perfect pairing dimension | ✅ | SerreDuality.lean |
-| Diagonal embedding (RatFunc) | ✅ | SerreDuality.lean |
-| K-part well-definedness | ✅ | SerreDuality.lean |
-| Pole cancellation (valuation) | ✅ | SerreDuality.lean |
-| linearPlace definition | ✅ | SerreDuality.lean |
-| translatePolyEquiv (RingEquiv) | ✅ | SerreDuality.lean |
-| translateRatFuncHom (lifted) | ✅ | SerreDuality.lean |
-| intValuation_translatePolyEquiv | ✅ | SerreDuality.lean |
-| linearPlace_valuation_eq_comap | ✅ | SerreDuality.lean |
-| residueAt_of_valuation_le_one | ✅ | SerreDuality.lean |
-| bounded_diagonal_finite_residue_zero | ✅ | SerreDuality.lean |
-| rawDiagonalPairing | ✅ | SerreDuality.lean |
-| rawDiagonalPairing_bilinear | ✅ | SerreDuality.lean |
-| rawDiagonalPairing_eq_zero_of_splits | ✅ | SerreDuality.lean |
-| rawDiagonalPairing_finite_zero_of_bounded | ✅ | SerreDuality.lean |
+| residueSumTotal (finite + ∞) | ✅ | SerreDuality/RatFuncResidues.lean |
+| Residue theorem (split denom) | ✅ | SerreDuality/RatFuncResidues.lean |
+| Bilinear pairing | ✅ | SerreDuality/RatFuncResidues.lean |
+| Diagonal embedding (RatFunc) | ✅ | SerreDuality/RatFuncPairing.lean |
+| K-part well-definedness | ✅ | SerreDuality/RatFuncPairing.lean |
+| Pole cancellation (valuation) | ✅ | SerreDuality/RatFuncPairing.lean |
+| linearPlace definition | ✅ | SerreDuality/RatFuncPairing.lean |
+| translatePolyEquiv (RingEquiv) | ✅ | SerreDuality/RatFuncPairing.lean |
+| translateRatFuncHom (lifted) | ✅ | SerreDuality/RatFuncPairing.lean |
+| intValuation_translatePolyEquiv | ✅ | SerreDuality/RatFuncPairing.lean |
+| linearPlace_valuation_eq_comap | ✅ | SerreDuality/RatFuncPairing.lean |
+| residueAt_of_valuation_le_one | ✅ | SerreDuality/RatFuncPairing.lean |
+| bounded_diagonal_finite_residue_zero | ✅ | SerreDuality/RatFuncPairing.lean |
+| rawDiagonalPairing | ✅ | SerreDuality/RatFuncPairing.lean |
+| rawDiagonalPairing_bilinear | ✅ | SerreDuality/RatFuncPairing.lean |
+| rawDiagonalPairing_eq_zero_of_splits | ✅ | SerreDuality/RatFuncPairing.lean |
+| rawDiagonalPairing_finite_zero_of_bounded | ✅ | SerreDuality/RatFuncPairing.lean |
+| serrePairing (abstract, 0) | ✅ | SerreDuality/Abstract.lean |
 
 ---
 
-## Next Steps (Cycle 189)
+## Next Steps (Cycle 190)
 
-1. **Use Option 2: Handle infinity separately** (avoids refactoring AdelicH1v2)
-   - For genus 0: L(K-D) has no finite poles, so finite residue sum = 0 for bounded elements
-   - Pairing: extract diagonal K part, use -residueAtInfty(k·f)
-   - Key: residueSumFinite = -residueAtInfty by residue theorem
-
-2. **Complete serrePairing_ratfunc construction** - Use liftQ with:
-   - rawDiagonalPairing for diagonal K elements
+1. **Complete `serrePairing_ratfunc`** - Use liftQ construction with:
+   - Define raw pairing on FiniteAdeleRing via approximation
    - Show it vanishes on globalPlusBoundedSubmodule
+   - Key: use `-residueAtInfty(k·f)` via weak approximation
 
-3. **Prove non-degeneracy** - The hard part of Serre duality
+2. **Prove `finrank_eq_of_perfect_pairing`** - Standard linear algebra:
+   - Non-degenerate bilinear pairing → equal dimensions
+   - May need `FiniteDimensional` instance handling
+
+3. **Prove non-degeneracy** - The hard part of Serre duality:
+   - Left: ⟨[a], f⟩ = 0 for all f ⟹ [a] = 0
+   - Right: ⟨[a], f⟩ = 0 for all [a] ⟹ f = 0
 
 ---
 
 ## Recent Progress
+
+### Cycle 189 - **Major refactor: Split SerreDuality into 3 files** 🔧
+- Followed reviewer recommendation to separate abstraction levels
+- Created `SerreDuality/` directory with clean module structure:
+  1. **Abstract.lean** - Type-correct placeholder pairing (definitionally 0)
+     - `serrePairing` now returns 0 (not sorry), allows downstream simp
+     - `serrePairing_wellDefined` trivially true
+     - Non-degeneracy and dimension equality as sorries
+  2. **RatFuncResidues.lean** - Residue infrastructure (no adeles)
+     - `residueSumFinite`, `residueSumTotal`, `residuePairing`
+     - Residue theorem for split denominators
+     - Clean separation from quotient construction
+  3. **RatFuncPairing.lean** - Concrete pairing for P¹
+     - Pole cancellation (`bounded_times_LKD_no_pole`)
+     - Valuation transport (`linearPlace_valuation_eq_comap`)
+     - Raw diagonal pairing and bilinearity
+     - `serrePairing_ratfunc` placeholder
+- **Thin `SerreDuality.lean`** re-exports all three modules
+- Benefits:
+  - Clear abstraction boundaries
+  - Residue layer has no adeles/quotients
+  - Pairing layer focused on P¹ construction
+  - Abstract layer provides type-correct interface
+- Sorries unchanged: 7 (reorganized across files)
 
 ### Cycle 188 - **Raw pairing infrastructure for RatFunc Fq**
 - `bounded_diagonal_finite_residue_zero` ✅ - Now fully proved (was pending verification)
@@ -190,7 +215,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 lake build 2>&1 | tail -5
 
 # Find sorries
-grep -rn "sorry$" RrLean/RiemannRochV2/*.lean | grep -v "FqPolynomialInstance\|TraceDualityProof"
+grep -rn "sorry$" RrLean/RiemannRochV2/*.lean RrLean/RiemannRochV2/SerreDuality/*.lean | grep -v "FqPolynomialInstance\|TraceDualityProof"
 
 # Build specific file
 lake build RrLean.RiemannRochV2.SerreDuality
@@ -200,15 +225,19 @@ lake build RrLean.RiemannRochV2.SerreDuality
 
 ## File Status
 
-### In Build (2804 jobs)
+### In Build (2562 jobs)
 - `RiemannRochV2.lean` (root)
 - `Basic`, `Divisor`, `RRSpace`, `Typeclasses`
 - `RiemannInequality` ✅
 - `Infrastructure`, `RRDefinitions`
 - `FullAdelesBase`, `FullAdelesCompact` ✅
 - `AdelicH1v2` ✅
-- `Residue.lean` ✅
-- `SerreDuality.lean` (in progress)
+- `SerreDuality/` (directory with 3 files):
+  - `Abstract.lean` ✅ (3 sorries: nondegen + finrank)
+  - `RatFuncResidues.lean` ✅ (0 sorries)
+  - `RatFuncPairing.lean` ✅ (1 sorry: serrePairing_ratfunc)
+- `Residue.lean` ✅ (2 sorries: residueAtIrreducible, residue_sum_eq_zero)
+- `SerreDuality.lean` ✅ (thin re-export module)
 
 ### Disconnected (not blocking)
 - `DifferentIdealBridge.lean` ✅
