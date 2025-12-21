@@ -104,24 +104,22 @@ lemma linearPlace_residue_finrank (α : Fq) :
   -- Now we need: finrank(κ(v)) = finrank(R/I) via the bijective algebraMap
   haveI hmax : (linearPlace (Fq := Fq) α).asIdeal.IsMaximal := (linearPlace α).isMaximal
   have hbij := Ideal.bijective_algebraMap_quotient_residueField (linearPlace (Fq := Fq) α).asIdeal
-  -- Construct the Fq-linear equivalence from the bijective Fq-algebra map
-  have e_lin : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₗ[Fq]
-      residueFieldAtPrime (Polynomial Fq) (linearPlace α) := by
-    refine LinearEquiv.ofBijective ?_ hbij
-    exact {
-      toFun := algebraMap (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal)
-            (residueFieldAtPrime (Polynomial Fq) (linearPlace α))
-      map_add' := fun x y => map_add _ x y
-      map_smul' := fun c x => by
-        simp only [RingHom.id_apply]
-        -- c • x = algebraMap Fq (R/I) c * x by definition of scalar action
-        rw [Algebra.smul_def, Algebra.smul_def, map_mul]
-        congr 1
-        -- algebraMap R κ(v) (algebraMap Fq R r) = algebraMap Fq κ(v) r
-        exact IsScalarTower.algebraMap_apply Fq (Polynomial Fq ⧸ _) _ c
-    }
+  -- Build RingEquiv from the bijective algebraMap
+  let e_ring : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃+*
+      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
+    RingEquiv.ofBijective _ hbij
+  -- Upgrade to AlgEquiv: need to show algebraMap commutes
+  have hcomm : ∀ c : Fq, e_ring (algebraMap Fq (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) c) =
+      algebraMap Fq (residueFieldAtPrime (Polynomial Fq) (linearPlace α)) c := fun c => by
+    simp only [e_ring, RingEquiv.ofBijective_apply]
+    -- e_ring = algebraMap (R/I) κ(v) on elements
+    -- algebraMap Fq κ(v) factors through R/I by definition of the Fq-algebra structure
+    rfl
+  let e_alg' : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₐ[Fq]
+      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
+    AlgEquiv.ofRingEquiv hcomm
   rw [← h1]
-  exact LinearEquiv.finrank_eq e_lin.symm
+  exact LinearEquiv.finrank_eq e_alg'.symm.toLinearEquiv
 
 /-- Gap bound for projective RRSpace: ℓ(D + [v]) ≤ ℓ(D) + 1.
 
@@ -134,10 +132,153 @@ TODO: Fix Mathlib API issues in evaluation map construction. The proof strategy 
 3. By first isomorphism theorem: L_proj(D+v)/L_proj(D) ≅ im(ψ) ⊆ κ(v)
 4. Since dim(κ(v)) = 1, we get ℓ(D+v) - ℓ(D) ≤ 1
 -/
-theorem ell_ratfunc_projective_gap_le (D : DivisorV2 (Polynomial Fq)) (α : Fq) :
+theorem ell_ratfunc_projective_gap_le (D : DivisorV2 (Polynomial Fq)) (α : Fq)
+    [hfin : Module.Finite Fq (RRSpace_ratfunc_projective (D + DivisorV2.single (linearPlace α) 1))] :
     ell_ratfunc_projective (D + DivisorV2.single (linearPlace α) 1) ≤
     ell_ratfunc_projective D + 1 := by
-  sorry
+  let v := linearPlace (Fq := Fq) α
+  have hle := divisor_le_add_single D v
+  have hincl : RRSpace_ratfunc_projective D ≤
+      RRSpace_ratfunc_projective (D + DivisorV2.single v 1) :=
+    RRSpace_ratfunc_projective_mono Fq D α
+
+  -- LD = comap of L_proj(D) in L_proj(D+v)
+  let LD := (RRSpace_ratfunc_projective D).comap
+      (RRSpace_ratfunc_projective (D + DivisorV2.single v 1)).subtype
+
+  -- The affine evaluation map φ : L_affine(D+v) → κ(v)
+  let φ := evaluationMapAt_complete (R := Polynomial Fq) (K := RatFunc Fq) v D
+
+  -- L_proj(D+v) elements satisfy the affine condition
+  have h_proj_to_affine : ∀ f, f ∈ RRSpace_ratfunc_projective (D + DivisorV2.single v 1) →
+      f ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+    fun f hf => hf.1
+
+  -- Define ψ : L_proj(D+v) →ₗ[Fq] κ(v)
+  let ψ : ↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) →ₗ[Fq]
+      residueFieldAtPrime (Polynomial Fq) v := {
+    toFun := fun x => φ ⟨x.val, h_proj_to_affine x.val x.property⟩
+    map_add' := fun x y => by
+      have := φ.map_add ⟨x.val, h_proj_to_affine x.val x.property⟩
+          ⟨y.val, h_proj_to_affine y.val y.property⟩
+      convert this using 1 <;> rfl
+    map_smul' := fun c x => by
+      have h1 : (c • x).val = (algebraMap Fq (Polynomial Fq) c) • x.val :=
+        (IsScalarTower.algebraMap_smul (Polynomial Fq) c x.val).symm
+      have hmem : (algebraMap Fq (Polynomial Fq) c) • x.val ∈
+          RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+        Submodule.smul_mem _ _ (h_proj_to_affine x.val x.property)
+      have h2 : φ ⟨(algebraMap Fq (Polynomial Fq) c) • x.val, hmem⟩ =
+          (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := by
+        convert φ.map_smul (algebraMap Fq (Polynomial Fq) c) ⟨x.val, h_proj_to_affine x.val x.property⟩
+      have h3 : (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ =
+          c • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ :=
+        IsScalarTower.algebraMap_smul (Polynomial Fq) c _
+      simp only [RingHom.id_apply]
+      calc φ ⟨(c • x).val, h_proj_to_affine (c • x).val (c • x).property⟩
+          = φ ⟨(algebraMap Fq (Polynomial Fq) c) • x.val, hmem⟩ := by simp only [h1]
+        _ = (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := h2
+        _ = c • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := h3
+  }
+
+  -- Show LD ≤ ker(ψ)
+  have h_LD_le_ker : LD ≤ LinearMap.ker ψ := by
+    intro x hx
+    rw [LinearMap.mem_ker]
+    rw [Submodule.mem_comap] at hx
+    have h_affine_mem : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := hx.1
+    have h_in_affine_Dv : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+      RRModuleV2_mono_inclusion (Polynomial Fq) (RatFunc Fq) hle h_affine_mem
+    let y_affine : RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := ⟨x.val, h_affine_mem⟩
+    have hinc : (⟨x.val, h_in_affine_Dv⟩ : RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) =
+        Submodule.inclusion (RRModuleV2_mono_inclusion (Polynomial Fq) (RatFunc Fq) hle) y_affine := rfl
+    show ψ x = 0
+    simp only [ψ, LinearMap.coe_mk, AddHom.coe_mk]
+    have hx_eq : (⟨x.val, h_proj_to_affine x.val x.property⟩ :
+        RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) =
+        ⟨x.val, h_in_affine_Dv⟩ := rfl
+    rw [hx_eq, hinc]
+    exact LD_element_maps_to_zero v D y_affine
+
+  -- Show ker(ψ) ≤ LD
+  have h_ker_le_LD : LinearMap.ker ψ ≤ LD := by
+    intro x hx
+    rw [LinearMap.mem_ker] at hx
+    simp only [ψ, LinearMap.coe_mk, AddHom.coe_mk] at hx
+    have h_in_ker : (⟨x.val, h_proj_to_affine x.val x.property⟩ :
+        RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) ∈
+        LinearMap.ker φ := hx
+    rw [kernel_evaluationMapAt_complete_proof, LinearMap.mem_range] at h_in_ker
+    obtain ⟨y, hy⟩ := h_in_ker
+    rw [Submodule.mem_comap, Submodule.coe_subtype]
+    have hval : y.val = x.val := congrArg Subtype.val hy
+    have h_affine : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := by
+      rw [← hval]; exact y.property
+    have h_infty : x.val = 0 ∨ noPoleAtInfinity x.val := x.property.2
+    exact ⟨h_affine, h_infty⟩
+
+  -- LD = ker(ψ)
+  have h_eq_ker : LD = LinearMap.ker ψ := le_antisymm h_LD_le_ker h_ker_le_LD
+
+  -- κ(v) is finite-dimensional over Fq
+  -- We have finrank = 1 from linearPlace_residue_finrank, so it's finite
+  haveI : Module.Finite Fq (residueFieldAtPrime (Polynomial Fq) v) := by
+    have hfr : Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) v) = 1 :=
+      linearPlace_residue_finrank Fq α
+    have hpos : 0 < Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) v) := by omega
+    exact Module.finite_of_finrank_pos hpos
+
+  -- The quotient L_proj(D+v)/LD embeds into κ(v) which has dim 1
+  have h_quot_le : Module.finrank Fq
+      (↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) ⧸ LD) ≤ 1 := by
+    -- The descended map: quotient → κ(v) is injective
+    let desc := Submodule.liftQ LD ψ h_LD_le_ker
+    have h_desc_inj : Function.Injective desc := by
+      rw [← LinearMap.ker_eq_bot]
+      have hker := Submodule.ker_liftQ LD ψ h_LD_le_ker
+      rw [hker, h_eq_ker, Submodule.mkQ_map_self]
+    -- finrank of domain ≤ finrank of codomain when injection exists
+    calc Module.finrank Fq (↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) ⧸ LD)
+        ≤ Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) v) :=
+          LinearMap.finrank_le_finrank_of_injective h_desc_inj
+      _ = 1 := linearPlace_residue_finrank Fq α
+
+  -- LD equals range(inclusion) since L_proj(D) ⊆ L_proj(D+v)
+  have h_LD_eq : Module.finrank Fq LD = ell_ratfunc_projective D := by
+    unfold ell_ratfunc_projective LD
+    have h_eq : (RRSpace_ratfunc_projective D).comap
+        (RRSpace_ratfunc_projective (D + DivisorV2.single v 1)).subtype =
+        LinearMap.range (Submodule.inclusion hincl) := by
+      apply le_antisymm
+      · intro x hx
+        rw [Submodule.mem_comap] at hx
+        rw [LinearMap.mem_range]
+        exact ⟨⟨x.val, hx⟩, rfl⟩
+      · intro x hx
+        rw [LinearMap.mem_range] at hx
+        obtain ⟨y, hy⟩ := hx
+        rw [Submodule.mem_comap]
+        rw [← hy]; exact y.2
+    rw [h_eq]
+    exact LinearMap.finrank_range_of_inj (Submodule.inclusion_injective hincl)
+
+  -- Use finrank(quotient) + finrank(LD) = finrank(L_proj(D+v))
+  have h_add := Submodule.finrank_quotient_add_finrank LD
+  unfold ell_ratfunc_projective
+  have h_eq' : Module.finrank Fq ↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) =
+      Module.finrank Fq LD +
+      Module.finrank Fq (↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) ⧸ LD) := by
+    rw [← h_add, add_comm]
+  -- Goal: finrank(L_proj(D+v)) ≤ ell_proj(D) + 1
+  -- We have: finrank(L_proj(D+v)) = finrank(LD) + finrank(quotient) = ell_proj(D) + finrank(quotient)
+  -- And: finrank(quotient) ≤ 1
+  calc Module.finrank Fq ↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1))
+      = Module.finrank Fq LD +
+          Module.finrank Fq (↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) ⧸ LD) := h_eq'
+    _ = ell_ratfunc_projective D +
+          Module.finrank Fq (↥(RRSpace_ratfunc_projective (D + DivisorV2.single v 1)) ⧸ LD) := by
+        rw [h_LD_eq]
+    _ ≤ ell_ratfunc_projective D + 1 := by linarith
   /-  Original proof (176 lines) requires fixing Mathlib API:
   let v := linearPlace (Fq := Fq) α
   have hle := divisor_le_add_single D v
@@ -482,7 +623,86 @@ TODO: Fix rewrite/omega issues in inductive case. Proof strategy is:
 -/
 theorem ell_ratfunc_projective_single_linear (α : Fq) (n : ℕ) :
     ell_ratfunc_projective ((n : ℤ) • DivisorV2.single (linearPlace α) 1) = n + 1 := by
-  sorry
+  induction n with
+  | zero =>
+    simp only [Nat.cast_zero, zero_smul, zero_add]
+    exact ell_ratfunc_projective_zero_eq_one Fq
+  | succ m ih =>
+    -- Divisor decomposition: (m+1)·[v] = m·[v] + [v]
+    have h_eq : ((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace (Fq := Fq) α) 1 =
+        (m : ℤ) • DivisorV2.single (linearPlace α) 1 + DivisorV2.single (linearPlace α) 1 := by
+      simp only [Nat.cast_succ, add_smul, one_smul]
+
+    -- Establish finiteness for L(m·[v]) from IH
+    have ih_finrank : Module.finrank Fq (RRSpace_ratfunc_projective
+        ((m : ℤ) • DivisorV2.single (linearPlace α) 1)) = m + 1 := ih
+    haveI hfin_m : Module.Finite Fq
+        (RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1)) :=
+      Module.finite_of_finrank_pos (by omega : 0 < m + 1)
+
+    -- Establish finiteness for L((m+1)·[v])
+    have h_in : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ (m + 1) ∈
+        RRSpace_ratfunc_projective (((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace α) 1) :=
+      inv_X_sub_C_pow_mem_projective Fq α (m + 1)
+    have hne_elem : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ (m + 1) ≠ 0 :=
+      pow_ne_zero (m + 1) (inv_ne_zero (RatFunc_X_sub_C_ne_zero Fq α))
+    haveI hfin_succ : Module.Finite Fq
+        (RRSpace_ratfunc_projective (((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace α) 1)) := by
+      have hmem_pos : 0 < Module.finrank Fq (RRSpace_ratfunc_projective
+          (((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace α) 1)) := by
+        rw [Module.finrank_pos_iff]
+        exact ⟨⟨_, h_in⟩, fun heq => hne_elem (congrArg Subtype.val heq)⟩
+      exact Module.finite_of_finrank_pos hmem_pos
+
+    -- Apply gap bound
+    have h_le : ell_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+        DivisorV2.single (linearPlace α) 1) ≤
+        ell_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) + 1 := by
+      have := @ell_ratfunc_projective_gap_le Fq _ _ _
+          ((m : ℤ) • DivisorV2.single (linearPlace α) 1) α
+      convert this using 2
+      exact h_eq.symm
+    rw [ih] at h_le
+
+    -- Strict inclusion gives lower bound
+    have h_not_in : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ (m + 1) ∉
+        RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) := by
+      have := inv_X_sub_C_pow_not_mem_projective_smaller Fq α (m + 1) (Nat.succ_pos m)
+      simp only [Nat.cast_succ, add_sub_cancel_right] at this
+      exact this
+
+    have h_mono : RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) ≤
+        RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+            DivisorV2.single (linearPlace α) 1) :=
+      RRSpace_ratfunc_projective_mono Fq _ α
+
+    have h_ne : RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) ≠
+        RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+            DivisorV2.single (linearPlace α) 1) := by
+      intro heq
+      apply h_not_in
+      rw [heq, ← h_eq]
+      exact h_in
+
+    have h_ge : m + 1 < ell_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+        DivisorV2.single (linearPlace α) 1) := by
+      by_contra hlt
+      push_neg at hlt
+      have h_le' : Module.finrank Fq (RRSpace_ratfunc_projective
+          ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+              DivisorV2.single (linearPlace α) 1)) ≤ m + 1 := hlt
+      have h_eq_finrank : Module.finrank Fq (RRSpace_ratfunc_projective
+          ((m : ℤ) • DivisorV2.single (linearPlace α) 1)) =
+          Module.finrank Fq (RRSpace_ratfunc_projective
+          ((m : ℤ) • DivisorV2.single (linearPlace α) 1 +
+              DivisorV2.single (linearPlace α) 1)) := by
+        have h1 := Submodule.finrank_mono h_mono
+        omega
+      have h_eq_submodule := Submodule.eq_of_le_of_finrank_eq h_mono h_eq_finrank
+      exact h_ne h_eq_submodule
+
+    -- Combine: m+1 < ell ≤ m+2, so ell = m+2
+    omega
   /- Original proof (stub for now):
   induction n with
   | zero =>
