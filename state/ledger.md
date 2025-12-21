@@ -8,7 +8,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries
 **Phase**: 3 - Serre Duality
-**Cycle**: 217
+**Cycle**: 218
 
 ### Active Sorries (2 in RatFuncPairing.lean)
 
@@ -19,6 +19,44 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | **Residue.lean** | 2 | LOW | Higher-degree places, general residue theorem (deferred) |
 | **FullAdelesCompact.lean** | 1 | LOW | Edge case bound < 1 (not needed) |
 | **TraceDualityProof.lean** | 1 | LOW | Alternative approach (not on critical path) |
+
+---
+
+## Cycle 218 Progress
+
+**Goal**: Complete Step 3 (counting argument) of `projective_LRatFunc_eq_zero_of_neg_deg`
+
+**Completed**:
+1. ✅ **Established zero structure**: At places with D(v) < 0, f has zeros
+   - `hv_neg_linear`: v_neg = linearPlace β for some β ∈ Fq (from IsLinearPlaceSupport)
+   - `hexp_lt_one`: exp(D v_neg) < 1 (since D v_neg < 0)
+   - `hf_val_lt_one`: v_neg.valuation f < 1 (f has zero at v_neg)
+
+2. ✅ **Documented complete proof strategy**: The counting argument is now fully outlined
+   - At poles: D(v) ≥ pole_multiplicity → Σ_{D>0} D(v) ≥ deg(denom)
+   - At zeros: zero_multiplicity ≥ |D(v)| → Σ_{D<0} |D(v)| ≤ deg(num)
+   - From deg(D) < 0: Σ|D<0| > Σ D>0 ≥ deg(denom)
+   - Combined with deg(num) ≤ deg(denom): contradiction
+
+3. ✅ **Added ProductFormula infrastructure usage**:
+   - `h_denom_roots`: sum_rootMultiplicity_le_natDegree for denom
+   - `h_num_roots`: sum_rootMultiplicity_le_natDegree for num
+   - `hnum_ne`: num ≠ 0 (else f = 0)
+
+**Remaining for `projective_LRatFunc_eq_zero_of_neg_deg`**:
+The formal counting requires two sum lemmas:
+
+1. **Pole sum bound** (Σ_{D>0} D ≥ deg(denom)):
+   - For each root α of denom: D(linearPlace α) ≥ rootMultiplicity α
+   - Sum over all roots: Σ D ≥ Σ mult = deg(denom)
+   - Requires: showing all roots are in D.support with D > 0
+
+2. **Zero sum bound** (Σ_{D<0} |D| ≤ deg(num)):
+   - For each v with D(v) < 0: rootMultiplicity(β, num) ≥ |D(v)|
+   - Sum: Σ |D| ≤ Σ mult ≤ deg(num)
+   - Requires: linking valuation bound to root multiplicity
+
+**Key insight**: The argument generalizes from the single v_π we proved in Step 2 to ALL irreducible factors. Each factor π of denom gives a place with D(v_π) ≥ multiplicity.
 
 ---
 
@@ -119,21 +157,32 @@ For divisors supported only on linear places, the unweighted degree equals the w
 
 ---
 
-## Next Steps (Cycle 218)
+## Next Steps (Cycle 219)
 
 ### Complete `projective_LRatFunc_eq_zero_of_neg_deg` - Step 3 (counting argument)
 
-Step 2 is complete (all irreducible factors of denom are linear). The remaining counting argument requires:
+Steps 1-2 are complete. The remaining formal proof requires two key lemmas:
 
-1. **Multiplicity tracking**: For polynomials over Fq with only linear factors, sum of multiplicities = degree
-2. **Pole inequality**: At each pole v of f, D(v) ≥ pole multiplicity → Σ_{D(v)>0} D(v) ≥ deg(denom)
-3. **Zero inequality**: At each v with D(v) < 0, num has zero → Σ_{D(v)<0} |D(v)| ≤ deg(num)
-4. **Contradiction**: deg(D) < 0 gives Σ|D(v)<0| > Σ D(v)>0 ≥ deg(denom) ≥ deg(num) ≥ Σ|D(v)<0|
+**Option A: Direct sum lemmas** (more infrastructure but cleaner proof)
+1. Add `D_ge_rootMult_at_pole`: For each root α of denom, D(linearPlace α) ≥ rootMultiplicity α denom
+   - Use: v.valuation f = exp(pole_order) ≤ exp(D v), so pole_order ≤ D v
+   - Key: pole_order = rootMultiplicity (for linear places)
 
-**Infrastructure needed**:
-- Finsupp.sum for divisor positive/negative parts
-- Multiplicity counting for polynomial roots
-- Or: alternative approach via existing infrastructure
+2. Add `sum_neg_le_num_degree`: Σ_{D(v)<0} |D(v)| ≤ num.natDegree
+   - At each such v: num has root with mult ≥ |D(v)|
+   - Sum over distinct roots ≤ total root count ≤ natDegree
+
+3. Derive contradiction from inequalities chain
+
+**Option B: Induction on denom.natDegree** (less infrastructure)
+- Base case: denom.natDegree = 1, single pole, directly check constraints
+- Inductive step: factor out one (X - α), apply IH
+
+**Option C: Alternative approach via product formula**
+- Use sum of ord_v over all places = 0
+- Combine with D bounds to get contradiction
+
+**Recommendation**: Option A is cleanest mathematically. Option B may be faster to implement.
 
 ---
 
@@ -148,9 +197,11 @@ RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg
     ├─→ IsLinearPlaceSupport assumption ✅ ADDED (Cycle 216)
     ├─→ non-constant Step 1 (denom positive degree) ✅ DONE (Cycle 216)
     ├─→ non-constant Step 2 (poles at linear places) ✅ DONE (Cycle 217)
-    └─→ non-constant Step 3 (counting argument) ← NEXT
-        └─→ L_proj(D) = {0} when deg(D) < 0
-            └─→ Serre duality RHS verified
+    ├─→ non-constant Step 3a (zero structure) ✅ DONE (Cycle 218)
+    └─→ non-constant Step 3b (sum inequalities) ← NEXT
+        └─→ D_ge_rootMult_at_pole + sum_neg_le_num_degree
+            └─→ L_proj(D) = {0} when deg(D) < 0
+                └─→ Serre duality RHS verified
 ```
 
 ---
