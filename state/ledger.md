@@ -8,23 +8,27 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 208
+**Cycle**: 209
 
-### Active Sorries (11 total)
+### Active Sorries (22 total, 8 new in AdelicH1Full.lean)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
 | Residue.lean | `residueAtIrreducible` | LOW | Placeholder for higher-degree places |
 | Residue.lean | `residue_sum_eq_zero` | MED | General residue theorem |
 | FullAdelesCompact.lean | (1 sorry) | LOW | Edge case in weak approximation |
+| ProductFormula.lean | `sum_rootMultiplicity_eq_card_roots` | LOW | Product formula helper |
+| ProductFormula.lean | `sum_rootMultiplicity_le_natDegree` | LOW | Product formula helper |
+| ProductFormula.lean | `principal_divisor_degree_le_zero` | MED | Product formula main result |
 | RatFuncPairing.lean | `LRatFunc_eq_zero_of_neg_deg` | MED | Principal divisor degree = 0 for RatFunc |
-| RatFuncPairing.lean | `sum_rootMultiplicity_le_natDegree` | LOW | Product formula infrastructure |
-| RatFuncPairing.lean | `polynomial_order_sum_eq_roots` | LOW | Product formula infrastructure |
-| RatFuncPairing.lean | `principalDivisorDegree_add_infinity_eq_zero` | MED | Needs exact product formula |
 | RatFuncPairing.lean | `RRSpace_ratfunc_projective.add_mem'` | MED | Degree bound under addition |
 | RatFuncPairing.lean | `RRSpace_ratfunc_projective.smul_mem'` | LOW | Scalar mult preserves degree |
 | RatFuncPairing.lean | `constant_mem_projective_zero` | LOW | Constants in projective L(0) |
 | RatFuncPairing.lean | `projective_LRatFunc_eq_zero_of_neg_deg` | HIGH | Main vanishing theorem |
+| RatFuncPairing.lean | (2 more sorries) | LOW | Degree constraint infrastructure |
+| **AdelicH1Full.lean** | `smul_mem_boundedSubset_full` | MED | Scalar mult for full bounded (2) |
+| **AdelicH1Full.lean** | `smul_mem_globalSubset_full` | LOW | Scalar mult for global (1) |
+| **AdelicH1Full.lean** | `RRSpace_proj_ext.*_mem'` | MED | Projective L(D) membership (5) |
 
 ### ⚠️ ARCHITECTURE NOTE: Zero Pairing Strategy
 
@@ -121,59 +125,66 @@ projective L(D) with the degree constraint.
 | RRSpace_ratfunc_eq_bot_of_neg_deg | ✅ | SerreDuality/RatFuncPairing.lean |
 | RRSpace_proj_subsingleton_of_neg_deg | ✅ | SerreDuality/RatFuncPairing.lean |
 | ell_proj_zero_of_neg_deg | ✅ | SerreDuality/RatFuncPairing.lean |
+| ExtendedDivisor | ✅ | SerreDuality/AdelicH1Full.lean |
+| boundedSubmodule_full | ✅ | SerreDuality/AdelicH1Full.lean |
+| globalSubmodule_full | ✅ | SerreDuality/AdelicH1Full.lean |
+| SpaceModule_full | ✅ | SerreDuality/AdelicH1Full.lean |
+| h1_finrank_full | ✅ | SerreDuality/AdelicH1Full.lean |
+| serrePairing_diagonal | ✅ | SerreDuality/AdelicH1Full.lean |
+| serrePairing_diagonal_add_left | ✅ | SerreDuality/AdelicH1Full.lean |
+| serrePairing_diagonal_vanishes_split | ✅ | SerreDuality/AdelicH1Full.lean |
+| canonicalExtended | ✅ | SerreDuality/AdelicH1Full.lean |
+| deg_canonical_extended | ✅ | SerreDuality/AdelicH1Full.lean |
 
 ---
 
-## Next Steps (Cycle 209)
+## Next Steps (Cycle 210)
 
-### 🎯 PRIMARY GOAL: Full Adeles Refactor
+### 🎯 PRIMARY GOAL: Complete Full Adele Infrastructure
 
-**Cycle 208 achieved**: Built projective L(D) infrastructure with infinity constraint.
+**Cycle 209 achieved**: Built `AdelicH1Full.lean` with FullAdele-based H¹(D).
 
-**THE DIMENSION GAP** (both sides must match for Serre duality):
-- **Left side (L(D))**: Now projective with infinity constraint → ℓ_proj(0) = 1 ✓
-- **Right side (H¹(D))**: Still using FiniteAdeleRing (ignores infinity) → h¹_affine(0) = 0 ✗
-- **Mismatch**: Serre duality h¹(D) = ℓ(K-D) would give 0 = 1 for certain D
+**CURRENT STATE** (both sides now architecturally aligned):
+- **Left side (L(D))**: Projective with infinity constraint → ℓ_proj(0) = 1 ✓
+- **Right side (H¹(D))**: Now using FullAdeleRing with infinity bound → h¹_full(D) captures ∞ ✓
+- **Pairing**: `serrePairing_diagonal` defined via `residueSumTotal`
 
-### Cycle 209 Plan: FullAdeleRing Refactor
+### Cycle 210 Plan: Connect Infrastructure
 
-**Step 1: Use FullAdeleRing for H¹(D)**
-- Change AdelicH1v2.SpaceModule to use `FullAdeleRing := FiniteAdeleRing × K_∞`
-- Existing infrastructure in FullAdelesBase.lean (Cycle 122)
-- Define quotient: `𝔸_full / (K + 𝔸_full(D))`
+**Step 1: Fill scalar multiplication sorries in AdelicH1Full.lean**
+- `smul_mem_boundedSubset_full` - Show c • a stays in bounded subset
+- `smul_mem_globalSubset_full` - Show c • k stays in global embedding
+- Key: relate the Fq-module structure to component-wise behavior
 
-**Step 2: Define Global Pairing**
-```lean
-def globalPairing : H¹(D) × L(K-D) → k :=
-  fun (x, f) => ∑_{all v} res_v(x · f)
-```
-- Sum includes residue at infinity
-- Uses existing `residueSumTotal` infrastructure
+**Step 2: Fix RRSpace_proj_ext membership proofs**
+- `zero_mem'` - Handle zero valuation correctly (v(0) = 0 is special)
+- `add_mem'` - Use ultrametric inequality
+- `smul_mem'` - Constants have valuation = 1
 
-**Step 3: Prove Well-Definedness (Global Residue Theorem)**
-- For k ∈ K (global field): `∑_{all v} res_v(k) = 0`
-- Links to Product Formula: sum of orders = 0 for principal divisors
-- Already have `residueSumTotal_splits` for split denominators
+**Step 3: Prove pairing well-definedness**
+- For [a] ∈ H¹(D) and f ∈ L(K-D), show ⟨[a], f⟩ is well-defined
+- Use `serrePairing_diagonal_vanishes_split` for K-part
 
-**Step 4: Connect to Existing Infrastructure**
-- Keep existing FiniteAdeleRing lemmas where possible
-- Add equivalence lemma for genus 0 case
+**Step 4: Connect to existing Serre duality**
+- Show `h1_finrank_full D = ell_proj_ext (K - D)` for extended K
+- Use existing `serre_duality` in Abstract.lean
 
-### ⚠️ WARNING: "Affine H¹" Does NOT Work
+### ⚠️ ARCHITECTURE STATUS
 
-**Do NOT try to skip the FullAdele refactor!** The "affine" H¹ (using FiniteAdeleRing)
-gives h¹(D) = 0 for ALL divisors due to strong approximation. This breaks Serre duality:
+**Completed**:
+- ✅ `FullAdeleRing` definition (Cycle 122)
+- ✅ K discrete in full adeles (Cycle 122)
+- ✅ `SpaceModule_full D` - H¹ using full adeles (Cycle 209)
+- ✅ `serrePairing_diagonal` - Pairing via residue sum (Cycle 209)
+- ✅ `ExtendedDivisor` - Divisors with infinity coefficient (Cycle 209)
 
-For D = K = -2 (canonical divisor):
-- LHS: h¹(K) = h¹(-2) should equal ℓ(K-K) = ℓ(0) = 1
-- Affine H¹ gives: h¹(-2) = 0 (strong approximation kills everything)
-- **Result: 0 ≠ 1** — Contradiction!
+**In Progress**:
+- ⚠️ Scalar multiplication proofs (8 sorries in AdelicH1Full.lean)
+- ⚠️ Product formula connection (3 sorries in ProductFormula.lean)
 
-You MUST use FullAdeleRing to capture the non-trivial cohomology at infinity.
-
-### File Organization (DO NOT grow existing files)
-- `ProductFormula.lean` - NEW, product formula infrastructure (~100 lines)
-- `SerreDuality/AdelicH1Full.lean` - NEW, FullAdele-based H¹
+### File Organization
+- `ProductFormula.lean` - Product formula infrastructure (~100 lines)
+- `SerreDuality/AdelicH1Full.lean` - FullAdele-based H¹ (~400 lines) ✅ NEW
 - `RatFuncPairing.lean` - NO NEW ADDITIONS, just fill existing sorries
 - `Residue.lean` - FROZEN, don't touch
 
@@ -184,6 +195,29 @@ You MUST use FullAdeleRing to capture the non-trivial cohomology at infinity.
 ---
 
 ## Recent Progress
+
+### Cycle 209 - **Full Adele H¹(D) Infrastructure** 🏗️
+- **KEY DELIVERABLE**: Created `SerreDuality/AdelicH1Full.lean` - H¹(D) using full adele ring
+- **Why needed**: The "affine" H¹ using FiniteAdeleRing gives h¹(D) = 0 for ALL D via strong approximation
+  - This breaks Serre duality: h¹(K) should = ℓ(0) = 1, not 0
+  - The full adele ring captures the infinity constraint
+- **New definitions**:
+  - `ExtendedDivisor R` - Divisor with explicit infinity coefficient
+  - `FqFullAdeleRing Fq` = `FiniteAdeleRing × FqtInfty` (from FullAdelesBase)
+  - `boundedSubset_full D` - A_K(D) with both finite and infinity bounds
+  - `globalSubmodule_full` - K embedded diagonally in FullAdeleRing
+  - `SpaceModule_full D` - H¹(D) = FullAdeleRing / (K + A_K(D))
+  - `RRSpace_proj_ext D` - L(D) with infinity constraint for extended divisors
+  - `serrePairing_diagonal` - Pairing via residueSumTotal
+- **New infrastructure**:
+  - `instModuleFqFullAdele` - Fq-module structure on FullAdeleRing
+  - `canonicalExtended Fq` - K = -2·[∞] for P¹ (finite part 0, inftyCoeff = -2)
+  - `deg_canonical_extended` - deg(K) = -2
+  - `serrePairing_diagonal_add_left` - Left additivity of diagonal pairing
+  - `serrePairing_diagonal_vanishes_split` - Residue theorem for pairing
+- **Sorries**: 11 → 22 (+11: 8 new infrastructure, 3 corrected count from Cycle 208)
+- **Build**: ✅ compiles with sorries (2808 jobs)
+- **Next step**: Prove scalar multiplication sorries, connect to existing infrastructure
 
 ### Cycle 208 - **Projective L(D) Infrastructure Built** 🏗️
 - **KEY DELIVERABLE**: Created `RRSpace_ratfunc_projective` - the "projective" L(D) with infinity constraint
@@ -683,17 +717,19 @@ lake build RrLean.RiemannRochV2.SerreDuality
 
 ## File Status
 
-### In Build (2798 jobs)
+### In Build (2808 jobs)
 - `RiemannRochV2.lean` (root)
 - `Basic`, `Divisor`, `RRSpace`, `Typeclasses`
 - `RiemannInequality` ✅
 - `Infrastructure`, `RRDefinitions`
 - `FullAdelesBase`, `FullAdelesCompact` ✅ (1 sorry)
 - `AdelicH1v2` ✅
-- `SerreDuality/` (directory with 3 files):
+- `ProductFormula.lean` ✅ (3 sorries - product formula infrastructure)
+- `SerreDuality/` (directory with 4 files):
   - `Abstract.lean` ✅ (0 sorries - FULLY COMPLETE!)
   - `RatFuncResidues.lean` ✅ (0 sorries)
-  - `RatFuncPairing.lean` ✅ (1 sorry: LRatFunc_eq_zero_of_neg_deg - needs product formula)
+  - `RatFuncPairing.lean` ⚠️ (7 sorries - projective L(D) infrastructure)
+  - `AdelicH1Full.lean` ⚠️ (8 sorries - **NEW** full adele H¹)
 - `Residue.lean` ✅ (2 sorries: residueAtIrreducible, residue_sum_eq_zero)
 - `SerreDuality.lean` ✅ (thin re-export module)
 
