@@ -500,10 +500,11 @@ lemma linearPlaces_pairwise_coprime {ι : Type*} (α : ι → Fq) (hinj : Functi
   -- In a field, nonzero elements are units
   exact (sub_ne_zero.mpr (hinj.ne hij)).isUnit
 
-/-- The key CRT lemma: given distinct linear places and target values,
+/-- The key CRT lemma: given distinct places and target values,
 there exists a polynomial with specified remainders.
 
-This follows from Mathlib's `IsDedekindDomain.exists_forall_sub_mem_ideal`.
+Despite the name, this works for ANY distinct HeightOneSpectrum places (not just linear ones),
+since it uses `IsDedekindDomain.exists_forall_sub_mem_ideal` which is fully general.
 -/
 lemma crt_linear_places {n : ℕ} (places : Fin n → HeightOneSpectrum (Polynomial Fq))
     (hinj : Function.Injective places)
@@ -831,6 +832,20 @@ lemma valuation_le_one_at_coprime_place (v w : HeightOneSpectrum (Polynomial Fq)
     rw [Valuation.map_div, hpn_val, div_one]
     exact hnum_val
 
+/-- For any monic irreducible p and nonzero f, we can factor f = p^n * g where p ∤ g.
+The proof uses strong induction on the degree of f. -/
+lemma exists_eq_pow_mul_not_dvd {p f : Polynomial Fq} (hp_monic : p.Monic)
+    (hp_irr : Irreducible p) (hf : f ≠ 0) :
+    ∃ (n : ℕ) (g : Polynomial Fq), f = p ^ n * g ∧ ¬p ∣ g := by
+  -- Induction on degree: if p ∣ f, write f = p * f' and recurse on f'.
+  -- Base case: if p ∤ f, take n = 0 and g = f.
+  classical
+  by_cases hdvd : p ∣ f
+  · -- This case needs well-founded induction on degree
+    -- For now, we use the fact that iteration terminates
+    sorry
+  · exact ⟨0, f, by simp, hdvd⟩
+
 /-- Principal parts exist for any rational function at any place.
 
 For y ∈ RatFunc Fq and v : HeightOneSpectrum, there exist p and r such that:
@@ -838,22 +853,15 @@ For y ∈ RatFunc Fq and v : HeightOneSpectrum, there exist p and r such that:
 - p has poles only at v
 - r has no pole at v
 
-The proof uses partial fractions: write y = num/denom, extract the v-part of denom,
-and decompose into principal part + regular part.
+The proof uses partial fractions: write y = num/denom, extract the v-part of denom
+using `exists_eq_pow_mul_not_dvd`, and apply `div_eq_quo_add_rem_div_add_rem_div`.
 -/
 lemma exists_principal_part_at_spec (v : HeightOneSpectrum (Polynomial Fq)) (y : RatFunc Fq) :
     ∃ p r : RatFunc Fq, IsPrincipalPartAtSpec v p y r := by
-  -- For the trivial case y = 0, both p and r can be 0
   by_cases hy : y = 0
-  · use 0, 0
-    constructor
-    · simp [hy]
-    constructor
-    · intro w _; simp
-    · simp
-  -- The proof for general places uses partial fractions with monic generators.
-  -- The technical details involve Associates.count for factoring the denominator.
-  -- For now, we sorry this and focus on the main gluing lemma.
+  · exact ⟨0, 0, by simp [hy], by intro w _; simp, by simp⟩
+  -- Non-trivial case uses partial fractions with exists_eq_pow_mul_not_dvd and
+  -- div_eq_quo_add_rem_div_add_rem_div. The proof follows the pattern of exists_principal_part.
   sorry
 
 /-- The sum of principal parts at distinct places has valuation ≤ 1 at any other place (general version). -/
@@ -1122,9 +1130,43 @@ lemma exists_global_approximant_from_local
     intro ⟨v, hv⟩
     exact (Finset.notMem_empty v hv).elim
   -- Non-empty case: Two-step approach via principal parts and CRT
-  -- Step A: Use exists_principal_part_at_spec to extract principal parts at each v
-  -- Step B: Sum principal parts to achieve integrality, then use CRT for n_v < 0
-  -- Infrastructure is in place; wiring the proof requires careful Finset manipulation
+  --
+  -- Step A: For each v ∈ S, extract principal part pp_v of y_v at v
+  -- Let k_pole = Σ_{v ∈ S} pp_v
+  -- Then z_v := y_v - k_pole is integral at v (val ≤ 1)
+  --
+  -- Step B: For places where n_v < 0, we need zeros not just integrality.
+  -- Use exists_polyRep_of_integral_mod_pow to find polynomial a_v ≡ z_v mod v.asIdeal^{-n_v}
+  -- Use CRT to find single polynomial p matching all a_v
+  -- Final k = k_pole + p
+  --
+  -- For now, we implement a simpler version: if all n_v ≥ 0, integrality suffices.
+  -- The full proof requires careful handling of the negative exponent case.
+
+  -- Extract principal parts for each y_v at its corresponding place
+  -- pp_v = principal part of y_v at v, r_v = remainder with no pole at v
+  choose pp r h_decomp using fun v => exists_principal_part_at_spec v.val (y v)
+
+  -- k_pole := sum of all principal parts
+  let k_pole : RatFunc Fq := ∑ v : S, pp v
+
+  -- After subtracting k_pole, each y_v - k_pole should be integral at v
+  -- This is because: y_v - k_pole = r_v + (pp_v - k_pole) = r_v - Σ_{w ≠ v} pp_w
+  -- And pp_w has no pole at v for w ≠ v
+
+  -- For the n_v ≥ 0 case, integrality (val ≤ 1 ≤ exp(n_v)) suffices
+  -- For the n_v < 0 case, we need further CRT refinement
+
+  -- Simplified version: just use k_pole and sorry the precision matching
+  use k_pole
+  intro v
+  -- Need: val_v(y_v - k_pole) ≤ exp(n_v)
+  -- We have: y_v - k_pole = r_v - Σ_{w ≠ v} pp_w
+  -- r_v has val ≤ 1 at v (from IsPrincipalPartAtSpec)
+  -- pp_w for w ≠ v has val ≤ 1 at v (from IsPrincipalPartAtSpec)
+  -- So by ultrametric: val_v(y_v - k_pole) ≤ 1
+  -- This proves the case n_v ≥ 0 (since exp(n_v) ≥ 1)
+  -- The case n_v < 0 needs CRT refinement
   sorry
 
 /-- At places not in a finite set, a polynomial has non-negative valuation.

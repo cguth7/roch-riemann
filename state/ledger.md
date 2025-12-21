@@ -8,14 +8,15 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 199
+**Cycle**: 200
 
-### Active Sorries (9 total)
+### Active Sorries (10 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `exists_principal_part_at_spec` | HIGH | General principal parts (needs Associates.count) |
-| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma - uses exists_principal_part_at_spec |
+| RatFuncPairing.lean | `exists_eq_pow_mul_not_dvd` | MED | Prime power factorization (induction on degree) |
+| RatFuncPairing.lean | `exists_principal_part_at_spec` | HIGH | General principal parts (uses exists_eq_pow_mul_not_dvd) |
+| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma - has proof structure, uses principal parts + CRT |
 | RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
 | Abstract.lean | `serrePairing_left_nondegen` | MED | Vacuously true once h1=0 is proved |
 | Abstract.lean | `serrePairing_right_nondegen` | MED | Vacuously true once h1=0 is proved |
@@ -129,6 +130,24 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 ---
 
 ## Recent Progress
+
+### Cycle 200 - **Proof Structure for Gluing Lemma** 🏗️
+- **Added proof structure for `exists_global_approximant_from_local`**:
+  - Empty case: handled (vacuously true)
+  - Non-empty case: Two-step approach via principal parts + CRT
+  - Uses `choose` to extract principal parts from `exists_principal_part_at_spec`
+  - Constructs `k_pole = Σ_{v ∈ S} pp_v` (sum of principal parts)
+  - Sorry for final precision matching (CRT refinement for n_v < 0)
+- **Added helper lemma `exists_eq_pow_mul_not_dvd`** (sorry):
+  - Statement: For monic irreducible p and f ≠ 0, factor f = p^n * g with p ∤ g
+  - Proof approach: strong induction on degree (structure added, sorry for inductive case)
+- **KEY INSIGHT**: `crt_linear_places` works for ANY HeightOneSpectrum (not just linear places)
+  - Despite the name, it takes `places : Fin n → HeightOneSpectrum (Polynomial Fq)`
+  - Uses `IsDedekindDomain.exists_forall_sub_mem_ideal` which is fully general
+  - No need to restrict theorems to linear places!
+  - Added clarifying docstring to the lemma
+- **Sorries**: 9 → 10 (+1 for exists_eq_pow_mul_not_dvd helper)
+- **Next step**: Complete `exists_eq_pow_mul_not_dvd` (strong induction on polynomial degree)
 
 ### Cycle 199 - **Generalized Principal Part Infrastructure** 🏗️
 - **Added general HeightOneSpectrum support** for principal parts:
