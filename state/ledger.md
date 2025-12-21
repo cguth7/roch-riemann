@@ -8,14 +8,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 201
+**Cycle**: 202
 
-### Active Sorries (8 total)
+### Active Sorries (7 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma - needs Finset sum splitting + ultrametric |
-| RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
+| RatFuncPairing.lean | `strong_approximation_ratfunc` | **CRITICAL** | Key to H¹ vanishing - uses exists_global_approximant_from_local ✅ |
 | Abstract.lean | `serrePairing_left_nondegen` | MED | Vacuously true once h1=0 is proved |
 | Abstract.lean | `serrePairing_right_nondegen` | MED | Vacuously true once h1=0 is proved |
 | Residue.lean | `residueAtIrreducible` | LOW | Placeholder for higher-degree places |
@@ -80,49 +79,32 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 | exists_principal_part_at_spec | ✅ | SerreDuality/RatFuncPairing.lean |
 | denom_not_in_asIdeal_of_integral | ✅ | SerreDuality/RatFuncPairing.lean |
 | exists_polyRep_of_integral_mod_pow | ✅ | SerreDuality/RatFuncPairing.lean |
-| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
+| exists_global_approximant_from_local | ✅ | SerreDuality/RatFuncPairing.lean |
 | strong_approximation_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 | h1_vanishing_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 
 ---
 
-## Next Steps (Cycle 202)
+## Next Steps (Cycle 203)
 
-### 🎯 PRIMARY GOAL: Complete `exists_global_approximant_from_local`
+### 🎯 PRIMARY GOAL: Complete `strong_approximation_ratfunc`
 
-**Infrastructure now COMPLETE (Cycle 201):**
+**`exists_global_approximant_from_local` is now PROVED (Cycle 202)!**
 
-| Lemma | Status | Purpose |
-|-------|--------|---------|
-| `exists_eq_pow_mul_not_dvd` | ✅ | Factor polynomial as p^n * g with p ∤ g |
-| `exists_principal_part_at_spec` | ✅ | Extract principal part at any HeightOneSpectrum |
-| `denom_not_in_asIdeal_of_integral` | ✅ | If val(r) ≤ 1, then r.denom ∉ v.asIdeal |
-| `exists_polyRep_of_integral_mod_pow` | ✅ | Find polynomial a with val(r - a) ≤ exp(-m) |
-| `crt_linear_places` | ✅ | CRT for distinct places |
+The key gluing lemma is complete. The remaining work is to wire it into the strong approximation theorem.
 
-**Remaining work for `exists_global_approximant_from_local`:**
+**Proof strategy for `strong_approximation_ratfunc`:**
 
-1. **Finset sum splitting**: Show `k_pole = pp_v + Σ_{w ≠ v} pp_w`
-2. **Ultrametric bound**: Apply ultrametric to show val_v(y_v - k_pole) ≤ 1
-3. **CRT step** (for n_v < 0): Use `exists_polyRep_of_integral_mod_pow` + `crt_linear_places`
+Given a ∈ FiniteAdeleRing and D ∈ DivisorV2:
 
-**Two-Step Proof Strategy:**
+1. **Extract bad places**: Use restricted product structure to find finite set S where a_v violates the D-bound
+2. **Get local approximants**: For each v ∈ S, use density of K in v.adicCompletion to find y_v ∈ K with val(a_v - y_v) ≤ exp(D(v))
+3. **Apply `exists_global_approximant_from_local`**: Find k ∈ K matching all y_v at places in S
+4. **Verify at all places**:
+   - At v ∈ S: val(a_v - k) ≤ max(val(a_v - y_v), val(y_v - k)) ≤ exp(D(v))
+   - At v ∉ S: a_v is already D-bounded, and k (from global approximant) is integral
 
-**Step A (Principal Parts):** Sum principal parts to remove poles
-- For each v ∈ S, get principal part pp_v(y_v) using `exists_principal_part`
-- Let k_pole = Σ_{v ∈ S} pp_v(y_v)
-- Then y_v - k_pole is **integral** at all v ∈ S
-
-**Step B (CRT Precision):** For places where n_v < 0 (need zeros, not just integrality):
-- Use `exists_polyRep_of_integral_mod_pow` to find polynomial a_v ≡ (y_v - k_pole) mod v.asIdeal^{-n_v}
-- Use `crt_linear_places` to find single p matching all a_v
-- Final k = k_pole + p satisfies the full bound
-
-**Why two steps are needed:**
-- n_v ≥ 0: exp(n_v) ≥ 1, so integrality (val ≤ 1) suffices
-- n_v < 0: exp(n_v) < 1, need to match Taylor coefficients (a zero of order ≥ -n_v)
-
-### Once exists_global_approximant_from_local is proved:
+### Once strong_approximation is proved:
 
 **h1_vanishing**: For deg(D) ≥ -1:
 - Every [a] ∈ H¹(D) has a representative a ∈ FiniteAdeleRing
@@ -137,6 +119,26 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 ---
 
 ## Recent Progress
+
+### Cycle 202 - **KEY MILESTONE: `exists_global_approximant_from_local` PROVED** 🎉
+- **PROVED `exists_global_approximant_from_local`** ✅ - The key gluing lemma!
+  - **Two-case proof structure**:
+    1. **n_v ≥ 0 case**: Integrality (val ≤ 1 ≤ exp(n_v)) suffices
+       - Used `Finset.sum_filter_add_sum_filter_not` to split k_pole = pp_v + Σ_{w≠v} pp_w
+       - Applied ultrametric via `Valuation.map_add_le_max'`
+    2. **n_v < 0 case**: Full CRT refinement
+       - Used `exists_polyRep_of_integral_mod_pow` to get polynomial approximations
+       - Converted S to Fin representation via `Finset.equivFin`
+       - Applied `crt_linear_places` for CRT step
+       - Careful subtype/coercion handling for valuation arguments
+  - **Key technical insights**:
+    - `Submodule.neg_mem` for ideal negation
+    - `intValuation_le_pow_iff_mem` for valuation-to-ideal conversion
+    - Explicit type annotations needed for `valuation_of_algebraMap`
+- **Sorries reduced**: 8 → 7 (−1)
+- **RatFuncPairing.lean**: `exists_global_approximant_from_local` ✅ → 1 sorry remaining
+- **Build**: ✅ compiles with sorries
+- **Next step**: Wire into `strong_approximation_ratfunc`
 
 ### Cycle 201 - **Two Key Lemmas PROVED** 🎉
 - **PROVED `exists_eq_pow_mul_not_dvd`** ✅

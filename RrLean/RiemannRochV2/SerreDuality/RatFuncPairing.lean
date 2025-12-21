@@ -1291,32 +1291,254 @@ lemma exists_global_approximant_from_local
   -- For the n_v ≥ 0 case, integrality (val ≤ 1 ≤ exp(n_v)) suffices
   -- For the n_v < 0 case, we need further CRT refinement
 
-  -- Simplified version: just use k_pole
-  -- This gives integrality (val ≤ 1), sufficient for n_v ≥ 0 case
-  use k_pole
-  intro v
-  -- Need: val_v(y_v - k_pole) ≤ exp(n_v)
-  --
-  -- The key computation is:
-  --   y_v = pp_v + r_v  (from h_decomp)
-  --   k_pole = Σ_{w ∈ S} pp_w = pp_v + Σ_{w ≠ v} pp_w
-  --   y_v - k_pole = r_v - Σ_{w ≠ v} pp_w
-  --
-  -- Valuation analysis at v:
-  --   val_v(r_v) ≤ 1       (r_v has no pole at v, from IsPrincipalPartAtSpec)
-  --   val_v(pp_w) ≤ 1      for w ≠ v (pp_w has poles only at w, from IsPrincipalPartAtSpec)
-  --
-  -- By ultrametric property:
-  --   val_v(y_v - k_pole) ≤ max(val_v(r_v), val_v(Σ pp_w)) ≤ 1
-  --
-  -- This proves the case n_v ≥ 0 (since exp(n_v) ≥ 1).
-  -- For n_v < 0, we need CRT refinement using exists_polyRep_of_integral_mod_pow.
-  --
-  -- REMAINING WORK:
-  -- 1. Finset sum splitting: k_pole = pp_v + Σ_{w ≠ v} pp_w
-  -- 2. Ultrametric bound application
-  -- 3. CRT step for n_v < 0 case (Step B from ledger)
-  sorry
+  -- For the full proof, we handle two cases:
+  -- Case n_v ≥ 0: integrality (val ≤ 1 ≤ exp(n_v)) suffices, k_pole works
+  -- Case n_v < 0: need CRT refinement using exists_polyRep_of_integral_mod_pow
+
+  -- First, prove integrality: ∀ v, val_v(y_v - k_pole) ≤ 1
+  have h_integral : ∀ v : S, (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+      (y v - k_pole) ≤ 1 := by
+    classical
+    intro v
+    -- Split k_pole = pp_v + Σ_{w ∈ S.erase v.val} pp_w using insert/erase
+    have hmem : v.val ∈ S := v.property
+    have hS_eq : S = insert v.val (S.erase v.val) := (Finset.insert_erase hmem).symm
+    have hv_notin : v.val ∉ S.erase v.val := Finset.not_mem_erase v.val S
+    -- We need to show val_v(y_v - k_pole) ≤ 1
+    -- Key insight: y_v - k_pole = (pp_v + r_v) - Σ pp_w = r_v - Σ_{w ≠ v} pp_w
+    -- Since r_v is integral at v, and each pp_w (w ≠ v) is integral at v, the result follows.
+
+    -- val_v(r_v) ≤ 1 from IsPrincipalPartAtSpec
+    have hr_val : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq) (r v) ≤ 1 :=
+      (h_decomp v).2.2
+
+    -- For each w : S with w ≠ v: val_v(pp_w) ≤ 1 (pp_w has poles only at w)
+    have hpp_val : ∀ w : S, w ≠ v →
+        (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq) (pp w) ≤ 1 := by
+      intro w hne
+      -- w.val ≠ v.val, so (h_decomp w).2.1 applies at v.val
+      have hne' : (v : HeightOneSpectrum (Polynomial Fq)) ≠ w.val := by
+        intro heq
+        apply hne
+        exact Subtype.ext heq.symm
+      exact (h_decomp w).2.1 v.val hne'
+
+    -- Now compute: y_v - k_pole = y_v - Σ pp_w = (pp_v + r_v) - Σ pp_w
+    -- Use Finset.sum_eq_single to isolate pp_v from the sum
+    have hsum_eq : k_pole = pp v + ∑ w ∈ Finset.univ.filter (· ≠ v), pp w := by
+      simp only [k_pole]
+      rw [← Finset.sum_filter_add_sum_filter_not (s := Finset.univ) (p := (· = v))]
+      congr 1
+      simp only [Finset.filter_eq', Finset.mem_univ, ↓reduceIte, Finset.sum_singleton]
+
+    -- Rewrite y_v - k_pole
+    have hy_eq : y v - k_pole = r v - ∑ w ∈ Finset.univ.filter (· ≠ v), pp w := by
+      rw [hsum_eq, (h_decomp v).1]
+      ring
+
+    rw [hy_eq]
+
+    -- Bound the sum over w ≠ v
+    have hsum_val : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+        (∑ w ∈ Finset.univ.filter (· ≠ v), pp w) ≤ 1 := by
+      apply Valuation.map_sum_le
+      intro w hw
+      apply hpp_val w
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hw
+      exact hw
+
+    -- val(-sum) = val(sum)
+    have hneg_sum_val : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+        (-(∑ w ∈ Finset.univ.filter (· ≠ v), pp w)) ≤ 1 := by
+      rw [Valuation.map_neg]
+      exact hsum_val
+
+    -- By ultrametric: val(r - sum) ≤ max(val(r), val(-sum)) ≤ 1
+    calc (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+          (r v - ∑ w ∈ Finset.univ.filter (· ≠ v), pp w)
+        ≤ max ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq) (r v))
+              ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+                (-(∑ w ∈ Finset.univ.filter (· ≠ v), pp w))) := by
+          rw [sub_eq_add_neg]
+          exact Valuation.map_add_le_max' _ _ _
+        _ ≤ max 1 1 := max_le_max hr_val hneg_sum_val
+        _ = 1 := max_self 1
+
+  -- Now handle the two cases based on n_v
+  -- For n_v ≥ 0, integrality suffices. For n_v < 0, we need CRT.
+
+  -- Check if all n_v ≥ 0 using Classical decidability
+  by_cases hnonneg : ∀ v : S, n v ≥ 0
+  · -- All n_v ≥ 0: k_pole suffices
+    use k_pole
+    intro v
+    -- exp(n_v) ≥ 1 since n_v ≥ 0
+    have hexp_ge : WithZero.exp (n v) ≥ 1 := by
+      simp only [ge_iff_le, ← WithZero.exp_zero]
+      exact WithZero.exp_le_exp.mpr (hnonneg v)
+    exact le_trans (h_integral v) hexp_ge
+
+  · -- Some n_v < 0: need CRT refinement
+    -- For each v with n_v < 0, use exists_polyRep_of_integral_mod_pow to get polynomial a_v
+    -- such that val_v((y_v - k_pole) - a_v) ≤ exp(n_v)
+    -- Then use CRT to find p matching all a_v
+
+    -- Define z_v = y_v - k_pole (integral at v by h_integral)
+    let z : S → RatFunc Fq := fun v => y v - k_pole
+
+    -- For each v, get polynomial approximation (if n_v < 0, use exists_polyRep_of_integral_mod_pow)
+    -- For n_v ≥ 0, any polynomial works (we use 0)
+    have h_poly_approx : ∀ v : S, ∃ a : Polynomial Fq,
+        (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+          (z v - algebraMap (Polynomial Fq) (RatFunc Fq) a) ≤ WithZero.exp (n v) := by
+      intro v
+      by_cases hn : n v < 0
+      · -- n_v < 0: use exists_polyRep_of_integral_mod_pow with m = -n_v
+        have hm_eq : ((-n v).toNat : ℤ) = -n v := Int.toNat_of_nonneg (by omega)
+        obtain ⟨a, ha⟩ := exists_polyRep_of_integral_mod_pow v.val (z v) (h_integral v)
+          (-n v).toNat
+        use a
+        calc (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+              (z v - algebraMap (Polynomial Fq) (RatFunc Fq) a)
+            ≤ WithZero.exp (-((-n v).toNat : ℤ)) := ha
+          _ = WithZero.exp (n v) := by rw [hm_eq]; ring_nf
+      · -- n_v ≥ 0: integrality suffices, use a = 0
+        push_neg at hn
+        use 0
+        simp only [map_zero, sub_zero]
+        calc (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq) (z v)
+            ≤ 1 := h_integral v
+          _ ≤ WithZero.exp (n v) := by
+              simp only [← WithZero.exp_zero]
+              exact WithZero.exp_le_exp.mpr hn
+
+    -- Use classical choice to get polynomial approximations for all v
+    choose a_poly h_a_poly using h_poly_approx
+
+    -- Now use CRT to find p matching all a_poly modulo the appropriate powers
+    -- Convert S to Fin (S.card) representation for crt_linear_places
+    have hS_card : 0 < S.card := Finset.card_pos.mpr hS
+    let S_equiv := S.equivFin
+    let places : Fin S.card → HeightOneSpectrum (Polynomial Fq) := fun i => (S_equiv.symm i).val
+    have hinj : Function.Injective places := by
+      intro i j hij
+      simp only [places] at hij
+      have heq := Subtype.ext hij
+      exact S_equiv.symm.injective heq
+    let exponents : Fin S.card → ℕ := fun i =>
+      if n (S_equiv.symm i) < 0 then (-n (S_equiv.symm i)).toNat else 0
+    let targets : Fin S.card → Polynomial Fq := fun i => a_poly (S_equiv.symm i)
+
+    obtain ⟨p, hp⟩ := crt_linear_places places hinj exponents targets
+
+    -- k = k_pole + algebraMap p
+    let k := k_pole + algebraMap (Polynomial Fq) (RatFunc Fq) p
+
+    use k
+    intro v
+
+    -- Need: val_v(y_v - k) ≤ exp(n_v)
+    -- y_v - k = y_v - k_pole - p = z_v - p
+    have heq : y v - k = z v - algebraMap (Polynomial Fq) (RatFunc Fq) p := by
+      simp only [k, z]
+      ring
+
+    rw [heq]
+
+    -- Get the index i corresponding to v
+    let i := S_equiv v
+
+    -- z_v - p = (z_v - a_v) + (a_v - p)
+    have hsplit : z v - algebraMap (Polynomial Fq) (RatFunc Fq) p =
+        (z v - algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v)) +
+        (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+         algebraMap (Polynomial Fq) (RatFunc Fq) p) := by ring
+
+    rw [hsplit]
+
+    by_cases hn : n v < 0
+    · -- n_v < 0: use CRT bound
+      -- hp i says: p - targets i ∈ (places i).asIdeal ^ (exponents i)
+      -- Since S_equiv.symm i = v, we have places i = v.val and targets i = a_poly v
+      have hi_eq : S_equiv.symm i = v := S_equiv.symm_apply_apply v
+      -- Rewrite hp i in terms of v
+      have hp_v : p - a_poly v ∈ (v : HeightOneSpectrum (Polynomial Fq)).asIdeal ^ (-n v).toNat := by
+        have hp_i := hp i
+        -- places i = (S_equiv.symm i).val = v.val
+        have hpl : places i = v.val := by simp only [places, hi_eq]
+        -- targets i = a_poly (S_equiv.symm i) = a_poly v
+        have htar : targets i = a_poly v := by simp only [targets, hi_eq]
+        -- exponents i = (-n v).toNat since n v < 0
+        have hexp : exponents i = (-n v).toNat := by simp only [exponents, hi_eq, hn, ↓reduceIte]
+        rw [hpl, htar, hexp] at hp_i
+        exact hp_i
+      -- val_v(a_v - p) ≤ exp(-(-n_v).toNat) = exp(n_v)
+      have ha_p_val : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+           algebraMap (Polynomial Fq) (RatFunc Fq) p) ≤ WithZero.exp (n v) := by
+        rw [← map_sub]
+        have hmem : a_poly v - p ∈ (v : HeightOneSpectrum (Polynomial Fq)).asIdeal ^ (-n v).toNat := by
+          have hneg : a_poly v - p = -(p - a_poly v) := by ring
+          rw [hneg]
+          exact Submodule.neg_mem _ hp_v
+        have hval : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+            (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v - p)) =
+            ((v : HeightOneSpectrum (Polynomial Fq)).intValuation (a_poly v - p) : WithZero (Multiplicative ℤ)) :=
+          (v : HeightOneSpectrum (Polynomial Fq)).valuation_of_algebraMap (a_poly v - p)
+        rw [hval]
+        -- intValuation of element in ideal^m is ≤ exp(-m)
+        have hpow : (v : HeightOneSpectrum (Polynomial Fq)).intValuation (a_poly v - p) ≤
+            WithZero.exp (-((-n v).toNat : ℤ)) :=
+          ((v : HeightOneSpectrum (Polynomial Fq)).intValuation_le_pow_iff_mem
+            (a_poly v - p) ((-n v).toNat)).mpr hmem
+        calc (v : HeightOneSpectrum (Polynomial Fq)).intValuation (a_poly v - p)
+            ≤ WithZero.exp (-((-n v).toNat : ℤ)) := hpow
+          _ = WithZero.exp (n v) := by
+              congr 1
+              have hnn : ((-n v).toNat : ℤ) = -n v := Int.toNat_of_nonneg (by omega)
+              omega
+      -- Combine using ultrametric
+      calc (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+            ((z v - algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v)) +
+             (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+              algebraMap (Polynomial Fq) (RatFunc Fq) p))
+          ≤ max ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+                  (z v - algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v)))
+                ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+                  (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+                   algebraMap (Polynomial Fq) (RatFunc Fq) p)) :=
+            Valuation.map_add_le_max' _ _ _
+        _ ≤ max (WithZero.exp (n v)) (WithZero.exp (n v)) :=
+            max_le_max (h_a_poly v) ha_p_val
+        _ = WithZero.exp (n v) := max_self _
+
+    · -- n_v ≥ 0: use integrality
+      push_neg at hn
+      -- val_v(z_v - a_v) ≤ exp(n_v) by h_a_poly
+      -- val_v(a_v - p) ≤ 1 ≤ exp(n_v) since both are polynomials
+      have hpoly_val : (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+          (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+           algebraMap (Polynomial Fq) (RatFunc Fq) p) ≤ 1 := by
+        rw [← map_sub]
+        -- Polynomials have valuation ≤ 1 at all finite places
+        rw [(v : HeightOneSpectrum (Polynomial Fq)).valuation_of_algebraMap]
+        exact_mod_cast (v : HeightOneSpectrum (Polynomial Fq)).intValuation_le_one _
+      have hexp_ge : (1 : WithZero (Multiplicative ℤ)) ≤ WithZero.exp (n v) := by
+        simp only [← WithZero.exp_zero]
+        exact WithZero.exp_le_exp.mpr hn
+      calc (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+            ((z v - algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v)) +
+             (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+              algebraMap (Polynomial Fq) (RatFunc Fq) p))
+          ≤ max ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+                  (z v - algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v)))
+                ((v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq)
+                  (algebraMap (Polynomial Fq) (RatFunc Fq) (a_poly v) -
+                   algebraMap (Polynomial Fq) (RatFunc Fq) p)) :=
+            Valuation.map_add_le_max' _ _ _
+        _ ≤ max (WithZero.exp (n v)) 1 := max_le_max (h_a_poly v) hpoly_val
+        _ ≤ max (WithZero.exp (n v)) (WithZero.exp (n v)) := max_le_max le_rfl hexp_ge
+        _ = WithZero.exp (n v) := max_self _
 
 /-- At places not in a finite set, a polynomial has non-negative valuation.
 Polynomials are integral at all finite places. -/

@@ -195,7 +195,7 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - Weak approximation
 - Cycles 76-155
 
-### Phase 3: Serre Duality (Current - Cycle 192)
+### Phase 3: Serre Duality (Current - Cycle 202)
 
 **Completed:**
 - Residue at X (X-adic) via HahnSeries.coeff(-1) ✅
@@ -208,12 +208,15 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 - K-part of well-definedness (globalSubmodule → 0) ✅
 - CRT for linear places (`crt_linear_places`) ✅
 - Pairwise coprimality of linear place ideals ✅
+- Principal part extraction (`exists_principal_part_at_spec`) ✅
+- Polynomial representative for integral ratfuncs (`exists_polyRep_of_integral_mod_pow`) ✅
+- **KEY: Global approximant gluing (`exists_global_approximant_from_local`) ✅**
 
 **In Progress - Strong Approximation:**
 - Statement added: `strong_approximation_ratfunc` (sorry)
 - Key lemma: For any finite adele a, exists k ∈ K with a - diag(k) ∈ A_K(D)
-- Proof strategy: Use CRT to construct polynomial matching adele at bad places
-- Technical gap: connecting adicCompletion to ideal quotients
+- **Gluing lemma now proved**: `exists_global_approximant_from_local` ✅
+- Remaining: Wire gluing lemma into strong approximation via local density
 
 **Blocked On:**
 - `strong_approximation_ratfunc` → unlocks `h1_vanishing_ratfunc`
@@ -222,7 +225,7 @@ lemma riemann_inequality_affine [BaseDim R K] {D : DivisorV2 R} (hD : D.Effectiv
 
 ---
 
-## Strong Approximation Details (Cycle 192)
+## Strong Approximation Details (Updated Cycle 202)
 
 ### FiniteAdeleRing Structure
 
@@ -277,17 +280,21 @@ Given `a : FiniteAdeleRing (Polynomial Fq) (RatFunc Fq)` and `D : DivisorV2`:
 
 4. **Verify**: Show `∀ v, Valued.v ((a - diag p)_v) ≤ WithZero.exp (D v)`
 
-### Technical Gap
+### Technical Gap (RESOLVED in Cycle 202)
 
-The missing piece is the connection:
-```
-v.adicCompletion K ←→ R / v.asIdeal^n (for large n)
-```
+The gluing lemma `exists_global_approximant_from_local` is now **PROVED**!
 
-Possible approaches:
-- Use `ValuationSubring` and `Valuation.map` properties
-- For RatFunc Fq specifically: use Laurent series structure directly
-- Look for `IsDedekindDomain.quotientEquivPiSpanPowQuot` or similar
+**Key insight**: Work directly with K (RatFunc Fq), not completions:
+1. Use `exists_principal_part_at_spec` to extract principal parts at each place
+2. Sum principal parts to get `k_pole` with integrality at all places
+3. For n_v < 0 (need zeros, not just integrality):
+   - Use `exists_polyRep_of_integral_mod_pow` to get polynomial approximations
+   - Apply CRT via `crt_linear_places` to find matching polynomial
+4. Final `k = k_pole + algebraMap p` satisfies all bounds
+
+**Remaining for strong_approximation_ratfunc**:
+- Extract local approximants from adele components using density of K in completions
+- Apply `exists_global_approximant_from_local` to glue them
 
 ---
 
