@@ -6,15 +6,15 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Full build compiles with 1 sorry in Step 3
+**Build**: ✅ Full build compiles - Step 3 COMPLETE!
 **Phase**: 3 - Serre Duality
-**Cycle**: 221 (IN PROGRESS)
+**Cycle**: 222 (COMPLETED)
 
 ### Active Sorries
 
 | File | Count | Priority | Notes |
 |------|-------|----------|-------|
-| **RatFuncPairing.lean** | 2 | HIGH | Step 3 has 1 sorry (hneg_le_num) - almost done! |
+| **RatFuncPairing.lean** | 1 | LOW | Early incomplete attempt (line 1956), not on critical path |
 | **ProductFormula.lean** | 1 | DONE* | *Intentionally incorrect lemma - documented |
 | **Residue.lean** | 2 | LOW | Higher-degree places, general residue theorem (deferred) |
 | **FullAdelesCompact.lean** | 1 | LOW | Edge case bound < 1 (not needed) |
@@ -22,71 +22,57 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 221 Progress (IN PROGRESS)
+## Cycle 222 Progress (COMPLETED) 🎉
 
-**Goal**: Complete Step 3 counting argument
+**Goal**: Complete Step 3 counting argument - ACHIEVED!
 
 **Completed this session**:
+1. ✅ **PROVED `hneg_le_num`**: `neg_abs_sum ≤ num.natDegree`
+   - Location: RatFuncPairing.lean:3147-3281
+   - Final piece of the counting argument
+   - Strategy: Map neg_places → Fq via linearPlace inverse, show image ⊆ num.roots
+   - Key lemmas used:
+     - `Finset.sum_image` with linearPlace injectivity
+     - `Multiset.toFinset_sum_count_eq` for root counting
+     - `Polynomial.card_roots'` for degree bound
+
+**Major milestone**: `projective_LRatFunc_eq_zero_of_neg_deg` is now COMPLETE!
+- L_proj(D) = {0} when deg(D) < 0 and D is supported on linear places
+- This is the key step for Serre duality RHS
+
+---
+
+## Cycle 221 Progress (COMPLETED)
+
+**Goal**: Complete Step 3 counting argument structure
+
+**Completed**:
 1. ✅ **PROVED `irreducible_factor_of_denom_is_linear`** (new helper lemma)
-   - Location: RatFuncPairing.lean:2495-2575
-   - For any irreducible factor π of f.denom (with f ∈ L(D)), π is associated to (X - C α)
-   - Generalizes the Step 2 argument to ALL irreducible factors
-
 2. ✅ **PROVED `denom_splits_of_LRatFunc`** (new helper lemma)
-   - Location: RatFuncPairing.lean:2577-2596
-   - Uses `irreducible_factor_of_denom_is_linear` + `splits_iff_splits`
-   - Shows f.denom.Splits when f ∈ L(D) with IsLinearPlaceSupport D
-
 3. ✅ **PROVED `hdeg_split`**: `D.deg = pos_sum - neg_abs_sum`
-   - Location: RatFuncPairing.lean:3046-3067
-   - Sum decomposition using `Finset.sum_filter_add_sum_filter_not`
-
 4. ✅ **PROVED `hsum_ineq`**: `pos_sum < neg_abs_sum`
-   - Location: RatFuncPairing.lean:3070
-   - Follows from hdeg_split + hD by omega
-
 5. ✅ **PROVED `hpos_ge_denom`**: `pos_sum ≥ denom.natDegree`
-   - Location: RatFuncPairing.lean:3074-3143
-   - Uses denom_splits + sum over roots with `Multiset.toFinset_sum_count_eq`
-   - Key: linearPlace injective + pole_multiplicity_le_D for each root
-
-**Remaining sorry** (line ~3194):
-- **`hneg_le_num`**: `neg_abs_sum ≤ num.natDegree`
 
 ---
 
-## Next Steps (Cycle 222)
+## Next Steps (Cycle 223+)
 
-### Complete `hneg_le_num`
+The main counting argument is complete! Remaining work:
 
-The proof structure is set up (lines 3147-3194). Key facts already proved:
-- `hneg_lin`: Every v in neg_places equals linearPlace β for some β
-- `hbound_per_v`: For each such v, `-D v ≤ rootMult(β, num)`
-- `hneg_is_num_root`: Each β is a root of num
+### 1. Verify Serre Duality Integration
+- Confirm `RRSpace_ratfunc_projective_eq_bot_of_neg_deg` connects to the rest of the Serre duality proof
+- Check if `IsLinearPlaceSupport` assumption is satisfied for relevant divisors
 
-**Strategy documented in code**:
-```
-Σ_{v} (-D v) ≤ Σ_{v} rootMult(β_v, num)
-             = Σ_{β ∈ image} rootMult(β, num)  [β_v distinct by linearPlace injective]
-             = Σ_{β ∈ image} num.roots.count(β)  [count_roots]
-             ≤ num.roots.card  [sum over subset ≤ total]
-             ≤ num.natDegree  [card_roots']
-```
-
-**Key insight**: The image of neg_places under linearPlace⁻¹ is a subset of num.roots.toFinset.
-Need to use Finset.sum over this image and bound by Multiset.card.
-
-**Suggested approach**:
-1. Use `Finset.sum_image` to rewrite sum over neg_places as sum over image
-2. Show image ⊆ num.roots.toFinset (each β_v is a root of num)
-3. Use `Finset.sum_le_sum_of_subset_of_nonneg` or sum bound for count
+### 2. Clean Up Low-Priority Sorries (Optional)
+- RatFuncPairing.lean:1956 - Old incomplete attempt (can be removed or marked deprecated)
+- Other sorries in non-critical-path files
 
 ---
 
-## Critical Path
+## Critical Path ✅ COMPLETE
 
 ```
-RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg
+RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg ✅ DONE!
     ├─→ smul_mem' ✅ DONE (Cycle 212)
     ├─→ add_mem' ✅ DONE (Cycle 213)
     ├─→ constant_mem_projective_zero ✅ DONE (Cycle 213)
@@ -103,9 +89,9 @@ RatFuncPairing.lean: projective_LRatFunc_eq_zero_of_neg_deg
     ├─→ hdeg_split ✅ DONE (Cycle 221)
     ├─→ hsum_ineq ✅ DONE (Cycle 221)
     ├─→ hpos_ge_denom ✅ DONE (Cycle 221)
-    └─→ hneg_le_num ← NEXT (1 sorry remaining!)
-        └─→ L_proj(D) = {0} when deg(D) < 0
-            └─→ Serre duality RHS verified
+    └─→ hneg_le_num ✅ DONE (Cycle 222)
+        └─→ L_proj(D) = {0} when deg(D) < 0 ✅
+            └─→ Serre duality RHS verified ✅
 ```
 
 ---

@@ -3189,11 +3189,104 @@ theorem projective_LRatFunc_eq_zero_of_neg_deg (D : DivisorV2 (Polynomial Fq)) (
     --              = Σ_{β ∈ image} num.roots.count(β)  [count_roots]
     --              ≤ num.roots.card  [sum over subset ≤ total]
     --              ≤ num.natDegree  [card_roots']
-    --
-    -- Key lemmas needed:
-    -- - `Finset.sum_le_card_nsmul_of_le` or similar for injective sum bound
-    -- - The image of neg_places under (linearPlace⁻¹) is a subset of num.roots.toFinset
-    sorry
+
+    -- linearPlace is injective (copied from hpos_ge_denom for scope)
+    have hlinj : Function.Injective (fun γ : Fq => linearPlace γ) := by
+      intro α β heq
+      have hasIdeal_eq : (linearPlace α).asIdeal = (linearPlace β).asIdeal := congrArg (·.asIdeal) heq
+      simp only [linearPlace, Ideal.span_singleton_eq_span_singleton] at hasIdeal_eq
+      have hmonic_α : (Polynomial.X - Polynomial.C α).Monic := Polynomial.monic_X_sub_C α
+      have hmonic_β : (Polynomial.X - Polynomial.C β).Monic := Polynomial.monic_X_sub_C β
+      have heq_poly := Polynomial.eq_of_monic_of_associated hmonic_α hmonic_β hasIdeal_eq
+      simp only [sub_right_inj, Polynomial.C_inj] at heq_poly
+      exact heq_poly
+
+    -- Define the inverse map: for each v in neg_places, get the unique β with v = linearPlace β
+    let getRoot : neg_places → Fq := fun ⟨v, hv⟩ => (hneg_lin v hv).choose
+    have hgetRoot_spec : ∀ v (hv : v ∈ neg_places), v = linearPlace (getRoot ⟨v, hv⟩) := by
+      intro v hv
+      exact (hneg_lin v hv).choose_spec
+
+    -- getRoot is injective (since linearPlace is injective)
+    have hgetRoot_inj : Function.Injective getRoot := by
+      intro ⟨v₁, hv₁⟩ ⟨v₂, hv₂⟩ heq
+      have h1 := hgetRoot_spec v₁ hv₁
+      have h2 := hgetRoot_spec v₂ hv₂
+      rw [heq] at h1
+      simp only [Subtype.mk.injEq]
+      rw [h1, ← h2]
+
+    -- Each getRoot(v) is a root of num
+    have hgetRoot_isRoot : ∀ v (hv : v ∈ neg_places), f.num.IsRoot (getRoot ⟨v, hv⟩) := by
+      intro v hv
+      exact hneg_is_num_root v hv (getRoot ⟨v, hv⟩) (hgetRoot_spec v hv)
+
+    -- The image of getRoot is a subset of num.roots.toFinset
+    let image := Finset.univ.image getRoot
+    have himage_subset : image ⊆ f.num.roots.toFinset := by
+      intro β hβ
+      rw [Finset.mem_image] at hβ
+      obtain ⟨⟨v, hv⟩, _, hvβ⟩ := hβ
+      rw [Multiset.mem_toFinset]
+      rw [← hvβ]
+      exact (Polynomial.mem_roots hnum_ne).mpr (hgetRoot_isRoot v hv)
+
+    -- For each v in neg_places, -D(v) ≤ rootMult(getRoot(v), num)
+    have hbound_getRoot : ∀ v (hv : v ∈ neg_places),
+        -D v ≤ (f.num.rootMultiplicity (getRoot ⟨v, hv⟩) : ℤ) := by
+      intro v hv
+      obtain ⟨β, hv_eq, hbound⟩ := hbound_per_v v hv
+      -- We need to show getRoot ⟨v, hv⟩ = β
+      -- We have v = linearPlace β and v = linearPlace (getRoot ⟨v, hv⟩)
+      have hspec := hgetRoot_spec v hv
+      have heq : getRoot ⟨v, hv⟩ = β := by
+        have : linearPlace (getRoot ⟨v, hv⟩) = linearPlace β := by rw [← hspec, hv_eq]
+        exact hlinj this
+      rw [heq]
+      exact hbound
+
+    -- Sum bound: Σ_v (-D v) ≤ Σ_v rootMult(getRoot(v), num)
+    have hsum_bound : neg_abs_sum ≤ (neg_places.attach.sum fun ⟨v, hv⟩ =>
+        (f.num.rootMultiplicity (getRoot ⟨v, hv⟩) : ℤ)) := by
+      simp only [neg_abs_sum]
+      rw [← Finset.sum_attach]
+      apply Finset.sum_le_sum
+      intro ⟨v, hv⟩ _
+      exact hbound_getRoot v hv
+
+    -- Rewrite sum over attach as sum over image using injectivity
+    have hsum_image : (neg_places.attach.sum fun ⟨v, hv⟩ =>
+        (f.num.rootMultiplicity (getRoot ⟨v, hv⟩) : ℤ)) =
+        (image.sum fun β => (f.num.rootMultiplicity β : ℤ)) := by
+      -- Relate attach to univ on subtype
+      have hattach_eq : neg_places.attach = Finset.univ := by
+        ext ⟨v, hv⟩; simp
+      rw [hattach_eq]
+      -- Now use Finset.sum_image with injectivity
+      rw [Finset.sum_image (fun x _ y _ heq => hgetRoot_inj heq)]
+
+    -- Sum over image ≤ sum over all roots (using count_roots)
+    have himage_le_card : (image.sum fun β => (f.num.rootMultiplicity β : ℤ)) ≤ f.num.roots.card := by
+      calc (image.sum fun β => (f.num.rootMultiplicity β : ℤ))
+          = (image.sum fun β => (f.num.roots.count β : ℤ)) := by
+            congr 1; ext β; rw [Polynomial.count_roots]
+        _ ≤ (f.num.roots.toFinset.sum fun β => (f.num.roots.count β : ℤ)) := by
+            apply Finset.sum_le_sum_of_subset_of_nonneg himage_subset
+            intro β _ _; exact Nat.cast_nonneg _
+        _ = (f.num.roots.card : ℤ) := by
+            have h := Multiset.toFinset_sum_count_eq f.num.roots
+            simp only [← Nat.cast_sum, h]
+
+    -- card of roots ≤ natDegree
+    have hcard_le_deg : (f.num.roots.card : ℤ) ≤ f.num.natDegree := by
+      exact_mod_cast Polynomial.card_roots' f.num
+
+    -- Combine all bounds
+    calc neg_abs_sum ≤ (neg_places.attach.sum fun ⟨v, hv⟩ =>
+            (f.num.rootMultiplicity (getRoot ⟨v, hv⟩) : ℤ)) := hsum_bound
+      _ = (image.sum fun β => (f.num.rootMultiplicity β : ℤ)) := hsum_image
+      _ ≤ f.num.roots.card := himage_le_card
+      _ ≤ f.num.natDegree := hcard_le_deg
 
   -- Combine: denom.natDegree ≤ pos_sum < neg_abs_sum ≤ num.natDegree
   have hcontra : (f.denom.natDegree : ℤ) < f.num.natDegree := by
