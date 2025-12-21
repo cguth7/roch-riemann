@@ -8,13 +8,14 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 193
+**Cycle**: 194
 
-### Active Sorries (8 total)
+### Active Sorries (9 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Key: CRT-based approximation |
+| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma for partial fractions |
+| RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
 | RatFuncPairing.lean | `h1_vanishing_ratfunc` | HIGH | Follows from strong_approximation |
 | RatFuncPairing.lean | `h1_finrank_zero_of_large_deg` | HIGH | Finrank version of h1_vanishing |
 | Abstract.lean | `serrePairing_left_nondegen` | MED | Vacuously true once h1=0 is proved |
@@ -66,57 +67,60 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 | crt_linear_places | ✅ | SerreDuality/RatFuncPairing.lean |
 | exists_local_approximant_with_bound | ✅ | SerreDuality/RatFuncPairing.lean |
 | polynomial_preserves_integrality | ✅ | SerreDuality/RatFuncPairing.lean |
+| polynomial_integral_outside | ✅ | SerreDuality/RatFuncPairing.lean |
+| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
 | strong_approximation_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 | h1_vanishing_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 
 ---
 
-## Next Steps (Cycle 194)
+## Next Steps (Cycle 195)
 
-### 🎯 PRIMARY GOAL: Complete `strong_approximation_ratfunc`
+### 🎯 PRIMARY GOAL: Complete `exists_global_approximant_from_local`
 
-**Infrastructure Ready:**
-- ✅ `crt_linear_places` - CRT for distinct places with specified remainders mod ideal powers
-- ✅ `linearPlaces_pairwise_coprime` - Linear places have pairwise coprime ideals
-- ✅ `IsDedekindDomain.exists_forall_sub_mem_ideal` - Mathlib CRT for Dedekind domains
-- ✅ `exists_local_approximant_with_bound` - Local approximation with arbitrary valuation bounds (NEW)
-- ✅ `polynomial_preserves_integrality_at_integral_place` - Polynomials preserve integrality (NEW)
+This is the **key blocking lemma** for strong approximation. It states that given local approximants at finitely many places, we can find a single global element that simultaneously approximates all of them.
 
-**FiniteAdeleRing Structure (Key Insight):**
-
+**Statement:**
 ```lean
--- Definition (restricted product):
-def FiniteAdeleRing : Type _ :=
-  Πʳ v : HeightOneSpectrum R, [v.adicCompletion K, v.adicCompletionIntegers K]
-
--- An element a : FiniteAdeleRing R K has:
--- • a.1 : (v : HeightOneSpectrum R) → v.adicCompletion K  (the function)
--- • a.2 : ∀ᶠ v in cofinite, a v ∈ v.adicCompletionIntegers K  (proof of finite non-integrality)
-
--- Access component: a v  (via DFunLike coercion)
--- Diagonal embedding: diagonalK R K : K →+* FiniteAdeleRing R K
+lemma exists_global_approximant_from_local
+    (S : Finset (HeightOneSpectrum (Polynomial Fq)))
+    (y : S → RatFunc Fq)  -- local approximants
+    (n : S → ℤ)           -- target bounds
+    : ∃ k : RatFunc Fq, ∀ v : S,
+        v.valuation (RatFunc Fq) (y v - k) ≤ WithZero.exp (n v)
 ```
 
-**Proof Strategy for `strong_approximation_ratfunc`:**
+**Proof Strategy via Partial Fractions:**
 
-1. **Extract bad places**: Given `a : FiniteAdeleRing`, use `a.2` to get the finite set S of places where `a` is non-integral or exceeds the divisor bound D.
+1. **Decompose each y_v**: For each v ∈ S, use Mathlib's `div_eq_quo_add_sum_rem_div` to write:
+   - `y_v = polynomial + ∑_w r_{v,w} / (irreducible for w)^{e_{v,w}}`
 
-2. **Truncation in completions**: For each v ∈ S, the element `a v ∈ v.adicCompletion K` can be approximated by elements of K. The key is that `v.adicCompletion K` is the completion of K at v, so K is dense.
+2. **Extract principal parts**: For each v, the "principal part at v" is:
+   - `PP_v(y_v) = r_{v,v} / (irreducible for v)^{e_{v,v}}`
+   - This has pole ONLY at v, no poles at other places
 
-3. **Apply CRT**: Use `crt_linear_places` to find `p : Polynomial Fq` such that for each bad place v:
-   - `p ≡ (approximation of a_v)` mod `v.asIdeal ^ n` for suitable n
+3. **Construct k**: Set `k = ∑_{v ∈ S} PP_v(y_v)`
 
-4. **Verify boundedness**: Show that `(a - diag(p))_v` has valuation ≤ exp(D(v)) for all v:
-   - For v ∈ S: by construction of p
-   - For v ∉ S: `a_v` was already bounded, and `diag(p)_v` is integral
+4. **Verify**: At each v ∈ S:
+   - `val_v(y_v - k) ≤ exp(n_v)` because PP_v(y_v) matches y_v at v
+   - Principal parts at w ≠ v don't affect valuation at v (they're integral there)
 
-**Technical Gap:**
-The connection between `v.adicCompletion K` and quotients `R / v.asIdeal^n` is not explicit in Mathlib. May need:
-- `ValuationSubring` properties
-- Direct construction using Laurent series structure for Polynomial Fq
+**Key Lemmas Needed:**
 
-**Alternative Approach (Simpler for RatFunc Fq):**
-For `K = RatFunc Fq`, every place corresponds to a monic irreducible in `Polynomial Fq`. The completion `v.adicCompletion K` is a field of Laurent series. Elements with bounded valuation can be approximated by polynomials. This is essentially the partial fractions decomposition.
+1. **Principal part extraction** for RatFunc at linear places:
+   - Define `principalPart (α : Fq) (y : RatFunc Fq) : RatFunc Fq`
+   - Pole only at (X - α), no poles elsewhere
+
+2. **Non-interference**: For α ≠ β:
+   - `val_{(X-α)} (principalPart β y) ≥ 0`
+
+3. **Matching property**:
+   - `val_{(X-α)} (y - principalPart α y) ≥ 0` (pole canceled)
+
+**Mathlib Resources:**
+- `Mathlib.Algebra.Polynomial.PartialFractions` - `div_eq_quo_add_sum_rem_div`
+- `Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas` - CRT
+- `RatFunc.mk`, `RatFunc.num`, `RatFunc.denom` for decomposition
 
 ### Once strong_approximation is proved:
 
@@ -133,6 +137,25 @@ For `K = RatFunc Fq`, every place corresponds to a monic irreducible in `Polynom
 ---
 
 ## Recent Progress
+
+### Cycle 194 - **Identified Key Gluing Lemma** 🚧
+- **Key insight**: The blocking piece is `exists_global_approximant_from_local`
+  - Given local approximants y_v at distinct places, find single k ∈ K approximating all
+  - This is the "gluing" step that requires partial fractions
+- Added `exists_global_approximant_from_local` lemma (sorry)
+  - Statement: For S finite, y : S → K, n : S → ℤ, exists k with val_v(y_v - k) ≤ exp(n_v)
+  - Empty case handled (vacuously true)
+  - Non-empty case requires partial fractions decomposition
+- Added `polynomial_integral_outside` ✅
+  - Polynomials are integral at all finite places
+- Refactored strong_approximation to depend on exists_global_approximant_from_local
+- Updated documentation with detailed proof strategy via partial fractions:
+  1. Decompose each y_v via `div_eq_quo_add_sum_rem_div`
+  2. Extract principal part at v from each y_v
+  3. Sum principal parts to get k
+  4. Principal parts at different places don't interfere
+- Sorries: 8 → 9 (decomposed into finer-grained lemma)
+- **Next step**: Define `principalPart` function and prove its properties
 
 ### Cycle 193 - **Local Approximation with Bounds** ✅
 - Added import: `RrLean.RiemannRochV2.FullAdelesCompact` for exists_local_approximant

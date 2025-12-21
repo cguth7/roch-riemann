@@ -521,6 +521,52 @@ lemma crt_linear_places {n : ℕ} (places : Fin n → HeightOneSpectrum (Polynom
     (fun i => (places i).asIdeal) exponents hprime hcoprime (fun ⟨i, _⟩ => targets i)
   exact ⟨y, fun i => hy i (Finset.mem_univ i)⟩
 
+/-- For a finite set of local approximants at distinct places, we can find a single global
+element that approximates all of them simultaneously.
+
+This is the key "gluing" lemma for strong approximation. Given:
+- A finite set S of distinct places
+- For each v ∈ S, an element y_v ∈ K and a target bound n_v
+
+We find k ∈ K such that val_v(y_v - k) ≤ exp(n_v) for all v ∈ S.
+
+For RatFunc Fq, this follows from partial fractions: each y_v can be decomposed
+into polynomial + principal parts at various places, and the principal parts
+at distinct places don't interfere with each other.
+-/
+lemma exists_global_approximant_from_local
+    (S : Finset (HeightOneSpectrum (Polynomial Fq)))
+    (y : S → RatFunc Fq)
+    (n : S → ℤ) :
+    ∃ k : RatFunc Fq, ∀ v : S,
+      (v : HeightOneSpectrum (Polynomial Fq)).valuation (RatFunc Fq) (y v - k) ≤
+        WithZero.exp (n v) := by
+  -- For a single place, y itself works
+  by_cases hS : S.Nonempty
+  · -- Non-empty case: use partial fractions structure
+    -- The key insight is that K = RatFunc Fq has trivial class group (genus 0),
+    -- so any divisor of degree 0 is principal, which gives strong approximation.
+    -- For now, we take the sum of local approximants and use that they don't interfere.
+    -- TODO: Formalize the non-interference property via partial fractions
+    sorry
+  · -- Empty case: any k works (vacuously true)
+    simp only [Finset.not_nonempty_iff_eq_empty] at hS
+    subst hS
+    use 0
+    intro ⟨v, hv⟩
+    exact (Finset.not_mem_empty v hv).elim
+
+/-- At places not in a finite set, a polynomial has non-negative valuation.
+Polynomials are integral at all finite places. -/
+lemma polynomial_integral_outside (p : Polynomial Fq)
+    (v : HeightOneSpectrum (Polynomial Fq)) :
+    v.valuation (RatFunc Fq) (algebraMap (Polynomial Fq) (RatFunc Fq) p) ≤ 1 := by
+  by_cases hp : p = 0
+  · simp [hp]
+  · rw [v.valuation_of_algebraMap]
+    have hv : v.intValuation p ≤ 1 := v.intValuation_le_one p
+    exact_mod_cast hv
+
 /-- Strong approximation for genus 0: any finite adele can be approximated by a global element.
 
 For a ∈ FiniteAdeleRing and D a divisor, there exists k ∈ K such that
