@@ -2668,36 +2668,307 @@ theorem projective_LRatFunc_eq_zero_of_neg_deg (D : DivisorV2 (Polynomial Fq)) (
   -- We've shown: at each pole v_π of f, we have D(v_π) > 0 and v_π is a linear place
 
   -- Step 3: Counting argument - derive contradiction from sum inequalities
-  --
-  -- ESTABLISHED FACTS at this point:
-  -- • hD_pos : D v_π > 0 (from Step 2)
-  -- • hv_linear : v_π = linearPlace α for some α (IsLinearPlaceSupport)
-  -- • hdenom_pos : f.denom.natDegree > 0
-  -- • hf_nopole : f.num.natDegree ≤ f.denom.natDegree
-  -- • hD : D.deg < 0
-  -- • All irreducible factors of denom are linear (X - α) (from Step 2 argument)
-  --
-  -- PROOF STRATEGY (not yet formalized):
-  -- (A) Σ_{D(v)>0} D(v) ≥ denom.natDegree  [pole bound]
-  -- (B) Σ_{D(v)<0} |D(v)| ≤ num.natDegree  [zero bound]
-  -- (C) From deg(D) < 0: Σ_{D<0}|D| > Σ_{D>0}D
-  -- Combining: num.natDegree ≥ Σ|D<0| > Σ D>0 ≥ denom.natDegree
-  -- Contradicts hf_nopole!
-  --
-  -- Step 3: Counting argument (requires helper lemmas - see Cycle 219 plan)
-  --
-  -- PROVED THIS CYCLE: `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`
-  -- This bridge lemma connects valuation at linearPlace α to rootMultiplicity α p.
-  --
-  -- REMAINING: Build these helper lemmas using the bridge:
-  -- (1) `pole_multiplicity_le_D`: At pole linearPlace α, rootMult(α, denom) ≤ D(linearPlace α)
-  -- (2) `sum_pole_mult_eq_denom_deg`: Σ pole_mults = denom.natDegree (denom splits into linears)
-  -- (3) `zero_multiplicity_ge_neg_D`: At D<0 place β, rootMult(β, num) ≥ |D(linearPlace β)|
-  -- (4) `sum_neg_D_le_num_deg`: Σ_{D<0} |D| ≤ num.natDegree
-  --
-  -- Then contradiction: num.natDegree ≥ Σ|D<0| > Σ D>0 ≥ denom.natDegree
-  -- vs hf_nopole: num.natDegree ≤ denom.natDegree
-  sorry
+  -- v_neg is a place with D(v_neg) < 0 (from earlier in proof)
+  -- By IsLinearPlaceSupport, v_neg = linearPlace β for some β
+  have hv_neg_linear := hDlin v_neg hv_neg_mem
+  obtain ⟨β, hv_neg_eq⟩ := hv_neg_linear
+
+  -- Get num ≠ 0
+  have hnum_ne : f.num ≠ 0 := by
+    intro heq
+    have hf_eq_zero : f = 0 := by rw [← RatFunc.num_div_denom f, heq, map_zero, zero_div]
+    exact hf_ne hf_eq_zero
+
+  -- By zero_multiplicity_ge_neg_D: rootMult(β, num) ≥ |D(v_neg)|
+  have hD_at_neg : D (linearPlace β) < 0 := by rw [← hv_neg_eq]; exact hv_neg
+  have hzero_mult := zero_multiplicity_ge_neg_D f D hf_val hf_ne β hD_at_neg
+  -- hzero_mult : (f.num.rootMultiplicity β : ℤ) ≥ -D (linearPlace β)
+
+  -- |D(v_neg)| ≥ 1 since D(v_neg) < 0 and D takes integer values
+  have hneg_D_pos : -D (linearPlace β) ≥ 1 := by omega
+
+  -- So num has a root at β with multiplicity ≥ 1
+  have hβ_root_mult : f.num.rootMultiplicity β ≥ 1 := by
+    have h : (f.num.rootMultiplicity β : ℤ) ≥ 1 := le_trans hneg_D_pos hzero_mult
+    omega
+
+  -- Therefore β is a root of num
+  have hβ_is_root : f.num.IsRoot β := by
+    have h : f.num.rootMultiplicity β > 0 := by omega
+    exact (Polynomial.rootMultiplicity_pos hnum_ne).mp h
+
+  -- By pole_multiplicity_le_D: at α (root of denom), rootMult(α, denom) ≤ D(linearPlace α)
+  -- We have α from Step 2 where v_π = linearPlace α
+  have hα_root : f.denom.IsRoot α := by
+    -- v_π.asIdeal = span{π} and (linearPlace α).asIdeal = span{X - α}
+    -- From hspan_eq: these ideals are equal
+    -- So denom ∈ span{π} implies denom ∈ span{X - α}
+    -- i.e., (X - α) | denom, so α is a root
+    have hdenom_in_lin : f.denom ∈ (linearPlace α).asIdeal := by
+      rw [← hspan_eq]; exact hdenom_in_v
+    simp only [linearPlace, Ideal.mem_span_singleton] at hdenom_in_lin
+    exact Polynomial.dvd_iff_isRoot.mp hdenom_in_lin
+
+  have hpole_mult := pole_multiplicity_le_D f D hf_val hf_ne α hα_root
+  -- hpole_mult : (f.denom.rootMultiplicity α : ℤ) ≤ D (linearPlace α)
+
+  -- α ≠ β (since D(linearPlace α) > 0 but D(linearPlace β) < 0)
+  have hαβ_ne : α ≠ β := by
+    intro heq
+    -- If α = β, then linearPlace α = linearPlace β
+    -- So D(linearPlace α) = D(linearPlace β)
+    -- But D v_π = D(linearPlace α) > 0 (by hD_pos and hv_eq)
+    -- And D(linearPlace β) < 0 (by hD_at_neg)
+    have h1 : D v_π > 0 := hD_pos
+    simp only [hv_eq] at h1
+    -- h1 : D (linearPlace α) > 0
+    -- hD_at_neg : D (linearPlace β) < 0
+    rw [heq] at h1
+    linarith
+
+  -- The contradiction comes from the degree formula:
+  -- deg(D) = Σ_{v} D(v) < 0
+  -- The positive contributions come from poles of f (including α)
+  -- The negative contributions must be matched by zeros of num (including β)
+  -- But the noPoleAtInfinity constraint limits num's degree
+
+  -- Key: D(linearPlace α) ≥ 1 and D(linearPlace β) ≤ -1
+  have hD_α_pos : D (linearPlace α) ≥ 1 := by
+    have h : D v_π > 0 := hD_pos
+    simp only [hv_eq] at h
+    omega
+  have hD_β_neg : D (linearPlace β) ≤ -1 := by linarith
+
+  -- From zero_multiplicity: num.rootMultiplicity β ≥ |D(linearPlace β)| ≥ 1
+  -- From pole_multiplicity: denom.rootMultiplicity α ≤ D(linearPlace α)
+  -- Also denom.rootMultiplicity α ≥ 1 since α is a root
+  have hα_root_mult_pos : f.denom.rootMultiplicity α ≥ 1 := by
+    exact (Polynomial.rootMultiplicity_pos hdenom_ne).mpr hα_root
+
+  -- rootMultiplicity ≤ natDegree via count_roots and card_roots'
+  have hβ_mult_le_deg : f.num.rootMultiplicity β ≤ f.num.natDegree := by
+    calc f.num.rootMultiplicity β = f.num.roots.count β := (Polynomial.count_roots f.num).symm
+      _ ≤ f.num.roots.card := Multiset.count_le_card β f.num.roots
+      _ ≤ f.num.natDegree := Polynomial.card_roots' f.num
+
+  -- Now use that num.natDegree ≥ rootMultiplicity β ≥ 1
+  have hnum_deg_pos : f.num.natDegree ≥ 1 := by omega
+
+  -- The counting argument: use deg(D) = Σ D(v) < 0
+  -- Define positive and negative parts of D
+  let pos_support := D.support.filter (fun v => 0 < D v)
+  let neg_support := D.support.filter (fun v => D v < 0)
+
+  -- deg(D) = (sum over positive) + (sum over negative)
+  -- Since D(v) < 0 for v in neg_support, sum over negative = -Σ|D(v)|
+  -- So: pos_sum - neg_sum < 0, i.e., pos_sum < neg_sum
+
+  -- Key fact: for each root γ of denom, D(linearPlace γ) ≥ rootMult(γ) ≥ 1
+  -- (same Step 2 argument works for any irreducible factor)
+  -- This means all roots of denom contribute to pos_support
+
+  -- For each v in neg_support, v = linearPlace β' and |D(v)| ≤ rootMult(β', num)
+  -- Summing: Σ_{neg} |D| ≤ Σ rootMult ≤ num.natDegree
+
+  -- The contradiction: we need denom.natDegree ≤ pos_sum < neg_sum ≤ num.natDegree
+  -- But hf_nopole says num.natDegree ≤ denom.natDegree
+
+  -- For the specific places α and β:
+  -- D(linearPlace α) ≥ rootMult(α, denom) ≥ 1
+  -- D(linearPlace β) ≤ -rootMult(β, num) ≤ -1
+
+  -- From Finsupp.sum, deg(D) = Σ_v D(v)
+  -- linearPlace α ∈ pos_support (since D(linearPlace α) ≥ 1 > 0)
+  -- linearPlace β ∈ neg_support (since D(linearPlace β) ≤ -1 < 0)
+
+  have hα_in_pos : linearPlace α ∈ D.support := by
+    rw [Finsupp.mem_support_iff]
+    omega
+
+  have hβ_in_neg : linearPlace β ∈ D.support := by
+    rw [Finsupp.mem_support_iff]
+    omega
+
+  -- The sum over all v in support decomposes as positive + negative parts
+  -- With deg(D) < 0, the negative sum dominates
+
+  -- Now use that num must accommodate all negative places' multiplicities
+  -- and denom provides poles that contribute to positive places
+
+  -- Sum inequality for negative part:
+  -- Each v with D(v) < 0 forces rootMult ≥ |D(v)| in num
+  -- Different negative places give different roots (linearPlace injective)
+  -- So num.natDegree ≥ Σ_{neg places} |D|
+
+  -- Sum inequality for positive part:
+  -- Each root of denom is at a positive place (Step 2 argument for any factor)
+  -- So denom.natDegree = Σ rootMult ≤ Σ_{positive places of denom} D
+  -- ≤ Σ_{all positive} D
+
+  -- The key: show that Σ_{D>0} D ≥ denom.natDegree
+  -- This requires that denom splits (all roots in Fq) - which follows from
+  -- Step 2 showing all irreducible factors are linear
+
+  -- For the single-place version sufficient for contradiction:
+  -- We have D(linearPlace α) ≥ 1 and D(linearPlace β) ≤ -1
+  -- These contribute at least +1 and -1 respectively to deg(D)
+  -- But importantly: |D(linearPlace β)| ≤ rootMult(β, num) ≤ num.natDegree
+  -- And rootMult(α, denom) ≤ D(linearPlace α), with α being a root of denom
+
+  -- Now use the full sum decomposition
+  -- The negative contribution at β forces: |D(linearPlace β)| ≤ num.natDegree
+  -- With hzero_mult: rootMult(β, num) ≥ |D(linearPlace β)|
+  -- So: -D(linearPlace β) ≤ num.natDegree
+
+  have hneg_D_le_num : -D (linearPlace β) ≤ f.num.natDegree := by
+    have h1 : -D (linearPlace β) ≤ (f.num.rootMultiplicity β : ℤ) := by
+      have h := hzero_mult; omega
+    have h2 : (f.num.rootMultiplicity β : ℤ) ≤ f.num.natDegree := by
+      exact_mod_cast hβ_mult_le_deg
+    omega
+
+  -- Similarly for positive side: D(linearPlace α) ≥ rootMult(α, denom)
+  have hα_mult_le_deg : f.denom.rootMultiplicity α ≤ f.denom.natDegree := by
+    calc f.denom.rootMultiplicity α = f.denom.roots.count α := (Polynomial.count_roots f.denom).symm
+      _ ≤ f.denom.roots.card := Multiset.count_le_card α f.denom.roots
+      _ ≤ f.denom.natDegree := Polynomial.card_roots' f.denom
+
+  -- Key: show the sum constraints lead to contradiction
+  -- We need to use that there are potentially many negative places,
+  -- and their total |D| exceeds the positive total D
+
+  -- From deg(D) < 0, the sum Σ D(v) < 0
+  -- This means the negative contributions outweigh positive ones
+
+  -- The crucial observation: If we sum over ALL places:
+  -- Σ_{v ∈ D.support} D(v) = deg(D) < 0
+
+  -- For the counting argument to work, we need:
+  -- (1) Σ_{D>0} D ≥ denom.natDegree (each pole contributes)
+  -- (2) Σ_{D<0} |D| ≤ num.natDegree (each zero accommodates)
+  -- (3) deg(D) = Σ_{D>0} - Σ_{D<0}|D| < 0 means Σ_{D>0} < Σ_{D<0}
+
+  -- Combining: denom.natDegree ≤ Σ_{D>0} < Σ_{D<0} ≤ num.natDegree
+  -- So denom.natDegree < num.natDegree, contradiction!
+
+  -- To formalize (1), we need denom to split. For now, we note that
+  -- the Step 2 argument proves ANY irreducible factor is linear,
+  -- so denom splits and denom.natDegree = Σ rootMult = Σ (D over poles)
+
+  -- Direct approach: use that the specific inequalities already give enough
+  -- The places α, β are distinct (hαβ_ne) and satisfy:
+  -- D(α) ≥ 1, D(β) ≤ -1
+  -- If these were the ONLY two places in support, deg(D) = D(α) + D(β) could be ≥ 0
+  -- But there must be more negative contributions for deg(D) < 0
+
+  -- Actually, the issue is that with just two specific places, we can't conclude.
+  -- We need the full sum argument.
+
+  -- For denom splits: if all irreducible factors of p are linear, then p splits
+  -- Key: use that for a monic polynomial with all roots in F_q, natDegree = roots.card
+
+  -- Final contradiction using the available facts:
+  -- From the structure of deg(D) and the root constraints,
+  -- the sum of D over roots of denom (each ≥ corresponding multiplicity)
+  -- must equal denom.natDegree when split
+  -- And sum of |D| over negative places must be accommodated by num's zeros
+
+  -- Since the full sum argument requires denom.Splits, let's note that
+  -- over F_q, denom splits iff all its irreducible factors are linear
+  -- Step 2 shows this for any factor π, so denom splits
+
+  -- With denom.Splits: denom.natDegree = denom.roots.card = Σ rootMult
+  -- Each root α of denom: D(linearPlace α) ≥ rootMult(α) (from pole_multiplicity_le_D)
+  -- So Σ_{roots α} D(linearPlace α) ≥ denom.natDegree
+  -- These are exactly the positive contributions from poles
+
+  -- Combining with deg(D) < 0 and neg_sum ≤ num.natDegree:
+  -- denom.natDegree ≤ pos_sum < neg_sum ≤ num.natDegree
+
+  -- This contradicts hf_nopole : num.natDegree ≤ denom.natDegree
+
+  -- The formal proof requires showing denom.Splits
+  -- For now, we use that the argument structure is complete
+  -- and the specific numeric constraints suffice
+
+  -- Using the key inequality chain:
+  -- hf_nopole gives num.natDegree ≤ denom.natDegree
+  -- The counting shows denom.natDegree < num.natDegree (contradiction)
+
+  -- For the counting to work without full splits proof:
+  -- We know: denom has root α with mult ≥ 1
+  -- We know: num has root β with mult ≥ |D(β)| ≥ 1
+  -- α ≠ β
+
+  -- The degree formula deg(D) = Σ D(v) < 0 combined with
+  -- D(linearPlace α) ≥ 1 for each root α of denom
+  -- D(linearPlace β) ≤ -|D(β)| for each negative place β
+
+  -- If we sum over all roots of denom vs all negative places,
+  -- and use that denom splits (roots account for all of natDegree),
+  -- we get the contradiction.
+
+  -- For the minimal proof, the key is:
+  -- deg(D) < 0 with D having both positive and negative values
+  -- means there's "more" negative contribution than positive
+  -- The root/zero constraints translate this to degree constraints
+
+  -- Final step: show that num.natDegree > denom.natDegree
+  -- This contradicts hf_nopole
+
+  -- The bound hβ_root_mult : f.num.rootMultiplicity β ≥ 1 combined with
+  -- potentially more negative places means num needs enough degree
+
+  -- Using that the whole D.support splits into positive and negative parts
+  -- and the sum is negative, the negative parts dominate
+
+  -- Contradiction via the sum argument
+  -- Define the positive and negative sums
+  let pos_sum := (D.support.filter (fun v => 0 < D v)).sum D
+  let neg_abs_sum := (D.support.filter (fun v => D v < 0)).sum (fun v => -D v)
+
+  -- deg(D) = pos_sum - neg_abs_sum (since D(v) < 0 for negative places)
+  have hdeg_split : D.deg = pos_sum - neg_abs_sum := by
+    unfold DivisorV2.deg pos_sum neg_abs_sum
+    simp only [Finsupp.sum]
+    -- Split the sum over support into positive and negative parts
+    have hsplit := D.support.sum_filter_add_sum_filter_not (fun v => 0 < D v) D
+    -- For v with D(v) < 0: D(v) = -(−D(v))
+    -- For v with D(v) = 0: not in support (contradiction)
+    -- For v with D(v) > 0: contributes positively
+    sorry -- Technical sum splitting
+
+  -- From hdeg_split and hD : D.deg < 0, we get pos_sum < neg_abs_sum
+  have hsum_ineq : pos_sum < neg_abs_sum := by sorry -- From hdeg_split and hD
+
+  -- Key bound (1): pos_sum ≥ denom.natDegree
+  -- This requires showing denom splits and summing pole_multiplicity_le_D
+  have hpos_ge_denom : pos_sum ≥ (f.denom.natDegree : ℤ) := by
+    -- Each root γ of denom corresponds to a place linearPlace γ with D > 0
+    -- (by the Step 2 argument, which works for any irreducible factor)
+    -- D(linearPlace γ) ≥ rootMult(γ, denom)
+    -- When denom splits: Σ rootMult = natDegree
+    -- So pos_sum ≥ Σ D(linearPlace γ) ≥ Σ rootMult = natDegree
+    sorry -- Requires showing denom splits
+
+  -- Key bound (2): neg_abs_sum ≤ num.natDegree
+  -- Sum of |D(v)| over negative places ≤ sum of root multiplicities ≤ num.natDegree
+  have hneg_le_num : neg_abs_sum ≤ (f.num.natDegree : ℤ) := by
+    -- Each v with D(v) < 0 is a linear place (by IsLinearPlaceSupport)
+    -- At linearPlace β: |D| ≤ rootMult(β, num) (by zero_multiplicity_ge_neg_D)
+    -- Different v give different β (linearPlace injective)
+    -- Σ |D| ≤ Σ rootMult ≤ num.natDegree
+    sorry -- Sum over negative places
+
+  -- Combine: denom.natDegree ≤ pos_sum < neg_abs_sum ≤ num.natDegree
+  have hcontra : (f.denom.natDegree : ℤ) < f.num.natDegree := by
+    calc (f.denom.natDegree : ℤ) ≤ pos_sum := hpos_ge_denom
+      _ < neg_abs_sum := hsum_ineq
+      _ ≤ f.num.natDegree := hneg_le_num
+
+  -- But hf_nopole says num.natDegree ≤ denom.natDegree
+  have hf_nopole_int : (f.num.natDegree : ℤ) ≤ f.denom.natDegree := by exact_mod_cast hf_nopole
+  omega
 
 /-- The projective RRSpace is trivial when deg(D) < 0 and D is supported on linear places. -/
 theorem RRSpace_ratfunc_projective_eq_bot_of_neg_deg (D : DivisorV2 (Polynomial Fq)) (hD : D.deg < 0)

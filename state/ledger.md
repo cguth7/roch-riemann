@@ -8,21 +8,51 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries
 **Phase**: 3 - Serre Duality
-**Cycle**: 219 (IN PROGRESS)
+**Cycle**: 220 (IN PROGRESS)
 
-### Active Sorries (1 in RatFuncPairing.lean)
+### Active Sorries (5 in RatFuncPairing.lean - needs cleanup!)
 
 | File | Count | Priority | Notes |
 |------|-------|----------|-------|
-| **RatFuncPairing.lean** | 1 | HIGH | `projective_LRatFunc_eq_zero_of_neg_deg` Step 3 |
+| **RatFuncPairing.lean** | 5 | HIGH | Step 3 counting arg has 4 sub-sorries - NEEDS REVERT |
 | **ProductFormula.lean** | 1 | DONE* | *Intentionally incorrect lemma - documented |
 | **Residue.lean** | 2 | LOW | Higher-degree places, general residue theorem (deferred) |
 | **FullAdelesCompact.lean** | 1 | LOW | Edge case bound < 1 (not needed) |
 | **TraceDualityProof.lean** | 1 | LOW | Alternative approach (not on critical path) |
 
+**⚠️ WARNING**: Cycle 220 introduced 4 new sorries (lines 2939, 2942, 2952, 2961).
+Next session should either complete these or revert to single sorry at ~2933.
+
 ---
 
-## Cycle 219 Progress (IN PROGRESS)
+## Cycle 220 Progress (IN PROGRESS)
+
+**Goal**: Complete Step 3 counting argument
+
+**Completed this session**:
+1. ✅ Built proof structure from line 2670 to ~2970
+2. ✅ Proved key intermediate facts:
+   - `hv_neg_linear`: v_neg = linearPlace β (using IsLinearPlaceSupport)
+   - `hzero_mult`: num.rootMultiplicity β ≥ |D(linearPlace β)|
+   - `hα_root`: α is a root of denom (from Step 2's v_π = linearPlace α)
+   - `hαβ_ne`: α ≠ β (D(α) > 0 but D(β) < 0)
+   - `hβ_mult_le_deg`: num.rootMultiplicity β ≤ num.natDegree
+   - `hneg_D_le_num`: -D(linearPlace β) ≤ num.natDegree
+3. ✅ Set up final contradiction structure with calc chain
+
+**Remaining sorries** (lines 2939, 2942, 2952, 2961):
+1. `hdeg_split`: deg(D) = pos_sum - neg_abs_sum (sum decomposition)
+2. `hsum_ineq`: pos_sum < neg_abs_sum (from hdeg_split and deg < 0)
+3. `hpos_ge_denom`: pos_sum ≥ denom.natDegree (HARD - needs denom.Splits)
+4. `hneg_le_num`: neg_abs_sum ≤ num.natDegree (sum over negative places)
+
+**Key blocker**: `hpos_ge_denom` requires proving denom splits over Fq.
+The Step 2 argument shows any ONE irreducible factor is linear, but
+needs generalization to ALL factors to conclude denom.Splits.
+
+---
+
+## Cycle 219 Progress (COMPLETED)
 
 **Goal**: Complete Step 3 of `projective_LRatFunc_eq_zero_of_neg_deg`
 
@@ -47,48 +77,47 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Next Steps (Cycle 220)
+## Next Steps (Cycle 221)
 
-### GOAL: Complete the contradiction in Step 3
+### OPTION A: Complete the 4 remaining sorries
 
-**Location**: `RatFuncPairing.lean:2700` (single sorry)
+Current proof structure at RatFuncPairing.lean:2925-2971 has 4 sorries:
 
-**Available facts at sorry location**:
-- `hdenom_pos : 0 < f.denom.natDegree`
-- `hf_nopole : f.num.natDegree ≤ f.denom.natDegree`
-- `hD : D.deg < 0`
-- `hDlin : IsLinearPlaceSupport D`
-- `hf_val : ∀ v, v.valuation f ≤ exp(D v)` (from L(D) membership)
-- All irreducible factors of denom are linear (from Step 2)
+1. **hdeg_split** (line 2939): `D.deg = pos_sum - neg_abs_sum`
+   - Straightforward sum decomposition over Finsupp
+   - Use `Finset.sum_filter_add_sum_filter_not`
 
-**Contradiction strategy**:
-```
-(A) Σ_{roots α of denom} rootMult(α) = denom.natDegree  [denom splits]
-(B) For each root α: D(linearPlace α) ≥ rootMult(α)     [pole_multiplicity_le_D]
-(C) So: Σ_{D>0} D(v) ≥ denom.natDegree
+2. **hsum_ineq** (line 2942): `pos_sum < neg_abs_sum`
+   - Follows from hdeg_split and `hD : D.deg < 0`
+   - Should be `omega` after hdeg_split
 
-(D) For each β with D(linearPlace β) < 0:
-    rootMult(β, num) ≥ |D(linearPlace β)|              [zero_multiplicity_ge_neg_D]
-(E) So: Σ_{D<0} |D(v)| ≤ Σ rootMult(num) ≤ num.natDegree
+3. **hpos_ge_denom** (line 2952): `pos_sum ≥ denom.natDegree`
+   - **HARD**: Requires proving denom.Splits over Fq
+   - Step 2 shows ONE irreducible factor is linear
+   - Need to generalize: ∀ π, Irreducible π → π ∣ denom → ∃ α, π = X - C α
+   - Then use `Polynomial.splits_iff_card_roots`
 
-(F) From deg(D) < 0: Σ_{D>0} D < Σ_{D<0} |D|
+4. **hneg_le_num** (line 2961): `neg_abs_sum ≤ num.natDegree`
+   - Sum `zero_multiplicity_ge_neg_D` over all negative places
+   - Use that different places give different roots (linearPlace injective)
+   - Then sum of rootMultiplicities ≤ natDegree
 
-Combining: denom.natDegree ≤ Σ_{D>0} < Σ_{D<0} ≤ num.natDegree
-⟹ denom.natDegree < num.natDegree
-⟹ Contradiction with hf_nopole!
-```
+### OPTION B: Revert and try simpler approach
 
-**Two approaches**:
-1. **Sum lemmas approach**: Define explicit Finsupp sums and prove inequalities
-2. **Direct approach**: Avoid sums, work with specific roots/places
+Revert to single sorry (pre-Cycle 220 state) and try:
+1. Extract `irreducible_factor_is_linear` as ≤15 line helper lemma
+2. Use to prove `denom.Splits` directly
+3. Then sum argument is cleaner
 
-**Recommended approach**: Try direct proof first using `exists_neg_of_deg_neg` to get a specific β with D(β) < 0, then use `zero_multiplicity_ge_neg_D` to show num has zeros. The tricky part is connecting the sum of multiplicities to natDegree.
+### Key Mathlib lemmas for sum approach:
+- `Polynomial.splits_iff_card_roots`: p.Splits ↔ p.roots.card = p.natDegree
+- `Polynomial.count_roots`: p.roots.count a = rootMultiplicity a p
+- `Finset.sum_le_sum`: monotone function gives sum inequality
+- `Multiset.count_le_card`: count of element ≤ total card
 
-**Key Mathlib lemmas needed**:
-- `Polynomial.natDegree_eq_card_roots` (when polynomial splits)
-- `Polynomial.splits_iff_card_roots`
-- `Polynomial.count_roots` relates multiset count to rootMultiplicity
-- Sum over multiset: `Multiset.card_eq_sum_ones`, `Finset.sum_le_sum`
+### CRITICAL: Frontier Freeze Rule
+Current state has 5 sorries (was 1). Either complete all 4 new ones
+or revert to single sorry. Do NOT add more sorries!
 
 ---
 
