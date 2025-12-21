@@ -159,11 +159,23 @@ def globalPairing : H¹(D) × L(K-D) → k :=
 - Keep existing FiniteAdeleRing lemmas where possible
 - Add equivalence lemma for genus 0 case
 
-### Alternative Approach (Lighter Weight)
-For genus 0 specifically, the infinity component contributes trivially:
-- Prove h¹(D) = 0 directly for "large" D (already done: h1_finrank_zero_of_large_deg)
-- Show L(K-D) = 0 for corresponding D (projective_LRatFunc_eq_zero_of_neg_deg)
-- Serre duality becomes 0 = 0 (vacuously true)
+### ⚠️ WARNING: "Affine H¹" Does NOT Work
+
+**Do NOT try to skip the FullAdele refactor!** The "affine" H¹ (using FiniteAdeleRing)
+gives h¹(D) = 0 for ALL divisors due to strong approximation. This breaks Serre duality:
+
+For D = K = -2 (canonical divisor):
+- LHS: h¹(K) = h¹(-2) should equal ℓ(K-K) = ℓ(0) = 1
+- Affine H¹ gives: h¹(-2) = 0 (strong approximation kills everything)
+- **Result: 0 ≠ 1** — Contradiction!
+
+You MUST use FullAdeleRing to capture the non-trivial cohomology at infinity.
+
+### File Organization (DO NOT grow existing files)
+- `ProductFormula.lean` - NEW, product formula infrastructure (~100 lines)
+- `SerreDuality/AdelicH1Full.lean` - NEW, FullAdele-based H¹
+- `RatFuncPairing.lean` - NO NEW ADDITIONS, just fill existing sorries
+- `Residue.lean` - FROZEN, don't touch
 
 **Lower priority sorries** (not blocking):
 - `residueAtIrreducible` - Extend to higher-degree places
