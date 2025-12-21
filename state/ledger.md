@@ -8,13 +8,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles
 **Phase**: 3 - Serre Duality → FullRRData Instance
-**Cycle**: 229 (IN PROGRESS)
+**Cycle**: 230 (IN PROGRESS)
 
 ### Active Sorries
 
 | File | Count | Priority | Notes |
 |------|-------|----------|-------|
-| **DimensionScratch.lean** | 6 | HIGH | Dimension formula structure - key sorries for ℓ(D) = deg(D)+1 |
+| **DimensionScratch.lean** | 2 | HIGH | Gap bound + general formula remaining |
 | **RatFuncFullRR.lean** | 0 | ✅ DONE | L_proj(0) = constants PROVED, ℓ(0) = 1 PROVED |
 | **RatFuncPairing.lean** | 1 | LOW | Early incomplete attempt (line 1956), not on critical path |
 | **ProductFormula.lean** | 1 | DONE* | *Intentionally incorrect lemma - documented |
@@ -24,7 +24,52 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ---
 
-## Cycle 229 Progress (IN PROGRESS)
+## Cycle 230 Progress (IN PROGRESS)
+
+**Goal**: Port intDegree approach and fix DimensionScratch.lean sorries
+
+### Major Progress: DimensionScratch.lean 6 → 2 sorries
+
+**Proved this session**:
+
+1. ✅ **`inv_X_sub_C_pow_noPoleAtInfinity`** - Ported from IntDegreeTest.lean
+   - Uses `intDegree` approach to sidestep typeclass issues
+   - Added helper lemmas: `RatFunc_X_sub_C_ne_zero`, `intDegree_inv_X_sub_C_pow`
+   - Added equivalence: `noPoleAtInfinity_iff_intDegree_le_zero`
+
+2. ✅ **`valuation_X_sub_at_other`** - Fixed broken proof
+   - Issue: `IsMaximal.eq_of_le` direction mismatch
+   - Fix: Use maximality of `Ideal.span {X - C α}` via `PrincipalIdealRing.isMaximal_of_irreducible`
+
+3. ✅ **`inv_X_sub_C_pow_satisfies_valuation`** - Fixed simp issue
+   - Changed `if_pos rfl` to `↓reduceIte` for proper ite reduction
+
+4. ✅ **`inv_X_sub_C_pow_not_mem_projective_smaller`** - Exclusion lemma
+   - Shows 1/(X-α)^k ∉ L_proj((k-1)·[v])
+   - Uses valuation bound: exp(k) > exp(k-1)
+
+5. ✅ **Lower bound in `ell_ratfunc_projective_single_linear`**
+   - Uses `Submodule.finrank_lt_finrank_of_lt` for strict inclusion
+   - Combines membership/non-membership to get L(m·[v]) < L((m+1)·[v])
+
+### Remaining Sorries (2)
+
+1. **`ell_ratfunc_projective_gap_le`** (line 72) - Gap bound ℓ(D+[v]) ≤ ℓ(D) + 1
+   - Requires evaluation map construction
+   - Standard proof via rank-nullity, but technically involved
+
+2. **`ell_ratfunc_projective_eq_deg_plus_one`** (line 294) - General formula
+   - Depends on gap bound for induction
+   - Will follow from single-point case once gap bound is proved
+
+### Technical Insight
+
+The key to proving the exclusion lemma was using `WithZero.exp_lt_exp.mpr` to show
+that the valuation exp(k) strictly exceeds the allowed bound exp(k-1).
+
+---
+
+## Cycle 229 Progress (COMPLETED)
 
 **Goal**: Fix typeclass issue blocking `inv_X_sub_C_pow_noPoleAtInfinity`
 

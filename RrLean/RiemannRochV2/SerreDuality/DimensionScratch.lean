@@ -1,4 +1,5 @@
 import RrLean.RiemannRochV2.SerreDuality.RatFuncFullRR
+import Mathlib.FieldTheory.RatFunc.Degree
 
 /-!
 # Scratch file for dimension formula development
@@ -97,7 +98,7 @@ lemma valuation_inv_X_sub_pow_at_self (α : Fq) (k : ℕ) :
 
 /-- At a place v ≠ linearPlace α, (X-α) has valuation 1.
 Key: if (X-α) ∈ v.asIdeal then v = linearPlace α by maximality.
-Proof: v.asIdeal maximal containing irreducible (X-α) must equal span{X-α}. -/
+Proof: span{X-α} is maximal (irreducible in PID), contained in v.asIdeal, so they're equal. -/
 lemma valuation_X_sub_at_other (α : Fq) (v : HeightOneSpectrum (Polynomial Fq))
     (hv : v ≠ linearPlace α) :
     v.valuation (RatFunc Fq) (RatFunc.X - RatFunc.C α) = 1 := by
@@ -106,13 +107,19 @@ lemma valuation_X_sub_at_other (α : Fq) (v : HeightOneSpectrum (Polynomial Fq))
     rw [map_sub, RatFunc.algebraMap_X, RatFunc.algebraMap_C]
   rw [heq, HeightOneSpectrum.valuation_of_algebraMap, HeightOneSpectrum.intValuation_eq_one_iff]
   intro hmem; apply hv
-  -- v.asIdeal is maximal and contains (X-α), so equals span{X-α} = linearPlace α
-  have hmax : v.asIdeal.IsMaximal := HeightOneSpectrum.isMaximal v
+  -- span{X-α} is maximal (X-α is irreducible in PID Fq[X])
+  have hirr : Irreducible (Polynomial.X - Polynomial.C α) := Polynomial.irreducible_X_sub_C α
+  have hmax_span : (Ideal.span {Polynomial.X - Polynomial.C α}).IsMaximal :=
+    PrincipalIdealRing.isMaximal_of_irreducible hirr
+  -- span{X-α} ≤ v.asIdeal
   have hle : Ideal.span {Polynomial.X - Polynomial.C α} ≤ v.asIdeal := by
     rw [Ideal.span_le]; intro x hx; simp only [Set.mem_singleton_iff] at hx; rw [hx]; exact hmem
-  have heq' : v.asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} :=
-    (hmax.eq_of_le (Ideal.span_singleton_ne_top (Polynomial.not_isUnit_X_sub_C α)) hle).symm
-  exact HeightOneSpectrum.ext _ _ (by simp only [linearPlace, heq'])
+  -- v.asIdeal ≠ ⊤ (since v is a HeightOneSpectrum element)
+  have hv_ne_top : v.asIdeal ≠ ⊤ := v.isPrime.ne_top
+  -- By maximality of span{X-α}, we have span{X-α} = v.asIdeal
+  have heq' : Ideal.span {Polynomial.X - Polynomial.C α} = v.asIdeal :=
+    hmax_span.eq_of_le hv_ne_top hle
+  exact HeightOneSpectrum.ext heq'.symm
 
 /-- 1/(X-α)^k satisfies the valuation condition for k·[linearPlace α]. -/
 lemma inv_X_sub_C_pow_satisfies_valuation (α : Fq) (k : ℕ) (hk : k ≠ 0) :
@@ -124,8 +131,8 @@ lemma inv_X_sub_C_pow_satisfies_valuation (α : Fq) (k : ℕ) (hk : k ≠ 0) :
   by_cases hv : v = linearPlace α
   · -- At linearPlace α: val = exp(k) ≤ exp(k)
     subst hv
-    simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply, if_pos rfl,
-               mul_one]
+    simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply,
+               ↓reduceIte, mul_one]
     rw [valuation_inv_X_sub_pow_at_self]
   · -- At other places: val = 1 ≤ 1 = exp(0)
     simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply]
@@ -134,18 +141,55 @@ lemma inv_X_sub_C_pow_satisfies_valuation (α : Fq) (k : ℕ) (hk : k ≠ 0) :
     rw [Valuation.map_pow, Valuation.map_inv, valuation_X_sub_at_other Fq α v hv]
     simp only [inv_one, one_pow, le_refl]
 
-/-- 1/(X-α)^k has no pole at infinity.
-For 1/(X-α)^k: num = 1 (deg 0), denom = (X-α)^k (deg k), so deg(num) ≤ deg(denom).
+/-! ## intDegree-based lemmas for noPoleAtInfinity
 
-Note: The proof is blocked by a typeclass instance mismatch with `gcd` between
-`Classical.propDecidable` and the default `DecidableEq` instance. The math is trivial:
-gcd(1, q) = 1, so num = C(lc⁻¹) * 1 = 1 and denom = C(lc⁻¹) * q = q.
--/
-lemma inv_X_sub_C_pow_noPoleAtInfinity (α : Fq) (k : ℕ) (hk : k ≠ 0) :
+The direct approach using num/denom is blocked by typeclass issues with gcd.
+Instead, we use intDegree which provides clean lemmas without typeclass mismatches. -/
+
+/-- X - C α is nonzero in RatFunc. -/
+lemma RatFunc_X_sub_C_ne_zero (α : Fq) : (RatFunc.X : RatFunc Fq) - RatFunc.C α ≠ 0 := by
+  rw [sub_ne_zero]
+  intro h
+  have h1 : (RatFunc.X : RatFunc Fq).intDegree = 1 := RatFunc.intDegree_X
+  have h2 : (RatFunc.C α : RatFunc Fq).intDegree = 0 := RatFunc.intDegree_C α
+  rw [h, h2] at h1
+  exact zero_ne_one h1
+
+/-- The intDegree of (X - C α)⁻¹ ^ k is -k. -/
+lemma intDegree_inv_X_sub_C_pow (α : Fq) (k : ℕ) :
+    ((RatFunc.X - RatFunc.C α : RatFunc Fq)⁻¹ ^ k).intDegree = -(k : ℤ) := by
+  -- intDegree(X - C α) = 1
+  have hXα_deg : (RatFunc.X - RatFunc.C α : RatFunc Fq).intDegree = 1 := by
+    have heq : RatFunc.X - RatFunc.C α = algebraMap (Polynomial Fq) (RatFunc Fq)
+        (Polynomial.X - Polynomial.C α) := by
+      simp [RatFunc.algebraMap_X, RatFunc.algebraMap_C]
+    rw [heq, RatFunc.intDegree_polynomial, Polynomial.natDegree_X_sub_C]
+    rfl
+  -- intDegree((X - C α)⁻¹) = -1
+  have hinv_deg : (RatFunc.X - RatFunc.C α : RatFunc Fq)⁻¹.intDegree = -1 := by
+    rw [RatFunc.intDegree_inv, hXα_deg]
+  -- Helper: (X - C α)⁻¹ ≠ 0
+  have hinv_ne : (RatFunc.X - RatFunc.C α : RatFunc Fq)⁻¹ ≠ 0 :=
+    inv_ne_zero (RatFunc_X_sub_C_ne_zero Fq α)
+  -- Induction on k
+  induction k with
+  | zero => simp [RatFunc.intDegree_one]
+  | succ m ih =>
+    rw [pow_succ, RatFunc.intDegree_mul (pow_ne_zero m hinv_ne) hinv_ne, ih, hinv_deg]
+    omega
+
+/-- noPoleAtInfinity is equivalent to intDegree ≤ 0. -/
+lemma noPoleAtInfinity_iff_intDegree_le_zero (f : RatFunc Fq) :
+    noPoleAtInfinity f ↔ f.intDegree ≤ 0 := by
+  unfold noPoleAtInfinity
+  simp only [RatFunc.intDegree, sub_nonpos, Int.ofNat_le]
+
+/-- 1/(X-α)^k has no pole at infinity for any k ≥ 0.
+Note: The proof uses intDegree and works for k = 0 too (when the function is 1). -/
+lemma inv_X_sub_C_pow_noPoleAtInfinity (α : Fq) (k : ℕ) :
     noPoleAtInfinity ((RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k) := by
-  -- deg(num) = 0 ≤ k = deg(denom)
-  -- Blocked by typeclass instance mismatch with gcd
-  sorry
+  rw [noPoleAtInfinity_iff_intDegree_le_zero, intDegree_inv_X_sub_C_pow]
+  omega
 
 /-- 1/(X-α)^k is in L_proj(k·[linearPlace α]). -/
 lemma inv_X_sub_C_pow_mem_projective (α : Fq) (k : ℕ) :
@@ -160,7 +204,7 @@ lemma inv_X_sub_C_pow_mem_projective (α : Fq) (k : ℕ) :
     exact constant_mem_projective_zero (1 : Fq)
   · constructor
     · exact inv_X_sub_C_pow_satisfies_valuation Fq α k hk
-    · right; exact inv_X_sub_C_pow_noPoleAtInfinity Fq α k hk
+    · right; exact inv_X_sub_C_pow_noPoleAtInfinity Fq α k
 
 /-- 1/(X-α)^k is NOT in L_proj((k-1)·[linearPlace α]) for k ≥ 1.
 
@@ -168,8 +212,25 @@ This shows the gap is exactly 1, not just ≤ 1. -/
 lemma inv_X_sub_C_pow_not_mem_projective_smaller (α : Fq) (k : ℕ) (hk : 0 < k) :
     (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k ∉
     RRSpace_ratfunc_projective (((k : ℤ) - 1) • DivisorV2.single (linearPlace α) 1) := by
-  -- The valuation at linearPlace α is exp(k) > exp(k-1)
-  sorry
+  intro ⟨hval, _⟩
+  -- f = (X-α)⁻¹^k is nonzero
+  have hf_ne : (RatFunc.X (K := Fq) - RatFunc.C α)⁻¹ ^ k ≠ 0 :=
+    pow_ne_zero k (inv_ne_zero (RatFunc_X_sub_C_ne_zero Fq α))
+  -- The valuation condition must hold for all v
+  rcases hval with hzero | hval_all
+  · exact hf_ne hzero
+  -- At linearPlace α, the valuation is exp(k)
+  have hval_at_α := hval_all (linearPlace α)
+  rw [valuation_inv_X_sub_pow_at_self] at hval_at_α
+  -- But D(linearPlace α) = k - 1
+  simp only [Finsupp.smul_apply, smul_eq_mul, DivisorV2.single, Finsupp.single_apply,
+             ↓reduceIte, mul_one] at hval_at_α
+  -- So we need exp(k) ≤ exp(k-1), which is false for k ≥ 1
+  have hcontra : ¬(WithZero.exp (k : ℤ) ≤ WithZero.exp ((k : ℤ) - 1)) := by
+    rw [not_le]
+    apply WithZero.exp_lt_exp.mpr
+    omega
+  exact hcontra hval_at_α
 
 /-! ## Dimension formula for single-point divisors -/
 
@@ -192,7 +253,33 @@ theorem ell_ratfunc_projective_single_linear (α : Fq) (n : ℕ) :
         ((m : ℤ) • DivisorV2.single (linearPlace α) 1 + DivisorV2.single (linearPlace α) 1) ≥
         ell_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) + 1 := by
       -- The explicit element 1/(X-α)^(m+1) is in L((m+1)·[v]) but not in L(m·[v])
-      sorry
+      -- Rewrite divisor as (m+1)·[v]
+      have hdiv_eq : (m : ℤ) • DivisorV2.single (linearPlace (Fq := Fq) α) 1 +
+          DivisorV2.single (linearPlace α) 1 =
+          ((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace α) 1 := by
+        simp only [Nat.cast_succ, add_smul, one_smul]
+      rw [hdiv_eq]
+      -- 1/(X-α)^(m+1) ∈ L((m+1)·[v])
+      have h_in := inv_X_sub_C_pow_mem_projective Fq α (m + 1)
+      -- 1/(X-α)^(m+1) ∉ L(m·[v])
+      have h_not_in := inv_X_sub_C_pow_not_mem_projective_smaller Fq α (m + 1) (Nat.succ_pos m)
+      simp only [Nat.cast_succ, add_sub_cancel_right] at h_not_in
+      -- L(m·[v]) ⊆ L((m+1)·[v]) by monotonicity
+      have h_mono := RRSpace_ratfunc_projective_mono Fq
+          ((m : ℤ) • DivisorV2.single (linearPlace α) 1) α
+      simp only [Nat.cast_succ, add_smul, one_smul] at h_mono
+      -- Strict inclusion: L(m·[v]) < L((m+1)·[v])
+      have h_strict : RRSpace_ratfunc_projective ((m : ℤ) • DivisorV2.single (linearPlace α) 1) <
+          RRSpace_ratfunc_projective (((m + 1 : ℕ) : ℤ) • DivisorV2.single (linearPlace α) 1) := by
+        constructor
+        · convert h_mono using 1
+          simp only [Nat.cast_succ, add_smul, one_smul]
+        · intro heq
+          rw [← heq] at h_in
+          exact h_not_in h_in
+      -- finrank strictly increases
+      have h_finrank := Submodule.finrank_lt_finrank_of_lt h_strict
+      omega
     omega
 
 /-! ## General dimension formula -/
