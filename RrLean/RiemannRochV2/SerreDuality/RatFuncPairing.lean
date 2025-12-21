@@ -2283,9 +2283,21 @@ Proof sketch:
 lemma intValuation_linearPlace_eq_exp_neg_rootMultiplicity (α : Fq) (p : Polynomial Fq)
     (hp : p ≠ 0) :
     (linearPlace α).intValuation p = WithZero.exp (-(p.rootMultiplicity α : ℤ)) := by
-  -- Use intValuation_if_neg with the count of (X - α) in factorization
-  -- The count equals rootMultiplicity for monic irreducibles
-  sorry
+  -- Use intValuation_if_neg to express the valuation as exp(-count)
+  rw [HeightOneSpectrum.intValuation_if_neg _ hp]
+  congr 1
+  -- Need: -(Associates.mk (linearPlace α).asIdeal).count ... = -(rootMultiplicity α p)
+  simp only [neg_inj, Nat.cast_inj]
+  -- (linearPlace α).asIdeal = span{X - C α}
+  have hlin : (linearPlace α).asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} := rfl
+  simp only [hlin]
+  -- Prime (X - C α) in Polynomial Fq
+  have hprime : Prime (Polynomial.X - Polynomial.C α) := Polynomial.prime_X_sub_C α
+  -- Get the factorization p = (X - C α)^m * q where ¬(X - C α) ∣ q
+  obtain ⟨q, hpq, hndvd⟩ := Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd p hp α
+  -- Apply Ideal.count_associates_eq
+  classical
+  exact Ideal.count_associates_eq hprime hndvd hpq
 
 /-- If deg(D) < 0, then D has at least one negative coefficient. -/
 lemma exists_neg_of_deg_neg {D : DivisorV2 (Polynomial Fq)} (hD : D.deg < 0) :
@@ -2525,22 +2537,19 @@ theorem projective_LRatFunc_eq_zero_of_neg_deg (D : DivisorV2 (Polynomial Fq)) (
   -- Combining: num.natDegree ≥ Σ|D<0| > Σ D>0 ≥ denom.natDegree
   -- Contradicts hf_nopole!
   --
-  -- BLOCKER: Need bridge lemma connecting valuation to rootMultiplicity.
-  -- See `intValuation_eq_exp_neg_rootMultiplicity` stub below.
-
-  -- Proven: v_neg is a linear place where f has a zero
-  have hv_neg_linear := hDlin v_neg hv_neg_mem
-  obtain ⟨β, hv_neg_eq⟩ := hv_neg_linear
-  have hexp_lt_one : WithZero.exp (D v_neg) < 1 := by
-    rw [← WithZero.exp_zero]; exact WithZero.exp_lt_exp.mpr hv_neg
-  have hf_val_lt_one : v_neg.valuation (RatFunc Fq) f < 1 :=
-    lt_of_le_of_lt (hf_val v_neg) hexp_lt_one
-
-  -- Proven: D(v_π) ≥ 1
-  have hD_vπ_ge_one : D v_π ≥ 1 := by omega
-
-  -- TODO: Prove (A) and (B) using intValuation_eq_exp_neg_rootMultiplicity
-  -- Then derive contradiction via omega/linarith
+  -- Step 3: Counting argument (requires helper lemmas - see Cycle 219 plan)
+  --
+  -- PROVED THIS CYCLE: `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`
+  -- This bridge lemma connects valuation at linearPlace α to rootMultiplicity α p.
+  --
+  -- REMAINING: Build these helper lemmas using the bridge:
+  -- (1) `pole_multiplicity_le_D`: At pole linearPlace α, rootMult(α, denom) ≤ D(linearPlace α)
+  -- (2) `sum_pole_mult_eq_denom_deg`: Σ pole_mults = denom.natDegree (denom splits into linears)
+  -- (3) `zero_multiplicity_ge_neg_D`: At D<0 place β, rootMult(β, num) ≥ |D(linearPlace β)|
+  -- (4) `sum_neg_D_le_num_deg`: Σ_{D<0} |D| ≤ num.natDegree
+  --
+  -- Then contradiction: num.natDegree ≥ Σ|D<0| > Σ D>0 ≥ denom.natDegree
+  -- vs hf_nopole: num.natDegree ≤ denom.natDegree
   sorry
 
 /-- The projective RRSpace is trivial when deg(D) < 0 and D is supported on linear places. -/
