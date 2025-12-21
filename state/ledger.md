@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 189
+**Cycle**: 190
 
-### Active Sorries (7 total)
+### Active Sorries (6 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
@@ -18,9 +18,16 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | Residue.lean | `residue_sum_eq_zero` | MED | General residue theorem |
 | Abstract.lean | `serrePairing_left_nondegen` | MED | Left non-degeneracy |
 | Abstract.lean | `serrePairing_right_nondegen` | MED | Right non-degeneracy |
-| Abstract.lean | `finrank_eq_of_perfect_pairing` | MED | Linear algebra lemma |
 | RatFuncPairing.lean | `serrePairing_ratfunc` | HIGH | Concrete pairing for RatFunc Fq |
 | FullAdelesCompact.lean | (1 sorry) | LOW | Edge case |
+
+### ⚠️ STUB WARNING: Abstract Pairing
+
+The `serrePairing` in `Abstract.lean` is **definitionally 0** (not sorry, just 0).
+This is intentional to allow downstream code to compile, but:
+- **Non-degeneracy lemmas are sorries** and NOT mathematically valid
+- The real pairing will be constructed in `RatFuncPairing.lean`
+- Do NOT rely on `serrePairing_wellDefined` or `serre_duality` until concrete pairing is wired
 
 ### Key Infrastructure ✅
 
@@ -46,28 +53,54 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | rawDiagonalPairing_bilinear | ✅ | SerreDuality/RatFuncPairing.lean |
 | rawDiagonalPairing_eq_zero_of_splits | ✅ | SerreDuality/RatFuncPairing.lean |
 | rawDiagonalPairing_finite_zero_of_bounded | ✅ | SerreDuality/RatFuncPairing.lean |
-| serrePairing (abstract, 0) | ✅ | SerreDuality/Abstract.lean |
+| serrePairing (abstract, STUB=0) | ⚠️ | SerreDuality/Abstract.lean |
 
 ---
 
-## Next Steps (Cycle 190)
+## Next Steps (Cycle 191)
 
-1. **Complete `serrePairing_ratfunc`** - Use liftQ construction with:
-   - Define raw pairing on FiniteAdeleRing via approximation
-   - Show it vanishes on globalPlusBoundedSubmodule
-   - Key: use `-residueAtInfty(k·f)` via weak approximation
+### Option A: Residue on Completions
+Extend `residueAt` to work on `adicCompletion K` (Laurent series) elements:
+- Define `residueAtCompletion : v.adicCompletion K → Fq` using HahnSeries.coeff(-1)
+- Show it agrees with `residueAt` on K elements
+- This enables proper liftQ construction on FiniteAdeleRing
 
-2. **Prove `finrank_eq_of_perfect_pairing`** - Standard linear algebra:
-   - Non-degenerate bilinear pairing → equal dimensions
-   - May need `FiniteDimensional` instance handling
+### Option B: Weak Approximation Route
+Use weak approximation to reduce to K-based pairing:
+- For [a] ∈ H¹(D), find k ∈ K such that a - diag(k) ∈ A_K(D)
+- Define ⟨[a], f⟩ := -residueAtInfty(k * f)
+- Prove independence of k choice via pole cancellation
 
-3. **Prove non-degeneracy** - The hard part of Serre duality:
+### Option C: Genus 0 Shortcut
+For deg(D) ≥ -1, H¹(D) = 0 so pairing is trivially 0. Could:
+- Add explicit triviality lemma for this case
+- Focus on general non-degeneracy (once pairing is constructed)
+
+### After Pairing Construction
+1. **Prove non-degeneracy** - The hard part of Serre duality:
    - Left: ⟨[a], f⟩ = 0 for all f ⟹ [a] = 0
    - Right: ⟨[a], f⟩ = 0 for all [a] ⟹ f = 0
 
 ---
 
 ## Recent Progress
+
+### Cycle 190 - **finrank_eq_of_perfect_pairing proved** ✅
+- Used Mathlib's `LinearMap.IsPerfPair` and `Module.finrank_of_isPerfPair`
+- Added import: `Mathlib.LinearAlgebra.PerfectPairing.Basic`
+- Proof strategy:
+  - Convert left/right non-degeneracy to injectivity of `pairing` and `pairing.flip`
+  - Apply `IsPerfPair.of_injective` to get perfect pairing instance
+  - `Module.finrank_of_isPerfPair` gives dimension equality
+- Ledger cleanup: Fixed Cycle 178 claim (was ✅, now correctly noted as sorry-then)
+- Added ⚠️ STUB WARNING section for abstract pairing
+- **Analyzed serrePairing_ratfunc blockers**:
+  - Current `residueAt` only works on K (RatFunc), not K_v (completions)
+  - FiniteAdeleRing contains completion elements, not just K elements
+  - Need either: (a) residue on completions, or (b) weak approximation
+  - For genus 0: H¹(D) = 0 when deg(D) ≥ -1, so pairing trivially 0 in most cases
+- Updated RatFuncPairing.lean strategy notes with detailed blocking analysis
+- Sorries: 7 → 6
 
 ### Cycle 189 - **Major refactor: Split SerreDuality into 3 files** 🔧
 - Followed reviewer recommendation to separate abstraction levels
@@ -201,7 +234,7 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 - `isCoprime_X_sub_of_ne` ✅
 
 ### Cycle 178 - Perfect pairing dimension
-- `finrank_eq_of_perfect_pairing` ✅ - Key lemma for Serre duality
+- `finrank_eq_of_perfect_pairing` - Statement added (still sorry)
 
 ### Earlier cycles (166-177)
 - See `ledger_archive.md` for detailed history

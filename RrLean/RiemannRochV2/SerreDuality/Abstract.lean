@@ -1,5 +1,6 @@
 import RrLean.RiemannRochV2.AdelicH1v2
 import RrLean.RiemannRochV2.DifferentIdealBridge
+import Mathlib.LinearAlgebra.PerfectPairing.Basic
 
 /-!
 # Abstract Serre Duality Pairing
@@ -122,7 +123,20 @@ theorem finrank_eq_of_perfect_pairing
     (left_nondegen : ∀ v : V, (∀ w : W, pairing v w = 0) → v = 0)
     (right_nondegen : ∀ w : W, (∀ v : V, pairing v w = 0) → w = 0) :
     Module.finrank k V = Module.finrank k W := by
-  sorry
+  -- Convert non-degeneracy to injectivity
+  have h_inj_left : Function.Injective pairing := by
+    intro v₁ v₂ h
+    have : pairing (v₁ - v₂) = 0 := by simp [h]
+    have key : ∀ w, pairing (v₁ - v₂) w = 0 := fun w => congrFun (congrArg DFunLike.coe this) w
+    exact sub_eq_zero.mp (left_nondegen _ key)
+  have h_inj_right : Function.Injective pairing.flip := by
+    intro w₁ w₂ h
+    have : pairing.flip (w₁ - w₂) = 0 := by simp [h]
+    have key : ∀ v, pairing v (w₁ - w₂) = 0 := fun v => congrFun (congrArg DFunLike.coe this) v
+    exact sub_eq_zero.mp (right_nondegen _ key)
+  -- Use Mathlib's perfect pairing infrastructure
+  haveI : pairing.IsPerfPair := LinearMap.IsPerfPair.of_injective h_inj_left h_inj_right
+  exact Module.finrank_of_isPerfPair pairing
 
 /-- Serre duality: h¹(D) = ℓ(K-D).
 

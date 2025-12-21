@@ -429,6 +429,19 @@ end SerrePairingConstruction
 H¹(D) uses `FiniteAdeleRing` (no infinity component), but the residue theorem
 requires summing over ALL places including infinity.
 
+Additionally, `FiniteAdeleRing` contains completion elements (K_v = Fq((X-α))),
+while our `residueAt` is only defined for `RatFunc Fq` (K elements).
+
+### Triviality for Most Divisors (Genus 0)
+
+For P¹ over Fq with canonical K = -2[∞]:
+- h¹(D) = ℓ(K-D) where deg(K-D) = -2 - deg(D)
+- h¹(D) = 0 when deg(D) ≥ -1 (pairing is trivially 0)
+- h¹(D) > 0 only when deg(D) ≤ -2
+
+So for most practical divisors (D ≥ 0), the serrePairing is between
+H¹(D) = 0 and L(K-D), which is trivially 0.
+
 ### Proposed Resolution via liftQ
 
 To define a linear map on H¹(D) = FiniteAdeleRing / (K + A_K(D)):
@@ -440,12 +453,18 @@ To define a linear map on H¹(D) = FiniteAdeleRing / (K + A_K(D)):
 
 - K-part vanishes: `diagonal_globalSubmodule_pairing_zero` (for split denominators)
 - Bounded part finite sum vanishes: `bounded_diagonal_finite_residue_zero`
+- Perfect pairing dimension lemma: `finrank_eq_of_perfect_pairing` ✅
 
-### What's Missing
+### Blocking Infrastructure Needs
 
-- Local residue on completion elements (not just K)
-- Full residue theorem (not just split denominators)
-- Infinity residue analysis for bounded elements
+1. **Residue on completions**: Extend `residueAt α` to work on `v.adicCompletion K`
+   (Laurent series elements), not just K (RatFunc) elements.
+
+2. **Weak approximation**: Alternative approach - for each [a] ∈ H¹(D), find k ∈ K
+   such that a - diag(k) ∈ A_K(D), then define pairing via -residueAtInfty(k*f).
+
+3. **Full residue theorem**: Current theorem only handles split denominators.
+   Need: ∑_v res_v(f) = 0 for all f ∈ K with finite support.
 -/
 
 end RiemannRochV2
