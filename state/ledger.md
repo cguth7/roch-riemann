@@ -8,13 +8,14 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 194
+**Cycle**: 195
 
-### Active Sorries (9 total)
+### Active Sorries (10 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
-| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma for partial fractions |
+| RatFuncPairing.lean | `exists_principal_part` | **CRITICAL** | Principal part extraction via partial fractions |
+| RatFuncPairing.lean | `exists_global_approximant_from_local` | **CRITICAL** | Key gluing lemma (uses exists_principal_part) |
 | RatFuncPairing.lean | `strong_approximation_ratfunc` | HIGH | Uses exists_global_approximant_from_local |
 | RatFuncPairing.lean | `h1_vanishing_ratfunc` | HIGH | Follows from strong_approximation |
 | RatFuncPairing.lean | `h1_finrank_zero_of_large_deg` | HIGH | Finrank version of h1_vanishing |
@@ -68,59 +69,64 @@ This is mathematically justified for genus 0 (P¹ over Fq) because:
 | exists_local_approximant_with_bound | ✅ | SerreDuality/RatFuncPairing.lean |
 | polynomial_preserves_integrality | ✅ | SerreDuality/RatFuncPairing.lean |
 | polynomial_integral_outside | ✅ | SerreDuality/RatFuncPairing.lean |
-| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
+| X_sub_not_mem_linearPlace_ideal | ✅ | SerreDuality/RatFuncPairing.lean |
+| valuation_X_sub_at_ne | ✅ | SerreDuality/RatFuncPairing.lean |
+| valuation_inv_X_sub_pow_at_ne | ✅ | SerreDuality/RatFuncPairing.lean |
+| polynomial_valuation_le_one | ✅ | SerreDuality/RatFuncPairing.lean |
+| valuation_le_one_at_other_place | ✅ | SerreDuality/RatFuncPairing.lean |
+| coprime_polynomial_valuation_one | ✅ | SerreDuality/RatFuncPairing.lean |
+| IsPrincipalPartAt predicate | ✅ | SerreDuality/RatFuncPairing.lean |
+| sum_principal_parts_valuation_le_one | ✅ | SerreDuality/RatFuncPairing.lean |
+| sub_principal_part_no_pole | ✅ | SerreDuality/RatFuncPairing.lean |
+| exists_principal_part | ⚠️ | SerreDuality/RatFuncPairing.lean (KEY) |
+| exists_global_approximant_from_local | ⚠️ | SerreDuality/RatFuncPairing.lean |
 | strong_approximation_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 | h1_vanishing_ratfunc | ⚠️ | SerreDuality/RatFuncPairing.lean |
 
 ---
 
-## Next Steps (Cycle 195)
+## Next Steps (Cycle 196)
 
-### 🎯 PRIMARY GOAL: Complete `exists_global_approximant_from_local`
+### 🎯 PRIMARY GOAL: Complete `exists_principal_part`
 
-This is the **key blocking lemma** for strong approximation. It states that given local approximants at finitely many places, we can find a single global element that simultaneously approximates all of them.
+The blocking lemma is now `exists_principal_part`, which extracts the principal part of a rational function at a linear place. Once this is proved, `exists_global_approximant_from_local` follows directly.
 
 **Statement:**
 ```lean
-lemma exists_global_approximant_from_local
-    (S : Finset (HeightOneSpectrum (Polynomial Fq)))
-    (y : S → RatFunc Fq)  -- local approximants
-    (n : S → ℤ)           -- target bounds
-    : ∃ k : RatFunc Fq, ∀ v : S,
-        v.valuation (RatFunc Fq) (y v - k) ≤ WithZero.exp (n v)
+lemma exists_principal_part (α : Fq) (y : RatFunc Fq) :
+    ∃ p r : RatFunc Fq, IsPrincipalPartAt α p y r
+-- where IsPrincipalPartAt means:
+--   y = p + r
+--   p has poles only at (X - α)
+--   r has no pole at (X - α)
 ```
 
 **Proof Strategy via Partial Fractions:**
 
-1. **Decompose each y_v**: For each v ∈ S, use Mathlib's `div_eq_quo_add_sum_rem_div` to write:
-   - `y_v = polynomial + ∑_w r_{v,w} / (irreducible for w)^{e_{v,w}}`
+1. Write y = num/denom
+2. Factor denom = (X - α)^m * R where gcd(X - α, R) = 1
+3. Apply Mathlib's `div_eq_quo_add_rem_div_add_rem_div`:
+   - y = polynomial + principal_part/(X - α)^m + remainder/R
+4. The principal_part/(X - α)^m is p, remainder/R + polynomial is r
 
-2. **Extract principal parts**: For each v, the "principal part at v" is:
-   - `PP_v(y_v) = r_{v,v} / (irreducible for v)^{e_{v,v}}`
-   - This has pole ONLY at v, no poles at other places
+**Already Proved Infrastructure:**
 
-3. **Construct k**: Set `k = ∑_{v ∈ S} PP_v(y_v)`
+| Lemma | What it gives |
+|-------|---------------|
+| `valuation_X_sub_at_ne` | (X - α) is a unit at place β ≠ α |
+| `valuation_inv_X_sub_pow_at_ne` | 1/(X - α)^n is a unit at β ≠ α |
+| `valuation_le_one_at_other_place` | p/(X - α)^n is integral at β ≠ α |
+| `coprime_polynomial_valuation_one` | R coprime to (X - α) has valuation 1 at α |
+| `sum_principal_parts_valuation_le_one` | Sum of principal parts integral at outside places |
+| `sub_principal_part_no_pole` | y - principal_part has no pole at α |
 
-4. **Verify**: At each v ∈ S:
-   - `val_v(y_v - k) ≤ exp(n_v)` because PP_v(y_v) matches y_v at v
-   - Principal parts at w ≠ v don't affect valuation at v (they're integral there)
+**Once exists_principal_part is proved:**
 
-**Key Lemmas Needed:**
-
-1. **Principal part extraction** for RatFunc at linear places:
-   - Define `principalPart (α : Fq) (y : RatFunc Fq) : RatFunc Fq`
-   - Pole only at (X - α), no poles elsewhere
-
-2. **Non-interference**: For α ≠ β:
-   - `val_{(X-α)} (principalPart β y) ≥ 0`
-
-3. **Matching property**:
-   - `val_{(X-α)} (y - principalPart α y) ≥ 0` (pole canceled)
+The gluing lemma follows: sum up principal parts at each place ∈ S.
 
 **Mathlib Resources:**
-- `Mathlib.Algebra.Polynomial.PartialFractions` - `div_eq_quo_add_sum_rem_div`
-- `Mathlib.RingTheory.DedekindDomain.Ideal.Lemmas` - CRT
-- `RatFunc.mk`, `RatFunc.num`, `RatFunc.denom` for decomposition
+- `Mathlib.Algebra.Polynomial.PartialFractions` - `div_eq_quo_add_rem_div_add_rem_div`
+- `RatFunc.num`, `RatFunc.denom` for decomposition
 
 ### Once strong_approximation is proved:
 
@@ -137,6 +143,21 @@ lemma exists_global_approximant_from_local
 ---
 
 ## Recent Progress
+
+### Cycle 195 - **Principal Part Infrastructure** 🚧
+- **Key progress**: Built the valuation lemmas for principal part construction:
+  - `X_sub_not_mem_linearPlace_ideal` ✅ - (X - α) ∉ ideal (X - β) when α ≠ β
+  - `valuation_X_sub_at_ne` ✅ - (X - α) is a unit (valuation = 1) at place β ≠ α
+  - `valuation_inv_X_sub_pow_at_ne` ✅ - 1/(X - α)^n is a unit at β ≠ α
+  - `polynomial_valuation_le_one` ✅ - Polynomials have valuation ≤ 1 at all finite places
+  - `valuation_le_one_at_other_place` ✅ - p/(X - α)^n is integral at β ≠ α
+  - `coprime_polynomial_valuation_one` ✅ - Coprime polynomials have valuation = 1
+- Defined `IsPrincipalPartAt` predicate for principal part decomposition
+- Added `sum_principal_parts_valuation_le_one` ✅ - ultrametric for sum
+- Added `sub_principal_part_no_pole` ✅ - subtracting principal part removes pole
+- **Remaining sorry**: `exists_principal_part` (requires partial fractions decomposition)
+- Sorries: 9 → 10 (added exists_principal_part as explicit blocker)
+- **Next step**: Prove existence of principal parts via `div_eq_quo_add_rem_div_add_rem_div`
 
 ### Cycle 194 - **Identified Key Gluing Lemma** 🚧
 - **Key insight**: The blocking piece is `exists_global_approximant_from_local`

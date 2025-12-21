@@ -521,6 +521,158 @@ lemma crt_linear_places {n : ℕ} (places : Fin n → HeightOneSpectrum (Polynom
     (fun i => (places i).asIdeal) exponents hprime hcoprime (fun ⟨i, _⟩ => targets i)
   exact ⟨y, fun i => hy i (Finset.mem_univ i)⟩
 
+/-! ### Principal Part Infrastructure
+
+For linear places over Fq, any rational function can be decomposed into
+polynomial + sum of principal parts, where each principal part has poles
+at exactly one place.
+-/
+
+/-- Principal part extraction predicate: `IsPrincipalPartAt α p y r` means
+    y = p + r, where p has poles only at α, and r has no pole at α. -/
+def IsPrincipalPartAt (α : Fq) (p y r : RatFunc Fq) : Prop :=
+  y = p + r ∧
+  (∀ β : Fq, β ≠ α → (linearPlace β).valuation (RatFunc Fq) p ≤ 1) ∧
+  (linearPlace α).valuation (RatFunc Fq) r ≤ 1
+
+/-- (X - α) is not in the ideal (X - β) when α ≠ β. -/
+lemma X_sub_not_mem_linearPlace_ideal (α β : Fq) (hne : β ≠ α) :
+    Polynomial.X - Polynomial.C α ∉ (linearPlace β).asIdeal := by
+  intro hmem
+  -- linearPlace β has ideal = span{X - β}
+  have hideal : (linearPlace β).asIdeal = Ideal.span {Polynomial.X - Polynomial.C β} := rfl
+  rw [hideal, Ideal.mem_span_singleton] at hmem
+  -- (X - β) | (X - α) means X - α = (X - β) * q for some q
+  obtain ⟨q, hq⟩ := hmem
+  -- Evaluate at β: β - α = 0, so α = β
+  have heval : Polynomial.aeval β (Polynomial.X - Polynomial.C α) = β - α := by simp
+  have heval_rhs : Polynomial.aeval β ((Polynomial.X - Polynomial.C β) * q) = 0 := by simp
+  rw [hq] at heval
+  simp only [heval_rhs] at heval
+  -- heval : 0 = β - α, so β = α
+  have heq : β = α := sub_eq_zero.mp heval.symm
+  exact hne heq
+
+/-- The valuation of (X-α) at a different place β ≠ α is 1 (it's a unit).
+
+Key fact: (X - α) evaluated at β gives β - α ≠ 0, so it's not in the ideal (X - β),
+hence the valuation at place β is 1.
+-/
+lemma valuation_X_sub_at_ne (α β : Fq) (hne : β ≠ α) :
+    (linearPlace β).valuation (RatFunc Fq) (RatFunc.X - RatFunc.C α) = 1 := by
+  simp only [RatFunc.X, ← RatFunc.algebraMap_C, ← map_sub]
+  rw [HeightOneSpectrum.valuation_of_algebraMap]
+  have h := intValuation_eq_one_iff.mpr (X_sub_not_mem_linearPlace_ideal α β hne)
+  exact_mod_cast h
+
+/-- The valuation of 1/(X-α)^n at a different place β ≠ α is 1 (it's a unit). -/
+lemma valuation_inv_X_sub_pow_at_ne (α β : Fq) (hne : β ≠ α) (n : ℕ) (hn : n > 0) :
+    (linearPlace β).valuation (RatFunc Fq) ((RatFunc.X - RatFunc.C α)⁻¹ ^ n) = 1 := by
+  have hunit := valuation_X_sub_at_ne α β hne
+  have hinv : (linearPlace β).valuation (RatFunc Fq) (RatFunc.X - RatFunc.C α)⁻¹ = 1 := by
+    rw [Valuation.map_inv, hunit, inv_one]
+  rw [Valuation.map_pow, hinv, one_pow]
+
+/-- Polynomials have valuation ≤ 1 at all finite places. -/
+lemma polynomial_valuation_le_one (v : HeightOneSpectrum (Polynomial Fq)) (p : Polynomial Fq) :
+    v.valuation (RatFunc Fq) (algebraMap (Polynomial Fq) (RatFunc Fq) p) ≤ 1 := by
+  by_cases hp : p = 0
+  · simp [hp]
+  · rw [v.valuation_of_algebraMap]
+    have hv : v.intValuation p ≤ 1 := v.intValuation_le_one p
+    exact_mod_cast hv
+
+/-- A rational function with denominator (X-α)^n has valuation ≤ 1 at all places β ≠ α. -/
+lemma valuation_le_one_at_other_place (α β : Fq) (hne : β ≠ α)
+    (p : Polynomial Fq) (n : ℕ) :
+    (linearPlace β).valuation (RatFunc Fq)
+      ((algebraMap (Polynomial Fq) (RatFunc Fq) p) * (RatFunc.X - RatFunc.C α)⁻¹ ^ n) ≤ 1 := by
+  by_cases hn : n = 0
+  · simp only [hn, pow_zero, mul_one]
+    exact polynomial_valuation_le_one (linearPlace β) p
+  · rw [Valuation.map_mul]
+    have hp := polynomial_valuation_le_one (linearPlace β) p
+    have hinv := valuation_inv_X_sub_pow_at_ne α β hne n (Nat.pos_of_ne_zero hn)
+    rw [hinv, mul_one]
+    exact hp
+
+/-- For a polynomial coprime to (X - α), its valuation at α is 1. -/
+lemma coprime_polynomial_valuation_one (α : Fq) (R : Polynomial Fq)
+    (hcop : IsCoprime (Polynomial.X - Polynomial.C α) R) :
+    (linearPlace α).valuation (RatFunc Fq) (algebraMap _ (RatFunc Fq) R) = 1 := by
+  rw [HeightOneSpectrum.valuation_of_algebraMap]
+  have hR : R ≠ 0 := by
+    intro hR_zero
+    simp only [hR_zero, isCoprime_zero_right] at hcop
+    exact Polynomial.not_isUnit_X_sub_C α hcop
+  have hR_not_mem : R ∉ (linearPlace α).asIdeal := by
+    intro hmem
+    have hideal : (linearPlace α).asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} := rfl
+    rw [hideal, Ideal.mem_span_singleton] at hmem
+    -- (X - α) | R contradicts coprimality
+    have hdvd : (Polynomial.X - Polynomial.C α) ∣ R := hmem
+    -- If p | q and IsCoprime p q, then p is a unit
+    have hunit := hcop.isUnit_of_dvd' (dvd_refl _) hdvd
+    exact Polynomial.not_isUnit_X_sub_C α hunit
+  exact_mod_cast intValuation_eq_one_iff.mpr hR_not_mem
+
+/-- Principal parts exist for any rational function at any linear place.
+
+For y ∈ RatFunc Fq and α ∈ Fq, there exist p and r such that:
+- y = p + r
+- p has poles only at (X - α)
+- r has no pole at (X - α)
+
+The proof uses partial fractions: write y = num/denom, extract the (X-α) part of denom,
+and decompose into principal part + regular part.
+-/
+lemma exists_principal_part (α : Fq) (y : RatFunc Fq) :
+    ∃ p r : RatFunc Fq, IsPrincipalPartAt α p y r := by
+  -- For the trivial case y = 0, both p and r can be 0
+  by_cases hy : y = 0
+  · use 0, 0
+    constructor
+    · simp [hy]
+    constructor
+    · intro β _; simp
+    · simp
+  -- Non-trivial case: use partial fractions structure
+  -- y = num/denom, write denom = (X - α)^m * R with gcd(X - α, R) = 1
+  -- By partial fractions: y = polynomial + p/(X - α)^m + r'/R
+  -- where p/(X - α)^m is the principal part at α
+  -- The details require tracking the factorization and applying div_eq_quo_add_rem_div_add_rem_div
+  -- For now, we prove existence non-constructively
+  sorry
+
+/-- The sum of principal parts at distinct places has valuation ≤ 1 at any other place. -/
+lemma sum_principal_parts_valuation_le_one
+    (S : Finset Fq) (p : S → RatFunc Fq)
+    (hp : ∀ s : S, ∀ β : Fq, β ≠ s.val → (linearPlace β).valuation (RatFunc Fq) (p s) ≤ 1)
+    (β : Fq) (hβ : β ∉ S) :
+    (linearPlace β).valuation (RatFunc Fq) (∑ s : S, p s) ≤ 1 := by
+  -- Each p s has valuation ≤ 1 at β (since β ≠ s for all s ∈ S)
+  have hle : ∀ s : S, (linearPlace β).valuation (RatFunc Fq) (p s) ≤ 1 := by
+    intro s
+    apply hp s β
+    intro heq
+    rw [heq] at hβ
+    exact hβ s.property
+  -- By ultrametric inequality: val(∑ aᵢ) ≤ max_i(val(aᵢ)) ≤ 1
+  apply Valuation.map_sum_le _ (fun s _ => hle s)
+
+/-- Key lemma: subtracting principal parts removes poles.
+
+If p is the principal part of y at α, then y - p has no pole at α.
+-/
+lemma sub_principal_part_no_pole (α : Fq) (p y r : RatFunc Fq)
+    (h : IsPrincipalPartAt α p y r) :
+    (linearPlace α).valuation (RatFunc Fq) (y - p) ≤ 1 := by
+  have heq : y - p = r := by
+    rw [h.1]
+    ring
+  rw [heq]
+  exact h.2.2
+
 /-- For a finite set of local approximants at distinct places, we can find a single global
 element that approximates all of them simultaneously.
 
