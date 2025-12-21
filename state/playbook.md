@@ -113,6 +113,23 @@ H¹(D) := 𝔸_K / (K + A_K(D))           -- adelic H¹
 canonical := -div(differentIdeal)
 ```
 
+### Architectural Shortcut: FiniteAdeleRing for H¹
+
+**Decision (Cycle 188)**: Use `FiniteAdeleRing` (not `FullAdeleRing`) for H¹(D).
+
+**Issue**: The residue theorem requires summing over ALL places (finite + ∞), but
+`AdelicH1v2.SpaceModule` uses `FiniteAdeleRing` which excludes infinity.
+
+**Workaround for genus 0** (RatFunc Fq):
+- Canonical divisor K = -2[∞] has K(v) = 0 at all finite v
+- So L(K-D) functions have no poles at finite places
+- Finite residue sum vanishes for bounded × L(K-D) by pole cancellation
+- For diagonal K: use `residueSumFinite = -residueAtInfty` (residue theorem)
+- Pairing: extract diagonal part, compute via `-residueAtInfty(k·f)`
+
+**Limitation**: This shortcut relies on genus 0. For higher genus curves, may need
+to refactor to use `FullAdeleRing` or extend `DivisorV2` to include infinity.
+
 ### File Structure
 ```
 RrLean/RiemannRochV2/
