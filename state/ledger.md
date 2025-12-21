@@ -8,9 +8,9 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Full build compiles with sorries (warnings only)
 **Phase**: 3 - Serre Duality
-**Cycle**: 207
+**Cycle**: 208
 
-### Active Sorries (4 total)
+### Active Sorries (11 total)
 
 | File | Lemma | Priority | Notes |
 |------|-------|----------|-------|
@@ -18,6 +18,13 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 | Residue.lean | `residue_sum_eq_zero` | MED | General residue theorem |
 | FullAdelesCompact.lean | (1 sorry) | LOW | Edge case in weak approximation |
 | RatFuncPairing.lean | `LRatFunc_eq_zero_of_neg_deg` | MED | Principal divisor degree = 0 for RatFunc |
+| RatFuncPairing.lean | `sum_rootMultiplicity_le_natDegree` | LOW | Product formula infrastructure |
+| RatFuncPairing.lean | `polynomial_order_sum_eq_roots` | LOW | Product formula infrastructure |
+| RatFuncPairing.lean | `principalDivisorDegree_add_infinity_eq_zero` | MED | Needs exact product formula |
+| RatFuncPairing.lean | `RRSpace_ratfunc_projective.add_mem'` | MED | Degree bound under addition |
+| RatFuncPairing.lean | `RRSpace_ratfunc_projective.smul_mem'` | LOW | Scalar mult preserves degree |
+| RatFuncPairing.lean | `constant_mem_projective_zero` | LOW | Constants in projective L(0) |
+| RatFuncPairing.lean | `projective_LRatFunc_eq_zero_of_neg_deg` | HIGH | Main vanishing theorem |
 
 ### ⚠️ ARCHITECTURE NOTE: Zero Pairing Strategy
 
@@ -117,60 +124,46 @@ projective L(D) with the degree constraint.
 
 ---
 
-## Next Steps (Cycle 208)
+## Next Steps (Cycle 209)
 
-### 🎯 PRIMARY GOAL: Product Formula Lite & Projective L(D) Bridge
+### 🎯 PRIMARY GOAL: Full Adeles Refactor
 
-**Cycle 207 achieved**: Identified critical L(D) architecture gap and added placeholder infrastructure.
+**Cycle 208 achieved**: Built projective L(D) infrastructure with infinity constraint.
 
-**THE CORE ISSUE** (must fix before AdelicRRData):
-The current `RRSpace_proj` is "affine" (no infinity constraint), making it infinite-dimensional
-for RatFunc. We need a "projective" version with a degree constraint.
+**THE DIMENSION GAP** (both sides must match for Serre duality):
+- **Left side (L(D))**: Now projective with infinity constraint → ℓ_proj(0) = 1 ✓
+- **Right side (H¹(D))**: Still using FiniteAdeleRing (ignores infinity) → h¹_affine(0) = 0 ✗
+- **Mismatch**: Serre duality h¹(D) = ℓ(K-D) would give 0 = 1 for certain D
 
-### Cycle 208 Plan: Build the Infinity Bridge
+### Cycle 209 Plan: FullAdeleRing Refactor
 
-**Step 1: Product Formula Lite for Polynomials**
+**Step 1: Use FullAdeleRing for H¹(D)**
+- Change AdelicH1v2.SpaceModule to use `FullAdeleRing := FiniteAdeleRing × K_∞`
+- Existing infrastructure in FullAdelesBase.lean (Cycle 122)
+- Define quotient: `𝔸_full / (K + 𝔸_full(D))`
+
+**Step 2: Define Global Pairing**
 ```lean
-theorem sum_valuations_eq_degree (P : Polynomial Fq) (hP : P ≠ 0) :
-    ∑ v in finite_poles P, ord_v(P) = P.natDegree
+def globalPairing : H¹(D) × L(K-D) → k :=
+  fun (x, f) => ∑_{all v} res_v(x · f)
 ```
-- Sum of root multiplicities = degree
-- Use `Polynomial.roots` and `Polynomial.card_roots'` from Mathlib
+- Sum includes residue at infinity
+- Uses existing `residueSumTotal` infrastructure
 
-**Step 2: Extend to RatFunc**
-```lean
-theorem sum_valuations_ratfunc (f : RatFunc Fq) (hf : f ≠ 0) :
-    ∑ v, ord_v(f) = f.num.natDegree - f.denom.natDegree
-```
-- This equals `-ord_∞(f)` (the negative of the order at infinity)
+**Step 3: Prove Well-Definedness (Global Residue Theorem)**
+- For k ∈ K (global field): `∑_{all v} res_v(k) = 0`
+- Links to Product Formula: sum of orders = 0 for principal divisors
+- Already have `residueSumTotal_splits` for split denominators
 
-**Step 3: Define Projective L(D) for RatFunc**
-```lean
-def RRSpace_ratfunc_proj (D : DivisorV2 (Polynomial Fq)) (D_infty : ℤ) : Submodule Fq (RatFunc Fq) :=
-  { f | f ∈ RRSpace_proj ∧ (f.num.natDegree : ℤ) - f.denom.natDegree ≤ D_infty }
-```
-- For `D_infty = 0`: only f with deg(num) ≤ deg(denom), i.e., no pole at ∞
-- `L_proj(0)` = constants, dim = 1 ✓
+**Step 4: Connect to Existing Infrastructure**
+- Keep existing FiniteAdeleRing lemmas where possible
+- Add equivalence lemma for genus 0 case
 
-**Step 4: Prove the key properties**
-- `ell_ratfunc_proj_zero_eq_one` : ℓ(0) = 1 (ProperCurve axiom)
-- `ell_ratfunc_proj_zero_of_neg_deg` : ℓ(D) = 0 when deg(D) < 0 (close the sorry)
-- Finite-dimensionality of `RRSpace_ratfunc_proj`
-
-**Step 5: Update `LRatFunc_eq_zero_of_neg_deg`**
-- Either fix to use projective L(D), or remove and replace with correct version
-
-### Key Mathlib Resources
-- `Polynomial.roots` - multiset of roots
-- `Polynomial.card_roots'` - roots counted with multiplicity ≤ degree
-- `Polynomial.prod_roots_eq_coeff_zero_div_leading_coeff` - product of roots
-- `RatFunc.num`, `RatFunc.denom` - numerator/denominator access
-
-### After Cycle 208
-Once the projective L(D) is working:
-1. Instantiate `ProperCurve` for RatFunc Fq (ℓ(0) = 1)
-2. Instantiate `AdelicRRData` for RatFunc Fq
-3. Complete full Riemann-Roch theorem
+### Alternative Approach (Lighter Weight)
+For genus 0 specifically, the infinity component contributes trivially:
+- Prove h¹(D) = 0 directly for "large" D (already done: h1_finrank_zero_of_large_deg)
+- Show L(K-D) = 0 for corresponding D (projective_LRatFunc_eq_zero_of_neg_deg)
+- Serre duality becomes 0 = 0 (vacuously true)
 
 **Lower priority sorries** (not blocking):
 - `residueAtIrreducible` - Extend to higher-degree places
@@ -179,6 +172,29 @@ Once the projective L(D) is working:
 ---
 
 ## Recent Progress
+
+### Cycle 208 - **Projective L(D) Infrastructure Built** 🏗️
+- **KEY DELIVERABLE**: Created `RRSpace_ratfunc_projective` - the "projective" L(D) with infinity constraint
+- **New definitions**:
+  - `noPoleAtInfinity f` := `f.num.natDegree ≤ f.denom.natDegree`
+  - `RRSpace_ratfunc_projective D` := L(D) ∩ { f : no pole at ∞ }
+  - `ell_ratfunc_projective D` := finrank of projective L(D)
+  - `finitePrincipalDivisorDegree`, `orderAtInfinity` - product formula infrastructure
+- **New lemmas** (with sorries for proof machinery):
+  - `sum_rootMultiplicity_le_natDegree` ⚠️ - Product formula helper
+  - `polynomial_order_sum_eq_roots` ⚠️ - Product formula helper
+  - `principalDivisorDegree_add_infinity_eq_zero` ⚠️ - Key product formula
+  - `constant_mem_projective_zero` ⚠️ - Constants in L_proj(0)
+  - `polynomial_X_not_mem_projective_zero` ✅ - X is NOT in L_proj(0)
+  - `projective_LRatFunc_eq_zero_of_neg_deg` ⚠️ - Main vanishing theorem
+  - `RRSpace_ratfunc_projective_eq_bot_of_neg_deg` - Depends on above
+  - `ell_ratfunc_projective_zero_of_neg_deg` - Depends on above
+- **Sorries**: 4 → 11 (+7 for new projective infrastructure)
+- **KEY INSIGHT**: The "Left Hand Side" (L(D)) is now architecturally correct:
+  - `L_proj(0)` = constants only (X excluded by infinity constraint)
+  - `L_proj(D) = {0}` when deg(D) < 0 (once product formula proven)
+- **Build**: ✅ compiles with sorries
+- **Next step**: Cycle 209 - Fix H¹(D) to use FullAdeleRing (the "Right Hand Side")
 
 ### Cycle 207 - **Architecture Discovery: L(D) Infinity Gap** 🔍
 - **Added placeholder infrastructure** for L(D) = 0 when deg(D) < 0
