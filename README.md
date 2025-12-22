@@ -65,6 +65,15 @@ RrLean/RiemannRochV2/
 
 **0 sorries in main codebase.** 6 dead-code lemmas moved to `RrLean/Archive/SorriedLemmas.lean`.
 
+## Documentation
+
+Main docs are in `state/`:
+- `state/ledger.md` - Current status and recent cycles
+- `state/ledger_archive.md` - Historical cycles 1-240
+- `state/playbook.md` - Strategy and architecture notes
+
+Note: Old git commits contain outdated documentation that may not reflect the final state.
+
 ## License
 
 MIT
