@@ -6,54 +6,41 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Compiles (with 1 sorry in DimensionCore + 1 in DimensionScratch)
+**Build**: ✅ Compiles (0 sorries in DimensionCore, 1 in DimensionScratch)
 **Phase**: 3 - Serre Duality → Dimension Formula
-**Cycle**: 240
+**Cycle**: 241
 
 ---
 
-## Cycle 240 Summary - `denom_is_power_of_X_sub` IN PROGRESS
+## Cycle 240 Summary - `denom_is_power_of_X_sub` COMPLETED
 
 **Goal**: Fill `denom_is_power_of_X_sub` (the last sorry in DimensionCore.lean)
 
 **What was accomplished**:
-- ✅ Added helper lemmas (all compile):
-  - `RRSpace_valuation_le_one_at_other_places` - valuation ≤ 1 at places ≠ linearPlace α
-  - `valuation_gt_one_at_other_irreducible` - if π | denom with π ≠ (X-α), then val > 1
-  - `irreducible_place_ne_linearPlace` - place from π not associate to (X-α) is ≠ linearPlace α
-  - `irreducible_factor_not_assoc_of_not_dvd` - if (X-α) ∤ R and π | R, then π not associate to (X-α)
-- ✅ Step 1-2 of main proof COMPLETE: Factor denom, show cofactor R has degree 0
+- ✅ `denom_is_power_of_X_sub` - FULLY PROVED!
+- ✅ DimensionCore.lean is now SORRY-FREE
 
-**What remains** (Steps 3-4):
-1. **Step 3**: Show R = 1 (R is constant, denom is monic → R = 1)
-   - Issue: `rw` patterns not matching due to `let denom := f.denom` scoping
-   - Fix: Use `have hdenom_eq' : denom = (X-α)^m * C c` then substitute
+**Proof structure** (all 4 steps complete):
+1. **Step 1-2** (from previous cycle): Factor denom = (X-α)^m * R, show R.natDegree = 0
+2. **Step 3**: Show R = 1 using monic leading coefficient
+   - Key: `Polynomial.leadingCoeff_mul'` + `Polynomial.natDegree_eq_zero`
+   - Since denom is monic, leadingCoeff = 1, and R = C c for constant c, we get c = 1
+3. **Step 4**: Show m ≤ n from valuation bound
+   - Key: `Polynomial.rootMultiplicity_X_sub_C_pow α m = m`
+   - Used coprimality to show (X-α) ∤ num, hence v(num) = 1
+   - v(f) = exp(m) ≤ exp(n) from RRSpace membership, so m ≤ n
 
-2. **Step 4**: Show m ≤ n from valuation bound
-   - Issue: Need `Polynomial.rootMultiplicity_X_sub_C_pow` or similar (name may differ)
-   - The lemma should say: `rootMultiplicity α ((X - C α)^m) = m`
-   - Search Mathlib for correct name
+**Sorries reduced**: 1 → 0 in DimensionCore.lean
 
-**Key insight from this cycle**: The "Extract and Conquer" pattern from Cycle 238 applies here too. Build intermediate `have` statements with explicit types rather than doing rewrites in-place.
+**Key APIs used**:
+- `Polynomial.leadingCoeff_mul'` - for computing leadingCoeff of product
+- `Polynomial.rootMultiplicity_X_sub_C_pow` - rootMultiplicity((X-α)^m, α) = m
+- `intValuation_linearPlace_eq_exp_neg_rootMultiplicity` - bridge to valuations
+- `IsCoprime.dvd_add` pattern for coprimality contradiction
 
-**Proof structure that works (Steps 1-2)**:
-```lean
--- Factor denom = (X-α)^m * R
-obtain ⟨R, hdenom_factor, hR_not_dvd⟩ := Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd ...
-
--- Show R.natDegree = 0 by contradiction
-have hR_deg_zero : R.natDegree = 0 := by
-  by_contra hR_pos'
-  -- Get irreducible factor π of R
-  obtain ⟨π, hπ_irr, hπ_dvd_R⟩ := Polynomial.exists_irreducible_of_natDegree_pos ...
-  -- π not associate to (X-α) since (X-α) ∤ R
-  have hπ_not_assoc := irreducible_factor_not_assoc_of_not_dvd ...
-  -- At place v_π: valuation(f) > 1
-  have hval_gt := valuation_gt_one_at_other_irreducible ...
-  -- But RRSpace says valuation ≤ 1
-  have hval_le := RRSpace_valuation_le_one_at_other_places ...
-  exact not_lt.mpr hval_le hval_gt
-```
+**Critical path update**: Only 1 sorry remains on P¹ critical path!
+- DimensionCore.lean: 0 sorries (was 1)
+- DimensionScratch.lean: 1 sorry (`ell_ratfunc_projective_eq_deg_plus_one`)
 
 ---
 
@@ -124,21 +111,19 @@ This eliminates circular dependencies and makes linearity proofs trivial.
 
 ---
 
-## Honest Sorry Audit (Cycle 239)
+## Honest Sorry Audit (Cycle 240)
 
-### CRITICAL PATH FOR P¹ (2 sorries total - down from 6!)
+### CRITICAL PATH FOR P¹ (1 sorry total - down from 6!)
 
-**DimensionCore.lean** (1 sorry):
-```
-Line 61:  denom_is_power_of_X_sub           - KEY LEMMA: denom = (X-α)^m with m ≤ n
-```
+**DimensionCore.lean** (0 sorries): ✅ SORRY-FREE!
 
 **DimensionScratch.lean** (1 sorry):
 ```
 Line 836: ell_ratfunc_projective_eq_deg_plus_one - main theorem (strong induction)
 ```
 
-### What's NOW PROVED (Cycles 238-239):
+### What's NOW PROVED (Cycles 238-240):
+- ✅ `denom_is_power_of_X_sub` - denom = (X-α)^m with m ≤ n (Cycle 240)
 - ✅ `partialClearPolesFun_spec` - the key algebraic equation
 - ✅ `partialClearPoles` (full LinearMap) - linearity via spec
 - ✅ `partialClearPoles_injective` - injectivity via spec
@@ -147,13 +132,14 @@ Line 836: ell_ratfunc_projective_eq_deg_plus_one - main theorem (strong inductio
 - ✅ `RRSpace_ratfunc_projective_mono` - monotonicity L(D) ⊆ L(D+[α])
 - ✅ `linearPlace_residue_finrank` - dim_Fq(κ(v)) = 1 for linear places
 
-### Dependency Graph (updated Cycle 239)
+### Dependency Graph (updated Cycle 240)
 
 ```
 riemann_roch_ratfunc (NOT PROVED)
-    ├─→ ell_ratfunc_projective_eq_deg_plus_one (1 sorry - MAIN BLOCKER)
-    │       ├─→ ell_ratfunc_projective_single_linear ✅ PROVED (modulo denom_is_power_of_X_sub)
-    │       │       ├─→ RRSpace_single_linear_finite ✅ (needs denom_is_power_of_X_sub)
+    ├─→ ell_ratfunc_projective_eq_deg_plus_one (1 sorry - ONLY REMAINING BLOCKER)
+    │       ├─→ ell_ratfunc_projective_single_linear ✅ PROVED
+    │       │       ├─→ RRSpace_single_linear_finite ✅ PROVED
+    │       │       │       ├─→ denom_is_power_of_X_sub ✅ PROVED (Cycle 240)
     │       │       │       ├─→ partialClearPoles ✅ PROVED (LinearMap)
     │       │       │       └─→ partialClearPoles_injective ✅ PROVED
     │       │       └─→ ell_ratfunc_projective_gap_le ✅ PROVED
@@ -165,54 +151,36 @@ riemann_roch_ratfunc (NOT PROVED)
     │       └─→ inv_X_sub_C_pow_not_mem_projective_smaller ✅
     └─→ ell_canonical_sub_zero ✅ PROVED
 
-REMAINING SORRIES: 2 (both on critical path)
-1. denom_is_power_of_X_sub (DimensionCore.lean:61)
-2. ell_ratfunc_projective_eq_deg_plus_one (DimensionScratch.lean:836)
+REMAINING SORRIES: 1 (on critical path)
+1. ell_ratfunc_projective_eq_deg_plus_one (DimensionScratch.lean:836)
 ```
 
 ---
 
 ## Next Steps for Future Claude (Cycle 241)
 
-### Priority 1: Complete `denom_is_power_of_X_sub` (Line 148) - Steps 3-4
+### Priority 1: Complete `ell_ratfunc_projective_eq_deg_plus_one` (Line 836)
 
-**Current state**: Steps 1-2 are DONE (helper lemmas + R.natDegree = 0). Steps 3-4 remain.
+This is the LAST sorry on the P¹ critical path!
 
-**Step 3: Show R = 1** (R is constant, denom is monic)
-```lean
-have hR_const : R = 1 := by
-  rw [Polynomial.natDegree_eq_zero] at hR_deg_zero
-  obtain ⟨c, hR_eq⟩ := hR_deg_zero  -- R = C c
-  -- Build explicit equation: denom = (X-α)^m * C c
-  have hdenom_eq' : denom = (Polynomial.X - Polynomial.C α) ^ m * Polynomial.C c := by
-    rw [hdenom_factor, hR_eq]
-  -- leadingCoeff((X-α)^m * C c) = c (use leadingCoeff_mul')
-  -- denom.Monic means leadingCoeff = 1, so c = 1
-  -- Therefore R = C 1 = 1
-```
+**Structure**: Strong induction on deg(D)
+- **Base**: D = 0 ⟹ ℓ(0) = 1 = 0 + 1 ✓
+- **Step**: Pick v with D(v) > 0, let D' = D - [v]
+  - D' effective with deg(D') = deg(D) - 1
+  - By IH: ℓ(D') = deg(D') + 1 = deg(D)
+  - Gap bound: ℓ(D) ≤ ℓ(D') + 1 = deg(D) + 1
+  - Strict inclusion: 1/(X-α)^{D(v)} ∈ L(D) \ L(D')
+  - Therefore: ℓ(D) = deg(D) + 1 ✓
 
-**Step 4: Show m ≤ n** (valuation bound)
-```lean
--- Key: find the correct name for rootMultiplicity((X-α)^m, α) = m
--- Try: Polynomial.rootMultiplicity_pow, Polynomial.rootMultiplicity_self_pow, etc.
--- Then use intValuation_linearPlace_eq_exp_neg_rootMultiplicity
-```
+**Key ingredients (all proved)**:
+- `RRSpace_ratfunc_projective_single_linear_finite` - finiteness for single linear
+- `RRSpace_ratfunc_projective_add_single_finite` - finiteness for D + [α]
+- `ell_ratfunc_projective_gap_le` - ℓ(D+[v]) ≤ ℓ(D) + 1
+- `inv_X_sub_C_pow_mem_projective` - explicit elements in L(D)
+- `inv_X_sub_C_pow_not_mem_projective_smaller` - strict inclusion
 
-**Gotchas encountered**:
-- `let denom := f.denom` creates scoping issues with `rw`
-- Solution: Build intermediate `have` statements with explicit types
-- The `rootMultiplicity_pow_X_sub_C` name may not exist - search Mathlib
-
-### ~~Priority 2: `RRSpace_ratfunc_projective_add_single_finite`~~ ✅ COMPLETED (Cycle 239)
-
-Used `Module.Finite.of_submodule_quotient` with:
-- N = comap of L(D) in L(D+[α]) (finite by hypothesis via `comap_equiv_self_of_inj_of_le`)
-- Quotient embeds into κ(α) with dimension 1 (finite via `Module.Finite.of_injective`)
-
-### Priority 2 (was 3): `ell_ratfunc_projective_eq_deg_plus_one` (DimensionScratch.lean line 836)
-
-Strong induction on `deg(D)`. Once `denom_is_power_of_X_sub` is filled, this should "just work"
-since all the finiteness instances are now in place.
+**Gotchas from previous attempts**:
+- Need to handle `IsLinearPlaceSupport` propagation through D → D - [v]
 
 ---
 

@@ -193,9 +193,110 @@ lemma denom_is_power_of_X_sub (α : Fq) (n : ℕ) (f : RatFunc Fq) (hf_ne : f �
     exact not_lt.mpr hval_le hval_gt
 
   -- Step 3: R is a nonzero constant. Since denom is monic, R must be 1.
-  -- Step 4: Show m ≤ n from the valuation bound
-  -- See ledger.md for detailed proof strategy and remaining issues
-  sorry
+  have hR_ne : R ≠ 0 := by
+    intro hR_zero
+    rw [hR_zero, mul_zero] at hdenom_factor
+    exact hdenom_ne hdenom_factor
+  rw [Polynomial.natDegree_eq_zero] at hR_deg_zero
+  obtain ⟨c, hR_eq⟩ := hR_deg_zero
+  have hc_ne : c ≠ 0 := by
+    intro hc_zero
+    rw [hc_zero, Polynomial.C_0] at hR_eq
+    exact hR_ne hR_eq.symm
+  -- leadingCoeff(denom) = leadingCoeff((X-α)^m) * leadingCoeff(C c) = 1 * c = c
+  have hpow_monic : (Polynomial.X - Polynomial.C α) ^ m |>.Monic :=
+    Polynomial.Monic.pow (Polynomial.monic_X_sub_C α) m
+  have hprod_ne : ((Polynomial.X - Polynomial.C α) ^ m).leadingCoeff *
+      (Polynomial.C c).leadingCoeff ≠ 0 := by
+    rw [hpow_monic.leadingCoeff, Polynomial.leadingCoeff_C]
+    simp [hc_ne]
+  have hlc : denom.leadingCoeff =
+      ((Polynomial.X - Polynomial.C α) ^ m).leadingCoeff * (Polynomial.C c).leadingCoeff := by
+    rw [hdenom_factor, ← hR_eq]
+    exact Polynomial.leadingCoeff_mul' hprod_ne
+  rw [hdenom_monic.leadingCoeff, hpow_monic.leadingCoeff, Polynomial.leadingCoeff_C, one_mul] at hlc
+  have hc_eq_one : c = 1 := hlc.symm
+  have hR_eq_one : R = 1 := by rw [← hR_eq, hc_eq_one, Polynomial.C_1]
+
+  -- Step 4: Show m ≤ n from the valuation bound at linearPlace α
+  -- First establish denom = (X-α)^m using hdenom_factor and hR_eq_one
+  have hdenom_eq' : denom = (Polynomial.X - Polynomial.C α) ^ m := by
+    rw [hdenom_factor, hR_eq_one, mul_one]
+  -- Since denom := f.denom by let-binding, we have f.denom = (X-α)^m
+  have hfdenom_eq : f.denom = (Polynomial.X - Polynomial.C α) ^ m := hdenom_eq'
+
+  -- Handle m = 0 case
+  by_cases hm_zero : m = 0
+  · -- Case m = 0
+    use 0
+    constructor
+    · omega
+    · simp only [hm_zero, pow_zero] at hfdenom_eq; exact hfdenom_eq
+  · -- Case m ≠ 0
+    have hm_pos : 0 < m := Nat.pos_of_ne_zero hm_zero
+
+    -- Get the valuation bound
+    rcases hf with ⟨hval, _⟩
+    rcases hval with rfl | hval'
+    · exact (hf_ne rfl).elim
+    specialize hval' (linearPlace α)
+    have hD_α : ((n : ℤ) • DivisorV2.single (linearPlace (Fq := Fq) α) 1) (linearPlace α) = n := by
+      simp only [Finsupp.smul_apply, DivisorV2.single, Finsupp.single_apply]
+      simp only [if_true, smul_eq_mul, mul_one]
+    rw [hD_α] at hval'
+
+    -- Compute v(f) = v(num) / v(denom) where v = linearPlace α
+    let v := linearPlace (Fq := Fq) α
+    have hnum_ne : f.num ≠ 0 := by
+      intro heq
+      have hf_zero : f = 0 := by rw [← RatFunc.num_div_denom f, heq, map_zero, zero_div]
+      exact hf_ne hf_zero
+    have hv_val : v.valuation (RatFunc Fq) f =
+        (v.intValuation f.num : WithZero (Multiplicative ℤ)) / v.intValuation f.denom := by
+      conv_lhs => rw [← RatFunc.num_div_denom f]
+      have hdenom_alg_ne : algebraMap (Polynomial Fq) (RatFunc Fq) f.denom ≠ 0 :=
+        RatFunc.algebraMap_ne_zero hdenom_ne
+      rw [Valuation.map_div, v.valuation_of_algebraMap, v.valuation_of_algebraMap]
+
+    -- v(denom) = exp(-m) via bridge lemma
+    have hdenom_bridge : v.intValuation f.denom = WithZero.exp (-(m : ℤ)) := by
+      rw [hfdenom_eq]
+      have hpow_ne : (Polynomial.X - Polynomial.C α) ^ m ≠ 0 :=
+        pow_ne_zero m (Polynomial.X_sub_C_ne_zero α)
+      rw [intValuation_linearPlace_eq_exp_neg_rootMultiplicity α _ hpow_ne]
+      congr 1
+      simp only [neg_inj, Nat.cast_inj]
+      exact Polynomial.rootMultiplicity_X_sub_C_pow α m
+
+    -- v(num) = 1 since num coprime to denom = (X-α)^m, so (X-α) ∤ num
+    have hX_not_dvd_num : ¬(Polynomial.X - Polynomial.C α) ∣ f.num := by
+      intro hdvd
+      have hcop : IsCoprime f.num f.denom := f.isCoprime_num_denom
+      have hdvd_denom : (Polynomial.X - Polynomial.C α) ∣ f.denom := by
+        rw [hfdenom_eq]
+        exact dvd_pow_self _ (Nat.pos_iff_ne_zero.mp hm_pos)
+      have hdvd_one : (Polynomial.X - Polynomial.C α) ∣ 1 := by
+        obtain ⟨a, b, hab⟩ := hcop
+        calc (Polynomial.X - Polynomial.C α) ∣ a * f.num + b * f.denom :=
+               dvd_add (dvd_mul_of_dvd_right hdvd a) (dvd_mul_of_dvd_right hdvd_denom b)
+           _ = 1 := hab
+      have hunit : IsUnit (Polynomial.X - Polynomial.C α) := isUnit_of_dvd_one hdvd_one
+      have hdeg_pos : 0 < (Polynomial.X - Polynomial.C α).natDegree := by
+        rw [Polynomial.natDegree_X_sub_C]; omega
+      exact Polynomial.not_isUnit_of_natDegree_pos _ hdeg_pos hunit
+    have hnum_not_in : f.num ∉ v.asIdeal := by
+      simp only [v, linearPlace, Ideal.mem_span_singleton]
+      exact hX_not_dvd_num
+    have hnum_val_one : v.intValuation f.num = 1 := intValuation_eq_one_iff.mpr hnum_not_in
+
+    -- v(f) = 1 / exp(-m) = exp(m)
+    rw [hnum_val_one, hdenom_bridge] at hv_val
+    simp only [one_div, WithZero.exp_neg, inv_inv] at hv_val
+    rw [hv_val] at hval'
+    -- exp(m) ≤ exp(n) implies m ≤ n
+    have hm_le_n : m ≤ n := Int.ofNat_le.mp (WithZero.exp_le_exp.mp hval')
+
+    exact ⟨m, hm_le_n, hfdenom_eq⟩
 
 lemma mul_X_sub_pow_is_polynomial (α : Fq) (n : ℕ) (f : RatFunc Fq)
     (hf : f ∈ RRSpace_ratfunc_projective ((n : ℤ) • DivisorV2.single (linearPlace α) 1)) :
