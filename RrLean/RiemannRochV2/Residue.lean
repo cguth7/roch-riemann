@@ -1271,17 +1271,7 @@ theorem residueAt_inv_X_sub_ne (α β c : Fq) (hne : α ≠ β) :
   -- residueAtX of (X - C(α - β))⁻¹ = 0 since pole is at α - β ≠ 0
   exact residueAtX_inv_X_sub_ne (α - β) hab_ne
 
-/-- Placeholder for residue at an arbitrary irreducible polynomial place.
-
-For a prime p ∈ Fq[X] of degree > 1, the residue at (p) requires working
-in the residue field Fq[X]/(p).
-
-For degree-1 primes (X - α), use `residueAt α` instead.
-General higher-degree places will be handled via extension fields in future cycles.
--/
-def residueAtIrreducible (p : Polynomial Fq) (hp : p.Monic) (hirr : Irreducible p)
-    (f : RatFunc Fq) : Fq :=
-  sorry
+-- residueAtIrreducible moved to Archive/SorriedLemmas.lean (needs extension fields)
 
 /-! ## Section 4: Residue Theorem
 
@@ -1388,17 +1378,7 @@ theorem residueAtLinear_inv_X_sub_ne (α β c : Fq) (hne : α ≠ β) :
       exact (mul_eq_zero.mp h0).resolve_right hh_denom_ne
     simp [hnum_zero]
 
-/-- The sum of all residues is zero (statement only, proof in future cycle).
-
-Full residue theorem for general rational functions requires partial fractions.
-
-Note: For linear places (X - α), use `residueAt α f`. For higher-degree irreducible
-places, `residueAtIrreducible` is a placeholder that needs extension field treatment. -/
-theorem residue_sum_eq_zero (f : RatFunc Fq) :
-    residueAtX f + residueAtInfty f +
-    ∑ᶠ p : {q : Polynomial Fq | q.Monic ∧ Irreducible q ∧ q ≠ Polynomial.X},
-      residueAtIrreducible p.val p.prop.1 p.prop.2.1 f = 0 := by
-  sorry
+-- residue_sum_eq_zero moved to Archive/SorriedLemmas.lean (needs residueAtIrreducible)
 
 end RiemannRochV2.Residue
 

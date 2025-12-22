@@ -782,7 +782,8 @@ The bound is achievable because for Fq[X]:
 4. Choose p such that |k₀ + p|_∞ ≤ bound (possible by density at infinity)
 -/
 theorem exists_finite_integral_translate_with_infty_bound
-    (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) (bound : WithZero (Multiplicative ℤ)) :
+    (a : FiniteAdeleRing Fq[X] (RatFunc Fq)) (bound : WithZero (Multiplicative ℤ))
+    (hbound : 1 ≤ bound) :
     ∃ k : RatFunc Fq, (∀ v, (a.val v - k) ∈ v.adicCompletionIntegers (RatFunc Fq)) ∧
       Valued.v (inftyRingHom Fq k) ≤ bound := by
   /-
@@ -866,132 +867,116 @@ theorem exists_finite_integral_translate_with_infty_bound
   - The hk₀_eq proof may need explicit coercion handling for ring tactic
   -/
 
-  -- For bound ≥ 1, use Euclidean division
-  -- For bound < 1, we need a more refined argument (not needed for main theorem)
-  by_cases hbound : 1 ≤ bound
-  · -- Case: bound ≥ 1
-    -- Use Euclidean division to extract fractional part of k₀
-    let num := k₀.num
-    let denom := k₀.denom
-    let q := num / denom  -- polynomial quotient
-    let r := num % denom  -- polynomial remainder
+  -- Use Euclidean division to extract fractional part of k₀
+  let num := k₀.num
+  let denom := k₀.denom
+  let q := num / denom  -- polynomial quotient
+  let r := num % denom  -- polynomial remainder
 
-    have hdenom_ne : denom ≠ 0 := RatFunc.denom_ne_zero k₀
-    have hmap_denom_ne : algebraMap Fq[X] (RatFunc Fq) denom ≠ 0 :=
-      RatFunc.algebraMap_ne_zero hdenom_ne
+  have hdenom_ne : denom ≠ 0 := RatFunc.denom_ne_zero k₀
+  have hmap_denom_ne : algebraMap Fq[X] (RatFunc Fq) denom ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hdenom_ne
 
-    -- k = r/denom = k₀ - q (fractional part)
-    let k : RatFunc Fq := algebraMap Fq[X] (RatFunc Fq) r / algebraMap Fq[X] (RatFunc Fq) denom
+  -- k = r/denom = k₀ - q (fractional part)
+  let k : RatFunc Fq := algebraMap Fq[X] (RatFunc Fq) r / algebraMap Fq[X] (RatFunc Fq) denom
 
-    -- Key equation: k₀ = q + r/denom, so k = r/denom = k₀ - q
-    have hk_eq : k = k₀ - algebraMap Fq[X] (RatFunc Fq) q := by
-      simp only [k, q, r, num, denom]
-      -- By EuclideanDomain.div_add_mod: num = denom * q + r
-      -- So num/denom = q + r/denom
-      -- Hence r/denom = num/denom - q = k₀ - q
-      have hdiv_add_mod : denom * (num / denom) + num % denom = num :=
-        EuclideanDomain.div_add_mod num denom
-      have hk₀_eq := RatFunc.num_div_denom k₀
-      -- r = num - denom * q (from div_add_mod: denom * q + r = num)
-      have hr_eq : (num % denom : Fq[X]) = num - denom * (num / denom) := by
-        -- denom * (num / denom) + num % denom = num
-        -- So num % denom = num - denom * (num / denom)
-        have h := hdiv_add_mod
-        rw [add_comm] at h
-        exact eq_sub_of_add_eq h
-      calc algebraMap Fq[X] (RatFunc Fq) (num % denom) / algebraMap Fq[X] (RatFunc Fq) denom
-          = algebraMap Fq[X] (RatFunc Fq) (num - denom * (num / denom)) /
-            algebraMap Fq[X] (RatFunc Fq) denom := by rw [hr_eq]
-        _ = (algebraMap Fq[X] (RatFunc Fq) num - algebraMap Fq[X] (RatFunc Fq) (denom * (num / denom))) /
-            algebraMap Fq[X] (RatFunc Fq) denom := by rw [map_sub]
-        _ = (algebraMap Fq[X] (RatFunc Fq) num - algebraMap Fq[X] (RatFunc Fq) denom *
-            algebraMap Fq[X] (RatFunc Fq) (num / denom)) / algebraMap Fq[X] (RatFunc Fq) denom := by
-            rw [map_mul]
-        _ = algebraMap Fq[X] (RatFunc Fq) num / algebraMap Fq[X] (RatFunc Fq) denom -
-            algebraMap Fq[X] (RatFunc Fq) (num / denom) := by
-            rw [sub_div, mul_div_cancel_left₀ _ hmap_denom_ne]
-        _ = k₀ - algebraMap Fq[X] (RatFunc Fq) (num / denom) := by rw [hk₀_eq]
+  -- Key equation: k₀ = q + r/denom, so k = r/denom = k₀ - q
+  have hk_eq : k = k₀ - algebraMap Fq[X] (RatFunc Fq) q := by
+    simp only [k, q, r, num, denom]
+    -- By EuclideanDomain.div_add_mod: num = denom * q + r
+    -- So num/denom = q + r/denom
+    -- Hence r/denom = num/denom - q = k₀ - q
+    have hdiv_add_mod : denom * (num / denom) + num % denom = num :=
+      EuclideanDomain.div_add_mod num denom
+    have hk₀_eq := RatFunc.num_div_denom k₀
+    -- r = num - denom * q (from div_add_mod: denom * q + r = num)
+    have hr_eq : (num % denom : Fq[X]) = num - denom * (num / denom) := by
+      -- denom * (num / denom) + num % denom = num
+      -- So num % denom = num - denom * (num / denom)
+      have h := hdiv_add_mod
+      rw [add_comm] at h
+      exact eq_sub_of_add_eq h
+    calc algebraMap Fq[X] (RatFunc Fq) (num % denom) / algebraMap Fq[X] (RatFunc Fq) denom
+        = algebraMap Fq[X] (RatFunc Fq) (num - denom * (num / denom)) /
+          algebraMap Fq[X] (RatFunc Fq) denom := by rw [hr_eq]
+      _ = (algebraMap Fq[X] (RatFunc Fq) num - algebraMap Fq[X] (RatFunc Fq) (denom * (num / denom))) /
+          algebraMap Fq[X] (RatFunc Fq) denom := by rw [map_sub]
+      _ = (algebraMap Fq[X] (RatFunc Fq) num - algebraMap Fq[X] (RatFunc Fq) denom *
+          algebraMap Fq[X] (RatFunc Fq) (num / denom)) / algebraMap Fq[X] (RatFunc Fq) denom := by
+          rw [map_mul]
+      _ = algebraMap Fq[X] (RatFunc Fq) num / algebraMap Fq[X] (RatFunc Fq) denom -
+          algebraMap Fq[X] (RatFunc Fq) (num / denom) := by
+          rw [sub_div, mul_div_cancel_left₀ _ hmap_denom_ne]
+      _ = k₀ - algebraMap Fq[X] (RatFunc Fq) (num / denom) := by rw [hk₀_eq]
 
-    use k
-    constructor
-    · -- Finite integrality: (a.val v - k) = (a.val v - k₀) + q ∈ O_v
-      intro v
-      have heq : a.val v - (k : v.adicCompletion (RatFunc Fq)) =
-          (a.val v - k₀) + (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
-        -- k = k₀ - q, so a.val v - k = a.val v - (k₀ - q) = (a.val v - k₀) + q
-        have hsub : (k : v.adicCompletion (RatFunc Fq)) =
-            (k₀ : v.adicCompletion (RatFunc Fq)) -
-            (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
-          simp only [hk_eq]
-          -- Need to show coercion distributes over subtraction
-          exact (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))).map_sub k₀ _
-        rw [hsub]
-        ring
-      rw [heq]
-      -- (a.val v - k₀) ∈ O_v by hk₀_int, q (polynomial) ∈ O_v
-      have hk₀_v := hk₀_int v
-      have hq_int : (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) ∈
-          v.adicCompletionIntegers (RatFunc Fq) :=
-        polynomial_integral_at_finite_places Fq q v
-      exact add_mem hk₀_v hq_int
+  use k
+  constructor
+  · -- Finite integrality: (a.val v - k) = (a.val v - k₀) + q ∈ O_v
+    intro v
+    have heq : a.val v - (k : v.adicCompletion (RatFunc Fq)) =
+        (a.val v - k₀) + (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
+      -- k = k₀ - q, so a.val v - k = a.val v - (k₀ - q) = (a.val v - k₀) + q
+      have hsub : (k : v.adicCompletion (RatFunc Fq)) =
+          (k₀ : v.adicCompletion (RatFunc Fq)) -
+          (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) := by
+        simp only [hk_eq]
+        -- Need to show coercion distributes over subtraction
+        exact (algebraMap (RatFunc Fq) (v.adicCompletion (RatFunc Fq))).map_sub k₀ _
+      rw [hsub]
+      ring
+    rw [heq]
+    -- (a.val v - k₀) ∈ O_v by hk₀_int, q (polynomial) ∈ O_v
+    have hk₀_v := hk₀_int v
+    have hq_int : (algebraMap Fq[X] (RatFunc Fq) q : v.adicCompletion (RatFunc Fq)) ∈
+        v.adicCompletionIntegers (RatFunc Fq) :=
+      polynomial_integral_at_finite_places Fq q v
+    exact add_mem hk₀_v hq_int
 
-    · -- Infinity bound: |r/denom|_∞ < 1 ≤ bound
-      simp only [k, r, denom, num]
-      by_cases hr : k₀.num % k₀.denom = 0
-      · -- r = 0, so k = 0, |0|_∞ = 0 ≤ bound
-        simp only [hr, map_zero, zero_div, map_zero]
-        exact zero_le'
-      · -- r ≠ 0, so deg(r) < deg(denom)
-        -- |r/denom|_∞ = exp(deg r - deg denom) < exp(0) = 1 ≤ bound
-        have hdeg_lt := Polynomial.degree_mod_lt k₀.num hdenom_ne
-        -- Convert degree < to natDegree < (for non-zero r)
-        have hnat_deg_lt : (k₀.num % k₀.denom).natDegree < k₀.denom.natDegree := by
-          apply Polynomial.natDegree_lt_natDegree hr
-          exact hdeg_lt
-        -- Compute valuation of r/denom
-        -- |r|_∞ = exp(natDegree r), |denom|_∞ = exp(natDegree denom)
-        -- |r/denom|_∞ = exp(natDegree r - natDegree denom)
-        have hval_r : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) (k₀.num % k₀.denom))) =
-            WithZero.exp ((k₀.num % k₀.denom).natDegree : ℤ) := by
-          rw [valued_FqtInfty_eq_inftyValuationDef, ← FunctionField.inftyValuation_apply]
-          exact FunctionField.inftyValuation.polynomial Fq hr
-        have hval_denom : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) k₀.denom)) =
-            WithZero.exp (k₀.denom.natDegree : ℤ) := by
-          rw [valued_FqtInfty_eq_inftyValuationDef, ← FunctionField.inftyValuation_apply]
-          exact FunctionField.inftyValuation.polynomial Fq hdenom_ne
-        -- Compute |r/denom|_∞
-        have hval_quot : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) (k₀.num % k₀.denom) /
-            algebraMap Fq[X] (RatFunc Fq) k₀.denom)) =
-            WithZero.exp (((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ)) := by
-          -- First distribute inftyRingHom over division (it's a ring hom to a field)
-          rw [map_div₀]
-          -- Then distribute Valued.v over division
-          rw [map_div₀]
-          -- Substitute the valuations of numerator and denominator
-          rw [hval_r, hval_denom]
-          -- Simplify exp(a) / exp(b) = exp(a - b)
-          rw [← WithZero.exp_sub]
-        rw [hval_quot]
-        -- exp(natDegree r - natDegree denom) < 1 since natDegree r < natDegree denom
-        have hneg : ((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ) < 0 := by
-          omega
-        have hexp_lt_one : WithZero.exp (((k₀.num % k₀.denom).natDegree : ℤ) -
-            (k₀.denom.natDegree : ℤ)) < 1 := by
-          rw [← WithZero.exp_zero]
-          exact WithZero.exp_lt_exp.mpr hneg
-        exact le_trans (le_of_lt hexp_lt_one) hbound
-
-  · -- Case: bound < 1
-    -- This case is not needed for the main theorem (which uses bound = 1)
-    -- For completeness, we could handle it with a more refined argument,
-    -- but for now we leave it as sorry
-    push_neg at hbound
-    -- Actually, in this case, we can still use the same construction
-    -- k = r/denom has |k|_∞ < 1, which might or might not satisfy bound
-    -- But since we're in the else branch, |k₀|_∞ > bound, and if bound < 1,
-    -- it's possible that the construction still works
-    -- For now, leave as sorry since not needed
-    sorry
+  · -- Infinity bound: |r/denom|_∞ < 1 ≤ bound
+    simp only [k, r, denom, num]
+    by_cases hr : k₀.num % k₀.denom = 0
+    · -- r = 0, so k = 0, |0|_∞ = 0 ≤ bound
+      simp only [hr, map_zero, zero_div, map_zero]
+      exact zero_le'
+    · -- r ≠ 0, so deg(r) < deg(denom)
+      -- |r/denom|_∞ = exp(deg r - deg denom) < exp(0) = 1 ≤ bound
+      have hdeg_lt := Polynomial.degree_mod_lt k₀.num hdenom_ne
+      -- Convert degree < to natDegree < (for non-zero r)
+      have hnat_deg_lt : (k₀.num % k₀.denom).natDegree < k₀.denom.natDegree := by
+        apply Polynomial.natDegree_lt_natDegree hr
+        exact hdeg_lt
+      -- Compute valuation of r/denom
+      -- |r|_∞ = exp(natDegree r), |denom|_∞ = exp(natDegree denom)
+      -- |r/denom|_∞ = exp(natDegree r - natDegree denom)
+      have hval_r : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) (k₀.num % k₀.denom))) =
+          WithZero.exp ((k₀.num % k₀.denom).natDegree : ℤ) := by
+        rw [valued_FqtInfty_eq_inftyValuationDef, ← FunctionField.inftyValuation_apply]
+        exact FunctionField.inftyValuation.polynomial Fq hr
+      have hval_denom : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) k₀.denom)) =
+          WithZero.exp (k₀.denom.natDegree : ℤ) := by
+        rw [valued_FqtInfty_eq_inftyValuationDef, ← FunctionField.inftyValuation_apply]
+        exact FunctionField.inftyValuation.polynomial Fq hdenom_ne
+      -- Compute |r/denom|_∞
+      have hval_quot : Valued.v (inftyRingHom Fq (algebraMap Fq[X] (RatFunc Fq) (k₀.num % k₀.denom) /
+          algebraMap Fq[X] (RatFunc Fq) k₀.denom)) =
+          WithZero.exp (((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ)) := by
+        -- First distribute inftyRingHom over division (it's a ring hom to a field)
+        rw [map_div₀]
+        -- Then distribute Valued.v over division
+        rw [map_div₀]
+        -- Substitute the valuations of numerator and denominator
+        rw [hval_r, hval_denom]
+        -- Simplify exp(a) / exp(b) = exp(a - b)
+        rw [← WithZero.exp_sub]
+      rw [hval_quot]
+      -- exp(natDegree r - natDegree denom) < 1 since natDegree r < natDegree denom
+      have hneg : ((k₀.num % k₀.denom).natDegree : ℤ) - (k₀.denom.natDegree : ℤ) < 0 := by
+        omega
+      have hexp_lt_one : WithZero.exp (((k₀.num % k₀.denom).natDegree : ℤ) -
+          (k₀.denom.natDegree : ℤ)) < 1 := by
+        rw [← WithZero.exp_zero]
+        exact WithZero.exp_lt_exp.mpr hneg
+      exact le_trans (le_of_lt hexp_lt_one) hbound
 
 /-- Weak approximation: every element can be shifted into integral adeles.
 
@@ -1040,7 +1025,7 @@ theorem exists_translate_in_integralFullAdeles (a : FqFullAdeleRing Fq) :
 
   -- Step 3: Get z from exists_finite_integral_translate_with_infty_bound
   -- b.1 is the finite adele part of b = a - diag(P)
-  obtain ⟨z, hz_fin, hz_infty⟩ := exists_finite_integral_translate_with_infty_bound Fq b.1 1
+  obtain ⟨z, hz_fin, hz_infty⟩ := exists_finite_integral_translate_with_infty_bound Fq b.1 1 le_rfl
   -- hz_fin : ∀ v, (b.1).val v - z ∈ O_v
   -- hz_infty : Valued.v (inftyRingHom Fq z) ≤ 1
 

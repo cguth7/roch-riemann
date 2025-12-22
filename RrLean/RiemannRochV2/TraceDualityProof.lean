@@ -115,39 +115,8 @@ variable [IsIntegralClosure R A K] [IsFractionRing R K]
 
 open FractionalIdeal
 
-/-- For finite-dimensional spaces, the trace dual preserves dimension structure.
-
-**Status**: This lemma may not be the correct approach for Serre duality.
-
-**Issue (Cycle 90 analysis)**:
-1. The trace dual `dual A K_A I` corresponds to divisor `K + div(I)`, not `K - div(I)`.
-   See `fractionalIdealToDivisor_dual`: `div(dual I) = canonicalDivisorFrom A - div(I)`.
-   Since `L(D) ↔ div(I) = -D`, we have `dual(L(D)) ↔ L(K + D)`, not `L(K - D)`.
-
-2. The `[Module.Finite k I]` hypothesis is very restrictive. Fractional ideals are
-   typically infinite-dimensional over k unless k is the full constant field.
-
-3. For Serre duality `ℓ(D) = ℓ(K-D) + deg(D) + 1 - g`, we need a different approach.
-
-**Correct path for Track B**:
-The adelic machinery in `Adeles.lean` defines H¹(D) = A_K / (K + A_K(D)).
-Serre duality states h¹(D) = ℓ(K-D), which combined with RR in the form
-`ℓ(D) - h¹(D) = deg(D) + 1 - g` gives the full theorem.
-
-The key remaining steps are:
-1. Prove finiteness: h¹(D) is finite for all D
-2. Prove vanishing: h¹(D) = 0 for deg(D) >> 0 (strong approximation)
-3. Prove Serre duality: h¹(D) = ℓ(K-D) via local trace residues
-
-This lemma is left as a sorry since it's not on the critical path.
--/
-lemma finrank_dual_eq (I : FractionalIdeal R⁰ K) (hI : I ≠ 0)
-    [hfin : Module.Finite k I] :
-    Module.finrank k (dual A K_A I) = Module.finrank k I := by
-  -- NOTE (Cycle 90): This lemma is likely not the right approach.
-  -- See docstring above for detailed analysis.
-  -- The adelic approach via H¹(D) in Adeles.lean is the correct path.
-  sorry
+-- finrank_dual_eq moved to Archive/SorriedLemmas.lean (wrong approach for Serre duality)
+-- See docstring in archive for why this approach doesn't work
 
 /-- The trace dual operation is involutive on fractional ideals. -/
 lemma dual_dual_eq (I : FractionalIdeal R⁰ K) (hI : I ≠ 0) :

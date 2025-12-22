@@ -91,29 +91,8 @@ For f = p/q, this is (number of zeros) - (number of poles) counting Fq-points on
 def finitePrincipalDivisorDegree (f : RatFunc Fq) : ℤ :=
   (f.num.roots.card : ℤ) - (f.denom.roots.card : ℤ)
 
-/-- **INCORRECT LEMMA - DO NOT USE**
-
-The statement `finitePrincipalDivisorDegree f + orderAtInfinity f ≤ 0` is FALSE in general.
-
-Counterexample: f = 1/(X² + X + 1) over F₂
-- num = 1: roots.card = 0, natDegree = 0
-- denom = X² + X + 1: roots.card = 0 (no roots in F₂), natDegree = 2
-- finitePrincipalDivisorDegree = 0 - 0 = 0
-- orderAtInfinity = 2 - 0 = 2
-- Total = 0 + 2 = 2 > 0 ✗
-
-The Fq-rational product formula only equals 0 when polynomials split completely.
-
-For the actual proof of `projective_LRatFunc_eq_zero_of_neg_deg`, we don't need this lemma.
-Instead, we use the degree-weighted product formula over ALL irreducible polynomials:
-  `Σ_P deg(P) * ord_P(f) + ord_∞(f) = 0`
-which follows directly from unique factorization in Fq[X]. -/
-theorem principal_divisor_degree_eq_zero_INCORRECT_DO_NOT_USE
-    (f : RatFunc Fq) (hf : f ≠ 0) :
-    finitePrincipalDivisorDegree f + orderAtInfinity f = 0 := by
-  -- This theorem is FALSE - see docstring
-  -- Keeping as documentation of the pitfall
-  sorry
+-- principal_divisor_degree_eq_zero_INCORRECT moved to Archive/SorriedLemmas.lean
+-- (was FALSE anyway - kept as counterexample documentation)
 
 /-- For polynomials (no denominator), the principal divisor has non-negative degree
 at finite places, and the infinity contribution makes total = 0. -/
