@@ -47,6 +47,100 @@ For f ∈ RRSpace(n·[α]), the function (X-α)^n · f is a polynomial of degree
 This gives a linear injection into the finite-dimensional space Fq[X]_{≤n}.
 -/
 
+/-! ### Helper lemmas for denom_is_power_of_X_sub -/
+
+/-- At places v ≠ linearPlace α, an element of RRSpace(n·[α]) has valuation ≤ 1. -/
+lemma RRSpace_valuation_le_one_at_other_places (α : Fq) (n : ℕ) (f : RatFunc Fq)
+    (hf : f ∈ RRSpace_ratfunc_projective ((n : ℤ) • DivisorV2.single (linearPlace α) 1))
+    (hf_ne : f ≠ 0) (v : HeightOneSpectrum (Polynomial Fq)) (hv : v ≠ linearPlace α) :
+    v.valuation (RatFunc Fq) f ≤ 1 := by
+  rcases hf with ⟨hval, _⟩
+  rcases hval with rfl | hval'
+  · exact (hf_ne rfl).elim
+  specialize hval' v
+  -- D(v) = 0 for v ≠ linearPlace α
+  have hDv : ((n : ℤ) • DivisorV2.single (linearPlace α) 1) v = 0 := by
+    simp only [Finsupp.smul_apply, DivisorV2.single, Finsupp.single_apply]
+    rw [if_neg (Ne.symm hv), smul_zero]
+  rw [hDv, WithZero.exp_zero] at hval'
+  exact hval'
+
+/-- If an irreducible π divides f.denom and π ≠ (X-α), then v_π.valuation f > 1. -/
+lemma valuation_gt_one_at_other_irreducible (α : Fq) (f : RatFunc Fq) (hf_ne : f ≠ 0)
+    (π : Polynomial Fq) (hπ_irr : Irreducible π) (hπ_dvd : π ∣ f.denom)
+    (hπ_ne : π ≠ Polynomial.X - Polynomial.C α) :
+    let v_π : HeightOneSpectrum (Polynomial Fq) :=
+      ⟨Ideal.span {π}, Ideal.span_singleton_prime hπ_irr.ne_zero |>.mpr hπ_irr.prime,
+       by rw [ne_eq, Ideal.span_singleton_eq_bot]; exact hπ_irr.ne_zero⟩
+    v_π.valuation (RatFunc Fq) f > 1 := by
+  intro v_π
+  have hdenom_ne : f.denom ≠ 0 := f.denom_ne_zero
+  -- π | denom implies denom ∈ v_π.asIdeal
+  have hdenom_in_v : f.denom ∈ v_π.asIdeal := by
+    simp only [v_π, Ideal.mem_span_singleton]; exact hπ_dvd
+  have hdenom_val_lt : v_π.intValuation f.denom < 1 :=
+    (intValuation_lt_one_iff_mem v_π f.denom).mpr hdenom_in_v
+  -- Coprimality: π ∤ num
+  have hcop : IsCoprime f.num f.denom := f.isCoprime_num_denom
+  have hπ_not_dvd_num : ¬(π ∣ f.num) := by
+    intro hπ_dvd_num
+    have hdvd_one : π ∣ (1 : Polynomial Fq) := by
+      obtain ⟨a, b, hab⟩ := hcop
+      calc π ∣ a * f.num + b * f.denom := dvd_add (dvd_mul_of_dvd_right hπ_dvd_num a)
+                                                   (dvd_mul_of_dvd_right hπ_dvd b)
+         _ = 1 := hab
+    exact Irreducible.not_isUnit hπ_irr (isUnit_of_dvd_one hdvd_one)
+  have hnum_not_in_v : f.num ∉ v_π.asIdeal := by
+    simp only [v_π, Ideal.mem_span_singleton]; exact hπ_not_dvd_num
+  have hnum_val_one : v_π.intValuation f.num = 1 :=
+    intValuation_eq_one_iff.mpr hnum_not_in_v
+  -- Compute valuation(f) = valuation(num) / valuation(denom) = 1 / (< 1) > 1
+  rw [← RatFunc.num_div_denom f]
+  have hnum_ne : f.num ≠ 0 := by
+    intro heq
+    have hf_eq_zero : f = 0 := by
+      rw [← RatFunc.num_div_denom f, heq, map_zero, zero_div]
+    exact hf_ne hf_eq_zero
+  have hdenom_alg_ne : algebraMap (Polynomial Fq) (RatFunc Fq) f.denom ≠ 0 :=
+    RatFunc.algebraMap_ne_zero hdenom_ne
+  rw [Valuation.map_div, v_π.valuation_of_algebraMap, v_π.valuation_of_algebraMap,
+      hnum_val_one, one_div]
+  have hdenom_mem : f.denom ∈ nonZeroDivisors (Polynomial Fq) :=
+    mem_nonZeroDivisors_of_ne_zero hdenom_ne
+  have hval_ne : v_π.intValuation f.denom ≠ 0 :=
+    v_π.intValuation_ne_zero' ⟨f.denom, hdenom_mem⟩
+  have hcoe_val_lt : (v_π.intValuation f.denom : WithZero (Multiplicative ℤ)) < 1 :=
+    hdenom_val_lt
+  exact one_lt_inv_iff₀.mpr ⟨zero_lt_iff.mpr (by exact_mod_cast hval_ne), hcoe_val_lt⟩
+
+/-- The place defined by an irreducible π not associate to (X-α) is not linearPlace α. -/
+lemma irreducible_place_ne_linearPlace (α : Fq) (π : Polynomial Fq) (hπ_irr : Irreducible π)
+    (hπ_not_assoc : ¬ Associated π (Polynomial.X - Polynomial.C α)) :
+    let v_π : HeightOneSpectrum (Polynomial Fq) :=
+      ⟨Ideal.span {π}, Ideal.span_singleton_prime hπ_irr.ne_zero |>.mpr hπ_irr.prime,
+       by rw [ne_eq, Ideal.span_singleton_eq_bot]; exact hπ_irr.ne_zero⟩
+    v_π ≠ linearPlace α := by
+  intro v_π hcontra
+  apply hπ_not_assoc
+  -- If v_π = linearPlace α, then span{π} = span{X - α}
+  have hspan_eq : Ideal.span {π} = Ideal.span {Polynomial.X - Polynomial.C α} := by
+    have h1 : v_π.asIdeal = Ideal.span {π} := rfl
+    have h2 : (linearPlace α).asIdeal = Ideal.span {Polynomial.X - Polynomial.C α} := rfl
+    rw [← h1, ← h2, hcontra]
+  -- In a PID, span{π} = span{X-α} implies π and (X-α) are associates
+  rw [Ideal.span_singleton_eq_span_singleton] at hspan_eq
+  exact hspan_eq
+
+/-- If (X-α) ∤ R and π | R with π irreducible, then π is not associate to (X-α). -/
+lemma irreducible_factor_not_assoc_of_not_dvd (α : Fq) (R π : Polynomial Fq)
+    (hπ_irr : Irreducible π) (hπ_dvd : π ∣ R) (hX_not_dvd : ¬ (Polynomial.X - Polynomial.C α) ∣ R) :
+    ¬ Associated π (Polynomial.X - Polynomial.C α) := by
+  intro hassoc
+  apply hX_not_dvd
+  -- If π ~ (X-α), then π | R implies (X-α) | R
+  -- Associated.dvd_iff_dvd_left : a ~ b → (∀ c, a ∣ c ↔ b ∣ c)
+  exact hassoc.dvd_iff_dvd_left.mp hπ_dvd
+
 /-- Helper: If f ∈ RRSpace_ratfunc_projective (n·[α]), then f.denom = (X-α)^m for some m ≤ n.
 This is because:
 1. At any place v ≠ linearPlace α, val_v(f) ≤ 1, so denom has no other irreducible factors
@@ -54,10 +148,53 @@ This is because:
 lemma denom_is_power_of_X_sub (α : Fq) (n : ℕ) (f : RatFunc Fq) (hf_ne : f ≠ 0)
     (hf : f ∈ RRSpace_ratfunc_projective ((n : ℤ) • DivisorV2.single (linearPlace α) 1)) :
     ∃ m : ℕ, m ≤ n ∧ f.denom = (Polynomial.X - Polynomial.C α) ^ m := by
-  -- The proof proceeds by:
-  -- 1. Factor denom = (X-α)^m * R
-  -- 2. Show R = 1 (no other factors) using valuation constraints
-  -- 3. Show m ≤ n from the valuation bound at linearPlace α
+  -- Step 1: Factor denom = (X-α)^m * R where (X-α) ∤ R
+  let denom := f.denom
+  have hdenom_ne : denom ≠ 0 := f.denom_ne_zero
+  have hdenom_monic : denom.Monic := RatFunc.monic_denom f
+  let m := denom.rootMultiplicity α
+  obtain ⟨R, hdenom_factor, hR_not_dvd⟩ :=
+    Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd denom hdenom_ne α
+
+  -- Step 2: Show R has degree 0 by contradiction
+  -- If R has positive degree, it has an irreducible factor π with π ∤ (X-α)
+  have hR_deg_zero : R.natDegree = 0 := by
+    by_contra hR_pos'
+    push_neg at hR_pos'
+    have hR_pos : 0 < R.natDegree := Nat.pos_of_ne_zero hR_pos'
+    -- Get an irreducible factor π of R
+    have hR_ne : R ≠ 0 := by
+      intro hR_zero
+      rw [hR_zero, mul_zero] at hdenom_factor
+      exact hdenom_ne hdenom_factor
+    obtain ⟨π, hπ_irr, hπ_dvd_R⟩ := Polynomial.exists_irreducible_of_natDegree_pos hR_pos
+    -- π is not associate to (X-α) since (X-α) ∤ R
+    have hπ_not_assoc := irreducible_factor_not_assoc_of_not_dvd Fq α R π hπ_irr hπ_dvd_R hR_not_dvd
+    -- π | denom since π | R and R | denom
+    have hπ_dvd_denom : π ∣ denom := by
+      calc π ∣ R := hπ_dvd_R
+         _ ∣ (Polynomial.X - Polynomial.C α) ^ m * R := dvd_mul_left R _
+         _ = denom := hdenom_factor.symm
+    -- Define the place v_π
+    let v_π : HeightOneSpectrum (Polynomial Fq) :=
+      ⟨Ideal.span {π}, Ideal.span_singleton_prime hπ_irr.ne_zero |>.mpr hπ_irr.prime,
+       by rw [ne_eq, Ideal.span_singleton_eq_bot]; exact hπ_irr.ne_zero⟩
+    -- v_π ≠ linearPlace α
+    have hv_ne : v_π ≠ linearPlace α := irreducible_place_ne_linearPlace Fq α π hπ_irr hπ_not_assoc
+    -- At v_π: valuation(f) > 1
+    have hπ_ne : π ≠ Polynomial.X - Polynomial.C α := fun heq =>
+      hπ_not_assoc (heq ▸ Associated.refl _)
+    have hval_gt : v_π.valuation (RatFunc Fq) f > 1 :=
+      valuation_gt_one_at_other_irreducible Fq α f hf_ne π hπ_irr hπ_dvd_denom hπ_ne
+    -- But RRSpace membership says valuation ≤ 1 at v_π ≠ linearPlace α
+    have hval_le : v_π.valuation (RatFunc Fq) f ≤ 1 :=
+      RRSpace_valuation_le_one_at_other_places Fq α n f hf hf_ne v_π hv_ne
+    -- Contradiction
+    exact not_lt.mpr hval_le hval_gt
+
+  -- Step 3: R is a nonzero constant. Since denom is monic, R must be 1.
+  -- Step 4: Show m ≤ n from the valuation bound
+  -- See ledger.md for detailed proof strategy and remaining issues
   sorry
 
 lemma mul_X_sub_pow_is_polynomial (α : Fq) (n : ℕ) (f : RatFunc Fq)

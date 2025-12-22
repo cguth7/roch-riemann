@@ -8,7 +8,52 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 **Build**: ✅ Compiles (with 1 sorry in DimensionCore + 1 in DimensionScratch)
 **Phase**: 3 - Serre Duality → Dimension Formula
-**Cycle**: 239
+**Cycle**: 240
+
+---
+
+## Cycle 240 Summary - `denom_is_power_of_X_sub` IN PROGRESS
+
+**Goal**: Fill `denom_is_power_of_X_sub` (the last sorry in DimensionCore.lean)
+
+**What was accomplished**:
+- ✅ Added helper lemmas (all compile):
+  - `RRSpace_valuation_le_one_at_other_places` - valuation ≤ 1 at places ≠ linearPlace α
+  - `valuation_gt_one_at_other_irreducible` - if π | denom with π ≠ (X-α), then val > 1
+  - `irreducible_place_ne_linearPlace` - place from π not associate to (X-α) is ≠ linearPlace α
+  - `irreducible_factor_not_assoc_of_not_dvd` - if (X-α) ∤ R and π | R, then π not associate to (X-α)
+- ✅ Step 1-2 of main proof COMPLETE: Factor denom, show cofactor R has degree 0
+
+**What remains** (Steps 3-4):
+1. **Step 3**: Show R = 1 (R is constant, denom is monic → R = 1)
+   - Issue: `rw` patterns not matching due to `let denom := f.denom` scoping
+   - Fix: Use `have hdenom_eq' : denom = (X-α)^m * C c` then substitute
+
+2. **Step 4**: Show m ≤ n from valuation bound
+   - Issue: Need `Polynomial.rootMultiplicity_X_sub_C_pow` or similar (name may differ)
+   - The lemma should say: `rootMultiplicity α ((X - C α)^m) = m`
+   - Search Mathlib for correct name
+
+**Key insight from this cycle**: The "Extract and Conquer" pattern from Cycle 238 applies here too. Build intermediate `have` statements with explicit types rather than doing rewrites in-place.
+
+**Proof structure that works (Steps 1-2)**:
+```lean
+-- Factor denom = (X-α)^m * R
+obtain ⟨R, hdenom_factor, hR_not_dvd⟩ := Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd ...
+
+-- Show R.natDegree = 0 by contradiction
+have hR_deg_zero : R.natDegree = 0 := by
+  by_contra hR_pos'
+  -- Get irreducible factor π of R
+  obtain ⟨π, hπ_irr, hπ_dvd_R⟩ := Polynomial.exists_irreducible_of_natDegree_pos ...
+  -- π not associate to (X-α) since (X-α) ∤ R
+  have hπ_not_assoc := irreducible_factor_not_assoc_of_not_dvd ...
+  -- At place v_π: valuation(f) > 1
+  have hval_gt := valuation_gt_one_at_other_irreducible ...
+  -- But RRSpace says valuation ≤ 1
+  have hval_le := RRSpace_valuation_le_one_at_other_places ...
+  exact not_lt.mpr hval_le hval_gt
+```
 
 ---
 
@@ -127,30 +172,36 @@ REMAINING SORRIES: 2 (both on critical path)
 
 ---
 
-## Next Steps for Future Claude (Cycle 240)
+## Next Steps for Future Claude (Cycle 241)
 
-### Priority 1: `denom_is_power_of_X_sub` (Line 61) - LAST REMAINING IN DimensionCore
+### Priority 1: Complete `denom_is_power_of_X_sub` (Line 148) - Steps 3-4
 
-**What to prove**:
+**Current state**: Steps 1-2 are DONE (helper lemmas + R.natDegree = 0). Steps 3-4 remain.
+
+**Step 3: Show R = 1** (R is constant, denom is monic)
 ```lean
-lemma denom_is_power_of_X_sub (α : Fq) (n : ℕ) (f : RatFunc Fq) (hf_ne : f ≠ 0)
-    (hf : f ∈ RRSpace_ratfunc_projective ((n : ℤ) • DivisorV2.single (linearPlace α) 1)) :
-    ∃ m : ℕ, m ≤ n ∧ f.denom = (Polynomial.X - Polynomial.C α) ^ m
+have hR_const : R = 1 := by
+  rw [Polynomial.natDegree_eq_zero] at hR_deg_zero
+  obtain ⟨c, hR_eq⟩ := hR_deg_zero  -- R = C c
+  -- Build explicit equation: denom = (X-α)^m * C c
+  have hdenom_eq' : denom = (Polynomial.X - Polynomial.C α) ^ m * Polynomial.C c := by
+    rw [hdenom_factor, hR_eq]
+  -- leadingCoeff((X-α)^m * C c) = c (use leadingCoeff_mul')
+  -- denom.Monic means leadingCoeff = 1, so c = 1
+  -- Therefore R = C 1 = 1
 ```
 
-**Math strategy**:
-1. Factor `denom = (X-α)^m * R` using `Polynomial.exists_eq_pow_rootMultiplicity_mul_and_not_dvd`
-2. Show `R = 1` by contradiction:
-   - If R has irreducible factor π ≠ (X-α), then π defines a place v_π
-   - At v_π: f has a pole (val < 0) but RRSpace membership says val ≥ 0 at all places ≠ α
-   - Contradiction!
-3. Show `m ≤ n` from valuation bound at `linearPlace α`
+**Step 4: Show m ≤ n** (valuation bound)
+```lean
+-- Key: find the correct name for rootMultiplicity((X-α)^m, α) = m
+-- Try: Polynomial.rootMultiplicity_pow, Polynomial.rootMultiplicity_self_pow, etc.
+-- Then use intValuation_linearPlace_eq_exp_neg_rootMultiplicity
+```
 
-**Implementation tips**:
-- Use `HeightOneSpectrum.mk` to construct place from irreducible
-- Key lemma: `intValuation_linearPlace_eq_exp_neg_rootMultiplicity`
-- Build in small pieces (10-20 lines), test each step
-- See "API Lessons" section below for correct lemma names
+**Gotchas encountered**:
+- `let denom := f.denom` creates scoping issues with `rw`
+- Solution: Build intermediate `have` statements with explicit types
+- The `rootMultiplicity_pow_X_sub_C` name may not exist - search Mathlib
 
 ### ~~Priority 2: `RRSpace_ratfunc_projective_add_single_finite`~~ ✅ COMPLETED (Cycle 239)
 
