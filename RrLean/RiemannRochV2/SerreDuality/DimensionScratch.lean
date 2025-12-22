@@ -35,36 +35,11 @@ For the step, we need:
 2. ℓ(D + [v]) ≥ ℓ(D) + 1 (construct explicit element in L(D+[v]) \ L(D))
 -/
 
-/-! ## Upper bound: Gap ≤ 1 for projective space -/
+/-! ## Upper bound: Gap ≤ 1 for projective space
 
-/-- L_proj(D) ⊆ L_proj(D + [v]) for any linear place v. -/
-lemma RRSpace_ratfunc_projective_mono (D : DivisorV2 (Polynomial Fq)) (α : Fq) :
-    RRSpace_ratfunc_projective D ≤
-    RRSpace_ratfunc_projective (D + DivisorV2.single (linearPlace α) 1) := by
-  intro f hf
-  rcases hf with ⟨hval, hinfty⟩
-  constructor
-  · -- Valuation condition for D + [v]
-    rcases hval with hzero | hval'
-    · left; exact hzero
-    right
-    intro w
-    by_cases hw : w = linearPlace α
-    · subst hw
-      simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_apply, if_pos rfl]
-      calc (linearPlace α).valuation (RatFunc Fq) f
-          ≤ WithZero.exp (D (linearPlace α)) := hval' (linearPlace α)
-        _ ≤ WithZero.exp (D (linearPlace α) + 1) := by
-            apply WithZero.exp_le_exp.mpr; omega
-    · simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_apply, hw,
-                 if_neg (Ne.symm hw), add_zero]
-      exact hval' w
-  · exact hinfty
-
-/-! ## Residue field isomorphism for linear places
-
-For linearPlace α, the residue field κ(v) = Fq[X]/(X-α) ≅ Fq via evaluation at α.
-This gives dim_Fq(κ(v)) = 1, which is key for the gap bound. -/
+Note: `RRSpace_ratfunc_projective_mono` and `linearPlace_residue_finrank` are now defined
+in DimensionCore.lean. We use them here via the import.
+-/
 
 /-- The residue field at a linear place is isomorphic to Fq.
 This uses the fact that Fq[X]/(X-α) ≅ Fq via evaluation at α.
@@ -90,37 +65,6 @@ noncomputable def linearPlace_residue_equiv (α : Fq) :
     Polynomial.quotientSpanXSubCAlgEquiv α
   -- Compose: ResidueField ≃ R/I ≃ Fq
   exact e1.symm.trans e2.toRingEquiv
-
-/-- The residue field at a linear place has dimension 1 over Fq.
-Uses linearPlace_residue_equiv to show κ(v) ≅ Fq as rings, hence as Fq-vector spaces. -/
-lemma linearPlace_residue_finrank (α : Fq) :
-    Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) (linearPlace α)) = 1 := by
-  -- Fq[X]/span{X-Cα} ≃ₐ[Fq] Fq via quotientSpanXSubCAlgEquiv
-  let e_alg : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₐ[Fq] Fq :=
-    Polynomial.quotientSpanXSubCAlgEquiv α
-  -- This gives finrank(Fq[X]/I) = finrank(Fq) = 1
-  have h1 : Module.finrank Fq (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) = 1 := by
-    rw [← Module.finrank_self Fq]
-    exact LinearEquiv.finrank_eq e_alg.toLinearEquiv
-  -- Now we need: finrank(κ(v)) = finrank(R/I) via the bijective algebraMap
-  haveI hmax : (linearPlace (Fq := Fq) α).asIdeal.IsMaximal := (linearPlace α).isMaximal
-  have hbij := Ideal.bijective_algebraMap_quotient_residueField (linearPlace (Fq := Fq) α).asIdeal
-  -- Build RingEquiv from the bijective algebraMap
-  let e_ring : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃+*
-      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
-    RingEquiv.ofBijective _ hbij
-  -- Upgrade to AlgEquiv: need to show algebraMap commutes
-  have hcomm : ∀ c : Fq, e_ring (algebraMap Fq (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) c) =
-      algebraMap Fq (residueFieldAtPrime (Polynomial Fq) (linearPlace α)) c := fun c => by
-    simp only [e_ring, RingEquiv.ofBijective_apply]
-    -- e_ring = algebraMap (R/I) κ(v) on elements
-    -- algebraMap Fq κ(v) factors through R/I by definition of the Fq-algebra structure
-    rfl
-  let e_alg' : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₐ[Fq]
-      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
-    AlgEquiv.ofRingEquiv hcomm
-  rw [← h1]
-  exact LinearEquiv.finrank_eq e_alg'.symm.toLinearEquiv
 
 /-- Gap bound for projective RRSpace: ℓ(D + [v]) ≤ ℓ(D) + 1.
 

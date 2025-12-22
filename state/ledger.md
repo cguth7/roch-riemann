@@ -6,13 +6,33 @@ Tactical tracking for Riemann-Roch formalization. For strategy, see `playbook.md
 
 ## Current State
 
-**Build**: ✅ Compiles (with 2 sorries in DimensionCore + 1 in DimensionScratch)
+**Build**: ✅ Compiles (with 1 sorry in DimensionCore + 1 in DimensionScratch)
 **Phase**: 3 - Serre Duality → Dimension Formula
-**Cycle**: 238
+**Cycle**: 239
 
 ---
 
-## Cycle 238 Summary - MAJOR PROGRESS
+## Cycle 239 Summary - Priority 2 COMPLETED
+
+**Goal**: Fill `RRSpace_ratfunc_projective_add_single_finite` (Priority 2 sorry)
+
+**What was accomplished**:
+- ✅ `RRSpace_ratfunc_projective_add_single_finite` - PROVED!
+
+**Sorries reduced**: 2 → 1 in DimensionCore.lean
+
+**Key technique**: Used `Module.Finite.of_submodule_quotient`:
+1. View L(D) as submodule LD of L(D+[α]) via comap
+2. Show LD ≅ L(D) (hence finite by hypothesis) via `Submodule.comap_equiv_self_of_inj_of_le`
+3. Show quotient L(D+[α])/LD is finite (injects into κ(α) with dim 1)
+4. Apply `Module.Finite.of_submodule_quotient`
+
+**Refactoring**: Moved `RRSpace_ratfunc_projective_mono` and `linearPlace_residue_finrank`
+from DimensionScratch.lean to DimensionCore.lean (needed by add_single_finite proof).
+
+---
+
+## Cycle 238 Summary
 
 **Goal**: Fill "low-hanging fruit" sorries (linearity + injectivity)
 
@@ -59,47 +79,57 @@ This eliminates circular dependencies and makes linearity proofs trivial.
 
 ---
 
-## Honest Sorry Audit (Cycle 238)
+## Honest Sorry Audit (Cycle 239)
 
-### CRITICAL PATH FOR P¹ (3 sorries total - down from 6!)
+### CRITICAL PATH FOR P¹ (2 sorries total - down from 6!)
 
-**DimensionCore.lean** (2 sorries):
+**DimensionCore.lean** (1 sorry):
 ```
 Line 61:  denom_is_power_of_X_sub           - KEY LEMMA: denom = (X-α)^m with m ≤ n
-Line 225: RRSpace_...add_single_finite      - finiteness for D + [v]
 ```
 
 **DimensionScratch.lean** (1 sorry):
 ```
-Line 892: ell_ratfunc_projective_eq_deg_plus_one - main theorem (strong induction)
+Line 836: ell_ratfunc_projective_eq_deg_plus_one - main theorem (strong induction)
 ```
 
-### What's NOW PROVED (Cycle 238):
+### What's NOW PROVED (Cycles 238-239):
 - ✅ `partialClearPolesFun_spec` - the key algebraic equation
 - ✅ `partialClearPoles` (full LinearMap) - linearity via spec
 - ✅ `partialClearPoles_injective` - injectivity via spec
 - ✅ `RRSpace_ratfunc_projective_single_linear_finite` - finiteness (uses injective embedding)
+- ✅ `RRSpace_ratfunc_projective_add_single_finite` - finiteness for D + [α] (Cycle 239)
+- ✅ `RRSpace_ratfunc_projective_mono` - monotonicity L(D) ⊆ L(D+[α])
+- ✅ `linearPlace_residue_finrank` - dim_Fq(κ(v)) = 1 for linear places
 
-### Dependency Graph (updated)
+### Dependency Graph (updated Cycle 239)
 
 ```
 riemann_roch_ratfunc (NOT PROVED)
     ├─→ ell_ratfunc_projective_eq_deg_plus_one (1 sorry - MAIN BLOCKER)
-    │       ├─→ ell_ratfunc_projective_single_linear ✅ PROVED (modulo DimensionCore)
+    │       ├─→ ell_ratfunc_projective_single_linear ✅ PROVED (modulo denom_is_power_of_X_sub)
     │       │       ├─→ RRSpace_single_linear_finite ✅ (needs denom_is_power_of_X_sub)
     │       │       │       ├─→ partialClearPoles ✅ PROVED (LinearMap)
     │       │       │       └─→ partialClearPoles_injective ✅ PROVED
     │       │       └─→ ell_ratfunc_projective_gap_le ✅ PROVED
+    │       ├─→ RRSpace_add_single_finite ✅ PROVED (Cycle 239)
+    │       │       ├─→ RRSpace_ratfunc_projective_mono ✅ PROVED
+    │       │       ├─→ linearPlace_residue_finrank ✅ PROVED
+    │       │       └─→ kernel_evaluationMapAt_complete_proof ✅ PROVED
     │       ├─→ inv_X_sub_C_pow_mem_projective ✅
     │       └─→ inv_X_sub_C_pow_not_mem_projective_smaller ✅
     └─→ ell_canonical_sub_zero ✅ PROVED
+
+REMAINING SORRIES: 2 (both on critical path)
+1. denom_is_power_of_X_sub (DimensionCore.lean:61)
+2. ell_ratfunc_projective_eq_deg_plus_one (DimensionScratch.lean:836)
 ```
 
 ---
 
-## Next Steps for Future Claude (Cycle 239)
+## Next Steps for Future Claude (Cycle 240)
 
-### Priority 1: `denom_is_power_of_X_sub` (Line 61)
+### Priority 1: `denom_is_power_of_X_sub` (Line 61) - LAST REMAINING IN DimensionCore
 
 **What to prove**:
 ```lean
@@ -122,31 +152,16 @@ lemma denom_is_power_of_X_sub (α : Fq) (n : ℕ) (f : RatFunc Fq) (hf_ne : f �
 - Build in small pieces (10-20 lines), test each step
 - See "API Lessons" section below for correct lemma names
 
-### Priority 2: `RRSpace_ratfunc_projective_add_single_finite` (Line 225) - LIKELY EASY
+### ~~Priority 2: `RRSpace_ratfunc_projective_add_single_finite`~~ ✅ COMPLETED (Cycle 239)
 
-**What to prove**: Finiteness for `D + [v]` given finiteness for `D`.
+Used `Module.Finite.of_submodule_quotient` with:
+- N = comap of L(D) in L(D+[α]) (finite by hypothesis via `comap_equiv_self_of_inj_of_le`)
+- Quotient embeds into κ(α) with dimension 1 (finite via `Module.Finite.of_injective`)
 
-**Key insight** (thanks Gemini): This should be simpler than it looks!
-- We're given `[hD : Module.Finite Fq (RRSpace_ratfunc_projective D)]`
-- `L(D) ⊆ L(D+[α])` as submodules
-- Gap bound: `dim L(D+[α]) ≤ dim L(D) + 1`
+### Priority 2 (was 3): `ell_ratfunc_projective_eq_deg_plus_one` (DimensionScratch.lean line 836)
 
-**Approach**: Finite submodule + finite quotient → finite module. Look for:
-```lean
--- Something like:
-Module.Finite.of_quotient_finite  -- if quotient is finite-dim
--- Or use the fact that L(D+[α])/L(D) has dim ≤ 1
-```
-
-**Note**: `RRSpace_ratfunc_projective_single_linear_finite` (n•[α] case) is ALREADY PROVED using the one-liner:
-```lean
-exact Module.Finite.of_injective (partialClearPoles Fq α n) (partialClearPoles_injective Fq α n)
-```
-The `add_single_finite` case just needs the "finite extension" version of this argument.
-
-### Priority 3: `ell_ratfunc_projective_eq_deg_plus_one` (DimensionScratch.lean)
-
-Strong induction on `deg(D)`. Once DimensionCore sorries are filled, this may "just work" or need minor fixes.
+Strong induction on `deg(D)`. Once `denom_is_power_of_X_sub` is filled, this should "just work"
+since all the finiteness instances are now in place.
 
 ---
 

@@ -216,13 +216,185 @@ instance RRSpace_ratfunc_projective_single_linear_finite (α : Fq) (n : ℕ) :
   haveI : Module.Finite Fq (Polynomial.degreeLT Fq (n + 1)) := inferInstance
   exact Module.Finite.of_injective (partialClearPoles Fq α n) hinj
 
-/-- Finiteness for D + [v] when D is finite-dim and v is a linear place. -/
+/-! ## Helper lemmas for add_single_finite
+
+These are used in the proof of RRSpace_ratfunc_projective_add_single_finite below.
+-/
+
+/-- L_proj(D) ⊆ L_proj(D + [v]) for any linear place v. -/
+lemma RRSpace_ratfunc_projective_mono (D : DivisorV2 (Polynomial Fq)) (α : Fq) :
+    RRSpace_ratfunc_projective D ≤
+    RRSpace_ratfunc_projective (D + DivisorV2.single (linearPlace α) 1) := by
+  intro f hf
+  rcases hf with ⟨hval, hinfty⟩
+  constructor
+  · -- Valuation condition for D + [v]
+    rcases hval with hzero | hval'
+    · left; exact hzero
+    right
+    intro w
+    by_cases hw : w = linearPlace α
+    · subst hw
+      simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_apply, if_pos rfl]
+      calc (linearPlace α).valuation (RatFunc Fq) f
+          ≤ WithZero.exp (D (linearPlace α)) := hval' (linearPlace α)
+        _ ≤ WithZero.exp (D (linearPlace α) + 1) := by
+            apply WithZero.exp_le_exp.mpr; omega
+    · simp only [Finsupp.add_apply, DivisorV2.single, Finsupp.single_apply, hw,
+                 if_neg (Ne.symm hw), add_zero]
+      exact hval' w
+  · exact hinfty
+
+/-- The residue field at a linear place has dimension 1 over Fq.
+Uses that κ(v) = Fq[X]/(X-α) ≅ Fq via evaluation at α. -/
+lemma linearPlace_residue_finrank (α : Fq) :
+    Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) (linearPlace α)) = 1 := by
+  -- Fq[X]/span{X-Cα} ≃ₐ[Fq] Fq via quotientSpanXSubCAlgEquiv
+  let e_alg : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₐ[Fq] Fq :=
+    Polynomial.quotientSpanXSubCAlgEquiv α
+  -- This gives finrank(Fq[X]/I) = finrank(Fq) = 1
+  have h1 : Module.finrank Fq (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) = 1 := by
+    rw [← Module.finrank_self Fq]
+    exact LinearEquiv.finrank_eq e_alg.toLinearEquiv
+  -- Now we need: finrank(κ(v)) = finrank(R/I) via the bijective algebraMap
+  haveI hmax : (linearPlace (Fq := Fq) α).asIdeal.IsMaximal := (linearPlace α).isMaximal
+  have hbij := Ideal.bijective_algebraMap_quotient_residueField (linearPlace (Fq := Fq) α).asIdeal
+  -- Build RingEquiv from the bijective algebraMap
+  let e_ring : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃+*
+      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
+    RingEquiv.ofBijective _ hbij
+  -- Upgrade to AlgEquiv: need to show algebraMap commutes
+  have hcomm : ∀ c : Fq, e_ring (algebraMap Fq (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) c) =
+      algebraMap Fq (residueFieldAtPrime (Polynomial Fq) (linearPlace α)) c := fun c => by
+    simp only [e_ring, RingEquiv.ofBijective_apply]
+    rfl
+  let e_alg' : (Polynomial Fq ⧸ (linearPlace (Fq := Fq) α).asIdeal) ≃ₐ[Fq]
+      residueFieldAtPrime (Polynomial Fq) (linearPlace α) :=
+    AlgEquiv.ofRingEquiv hcomm
+  rw [← h1]
+  exact LinearEquiv.finrank_eq e_alg'.symm.toLinearEquiv
+
+/-- Finiteness for D + [v] when D is finite-dim and v is a linear place.
+
+The proof uses Module.Finite.of_submodule_quotient: if N ⊆ M is a submodule and both
+N and M/N are Module.Finite, then M is Module.Finite.
+
+We take M = L(D + [α]), N = LD (the embedding of L(D)).
+- N ≅ L(D) is finite by hypothesis
+- M/N injects into κ(α) which has dimension 1 (from gap bound proof structure)
+-/
 instance RRSpace_ratfunc_projective_add_single_finite (α : Fq)
     (D : DivisorV2 (Polynomial Fq))
     [hD : Module.Finite Fq (RRSpace_ratfunc_projective D)] :
     Module.Finite Fq (RRSpace_ratfunc_projective (D + DivisorV2.single (linearPlace α) 1)) := by
-  -- Similar embedding argument, using deg(D) + 1 as the polynomial degree bound
-  sorry
+  let v := linearPlace (Fq := Fq) α
+  let big := RRSpace_ratfunc_projective (D + DivisorV2.single v 1)
+  let small := RRSpace_ratfunc_projective D
+
+  -- small ≤ big as submodules of RatFunc Fq
+  have hmono : small ≤ big := RRSpace_ratfunc_projective_mono Fq D α
+
+  -- LD := small viewed as a submodule of ↥big
+  let LD := small.comap big.subtype
+
+  -- Step 1: LD is Module.Finite (isomorphic to small which is finite by hD)
+  have h_range : small ≤ LinearMap.range big.subtype := by
+    rw [Submodule.range_subtype]; exact hmono
+  let e : LD ≃ₗ[Fq] small :=
+    Submodule.comap_equiv_self_of_inj_of_le (Submodule.injective_subtype big) h_range
+  haveI hLD : Module.Finite Fq LD := Module.Finite.equiv e.symm
+
+  -- Step 2: The quotient big/LD is Module.Finite
+  -- The quotient injects into κ(v) which has dimension 1
+
+  -- Build the projective evaluation map ψ : ↥big →ₗ[Fq] κ(v)
+  have h_proj_to_affine : ∀ f, f ∈ big →
+      f ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+    fun f hf => hf.1
+  let φ := evaluationMapAt_complete (R := Polynomial Fq) (K := RatFunc Fq) v D
+  let ψ : ↥big →ₗ[Fq] residueFieldAtPrime (Polynomial Fq) v := {
+    toFun := fun x => φ ⟨x.val, h_proj_to_affine x.val x.property⟩
+    map_add' := fun x y => by
+      have := φ.map_add ⟨x.val, h_proj_to_affine x.val x.property⟩
+          ⟨y.val, h_proj_to_affine y.val y.property⟩
+      convert this using 1 <;> rfl
+    map_smul' := fun c x => by
+      have h1 : (c • x).val = (algebraMap Fq (Polynomial Fq) c) • x.val :=
+        (IsScalarTower.algebraMap_smul (Polynomial Fq) c x.val).symm
+      have hmem : (algebraMap Fq (Polynomial Fq) c) • x.val ∈
+          RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+        Submodule.smul_mem _ _ (h_proj_to_affine x.val x.property)
+      have h2 : φ ⟨(algebraMap Fq (Polynomial Fq) c) • x.val, hmem⟩ =
+          (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := by
+        convert φ.map_smul (algebraMap Fq (Polynomial Fq) c) ⟨x.val, h_proj_to_affine x.val x.property⟩
+      have h3 : (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ =
+          c • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ :=
+        IsScalarTower.algebraMap_smul (Polynomial Fq) c _
+      simp only [RingHom.id_apply]
+      calc φ ⟨(c • x).val, h_proj_to_affine (c • x).val (c • x).property⟩
+          = φ ⟨(algebraMap Fq (Polynomial Fq) c) • x.val, hmem⟩ := by simp only [h1]
+        _ = (algebraMap Fq (Polynomial Fq) c) • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := h2
+        _ = c • φ ⟨x.val, h_proj_to_affine x.val x.property⟩ := h3
+  }
+
+  -- Show LD ≤ ker(ψ)
+  have hle := divisor_le_add_single D v
+  have h_LD_le_ker : LD ≤ LinearMap.ker ψ := by
+    intro x hx
+    rw [LinearMap.mem_ker]
+    rw [Submodule.mem_comap] at hx
+    have h_affine_mem : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := hx.1
+    have h_in_affine_Dv : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1) :=
+      RRModuleV2_mono_inclusion (Polynomial Fq) (RatFunc Fq) hle h_affine_mem
+    let y_affine : RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := ⟨x.val, h_affine_mem⟩
+    have hinc : (⟨x.val, h_in_affine_Dv⟩ : RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) =
+        Submodule.inclusion (RRModuleV2_mono_inclusion (Polynomial Fq) (RatFunc Fq) hle) y_affine := rfl
+    show ψ x = 0
+    simp only [ψ, LinearMap.coe_mk, AddHom.coe_mk]
+    have hx_eq : (⟨x.val, h_proj_to_affine x.val x.property⟩ :
+        RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) =
+        ⟨x.val, h_in_affine_Dv⟩ := rfl
+    rw [hx_eq, hinc]
+    exact LD_element_maps_to_zero v D y_affine
+
+  -- Show ker(ψ) ≤ LD
+  have h_ker_le_LD : LinearMap.ker ψ ≤ LD := by
+    intro x hx
+    rw [LinearMap.mem_ker] at hx
+    simp only [ψ, LinearMap.coe_mk, AddHom.coe_mk] at hx
+    have h_in_ker : (⟨x.val, h_proj_to_affine x.val x.property⟩ :
+        RRModuleV2_real (Polynomial Fq) (RatFunc Fq) (D + DivisorV2.single v 1)) ∈
+        LinearMap.ker φ := hx
+    rw [kernel_evaluationMapAt_complete_proof, LinearMap.mem_range] at h_in_ker
+    obtain ⟨y, hy⟩ := h_in_ker
+    rw [Submodule.mem_comap, Submodule.coe_subtype]
+    have hval : y.val = x.val := congrArg Subtype.val hy
+    have h_affine : x.val ∈ RRModuleV2_real (Polynomial Fq) (RatFunc Fq) D := by
+      rw [← hval]; exact y.property
+    have h_infty : x.val = 0 ∨ noPoleAtInfinity x.val := x.property.2
+    exact ⟨h_affine, h_infty⟩
+
+  -- LD = ker(ψ)
+  have h_eq_ker : LD = LinearMap.ker ψ := le_antisymm h_LD_le_ker h_ker_le_LD
+
+  -- κ(v) is finite-dimensional over Fq (dimension 1)
+  haveI hκv_finite : Module.Finite Fq (residueFieldAtPrime (Polynomial Fq) v) := by
+    have hfr : Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) v) = 1 :=
+      linearPlace_residue_finrank Fq α
+    have hpos : 0 < Module.finrank Fq (residueFieldAtPrime (Polynomial Fq) v) := by omega
+    exact Module.finite_of_finrank_pos hpos
+
+  -- The quotient big/LD injects into κ(v), so it's finite
+  haveI hquot : Module.Finite Fq (↥big ⧸ LD) := by
+    let desc := Submodule.liftQ LD ψ h_LD_le_ker
+    have h_desc_inj : Function.Injective desc := by
+      rw [← LinearMap.ker_eq_bot]
+      have hker := Submodule.ker_liftQ LD ψ h_LD_le_ker
+      rw [hker, h_eq_ker, Submodule.mkQ_map_self]
+    exact Module.Finite.of_injective desc h_desc_inj
+
+  -- Apply Module.Finite.of_submodule_quotient
+  exact Module.Finite.of_submodule_quotient LD
 
 /-! ## Zero Divisor Finiteness
 
