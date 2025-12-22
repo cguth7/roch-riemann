@@ -29,7 +29,7 @@ Full P¹ RR is mathematically trivial anyway - L(n·[0]) is spanned by {1, 1/X, 
 
 ## How It Was Built
 
-~241 cycles of Claude Code with some Gemini assistance. The human operator has no algebraic geometry background - navigation was done by reading AI "thinking traces" for emotional texture (hedging, frustration, circling) rather than mathematical content.
+~241 cycles of Claude Code with some Gemini assistance. The human operator has no algebraic geometry background - navigation was done by reading AI "thinking traces" for emotional texture (hedging, frustration, circling) rather than mathematical content. This was only done in cases where claude seemed to be struggling. Gemini turned out to be much better than chatgpt 5.2 as a coding guide for claude. Even flash 3 was better which is insane. Chatgpt is way to "ACKKTUALLY" about everything and claude isn't dynamic enough to work with the advice it gives. Gemini glazes but this is helpful because it's better to let claude cook unless it is on a horrible path, and gemini also seems to be a much better big picture thinker than claude or chatgpt (although on the other hand is extremely willing to paper over the details). 
 
 ## Build
 
